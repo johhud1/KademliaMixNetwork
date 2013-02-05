@@ -1,0 +1,4 @@
+data/kademlia/rpc.go.i
+data/kademlia/id.go.i
+data/kademlia/kademlia.go.i
+data/main/main.go.i

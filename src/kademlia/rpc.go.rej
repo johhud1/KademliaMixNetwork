@@ -1,0 +1,31 @@
+--- src/kademlia/rpc.go	2013-01-16 12:39:24.000000000 -0600
++++ src/kademlia/rpc.go	2013-01-28 16:54:59.641955357 -0600
+@@ -3,9 +3,20 @@
+ // strictly to these to be compatible with the reference implementation and
+ // other groups' code.
+ 
++import "net"
++
++
++// Host identification.
++type Contact struct {
++    NodeID ID
++    Host net.IP
++    Port uint16
++}
++
+ 
+ // PING
+ type Ping struct {
++    Sender Contact
+     MsgID ID
+ }
+ 
+@@ -22,6 +33,7 @@
+ 
+ // STORE
+ type StoreRequest struct {
++    Sender Contact
+     MsgID ID
+     Key ID
+     Value []byte
