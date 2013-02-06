@@ -22,6 +22,7 @@ func (cont *Contact) AsString() string {
 }
 
 
+
 /* PING
  * This RPC involves one node sending a PING message to another, which presumably replies with a PONG.
  * This has a two-fold effect: the recipient of the PING must update the bucket corresponding to the sender;
@@ -53,7 +54,9 @@ type Pong struct {
 
 func (k *Kademlia) Ping(ping Ping, pong *Pong) error {
 
-     //TODO: UPDATE BUCKET REGARDING ping.Sender and ping.MsgID
+     //UPDATE BUCKET REGARDING ping.Sender and ping.MsgID
+     Update(k, ping.Sender)
+
 
      //Pong needs to have the same msgID
      pong.MsgID = CopyID(ping.MsgID)
@@ -98,11 +101,13 @@ func (k *Kademlia) Store(req StoreRequest, res *StoreResult) error {
 
     ///Update contact information for the sender
     ///CHECK IF WE ACTUALLY NEED ΤΟ DO THAT (PUT A REFERENCE ON WHERE THIS IS SPECIFIED IN THE PAPER)
+    Update(k, req.Sender)
+
 
     res.MsgID = CopyID(req.MsgID)
 
     ///Try to store the data into a hash map
-    //data[req.Key] = req.Value
+    //k.Data[req.Key] = req.Value
     ///if the store fails create and error
     //if NO_MORE_SPACE {
     //	 res.Err = errors.New("No space to perform the store.")

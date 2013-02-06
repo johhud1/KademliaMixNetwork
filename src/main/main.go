@@ -18,12 +18,6 @@ import (
     "kademlia"
 )
 
-func assert(cond bool, msg string) {
-     if !cond {
-     	log.Println("assertion fail: ", msg, "\n")
-	panic(1)
-     }
-}
 
 /*
 IsPing bool//0-->1
@@ -60,7 +54,7 @@ func NewKademliaInstruction(s string) (kInst *KademliaInstruction) {
      kInst.Data = s
      switch strings.ToLower(strTokens[0]) {
      	    case "ping" :
-	    	 assert(len(strTokens) == 2, "Ping requires 1 argument")
+	    	 kademlia.Assert(len(strTokens) == 2, "Ping requires 1 argument")
 	    	 kInst.flags = 1;
 		 if strings.Contains(strTokens[1], ":") {
 		   kInst.Addr = strTokens[1]
@@ -70,23 +64,23 @@ func NewKademliaInstruction(s string) (kInst *KademliaInstruction) {
 	    case "exit" :
 	    	 kInst.flags = 2;
 	    case "store" :
-	    	 assert(len(strTokens) == 3, "Store requires 2 argument")
+	    	 kademlia.Assert(len(strTokens) == 3, "Store requires 2 argument")
 	    	 kInst.flags = 3;
 		 kInst.Key, err = kademlia.FromString(strTokens[1])
 		 kInst.Data = strTokens[2]
 	    case "find_node" :
-	    	 assert(len(strTokens) == 2, "FindNode requires 1 argument")
+	    	 kademlia.Assert(len(strTokens) == 2, "FindNode requires 1 argument")
 	    	 kInst.flags = 4;
 		 kInst.Key, err = kademlia.FromString(strTokens[1])
 	    case "find_value" :
-	    	 assert(len(strTokens) == 2, "FindValue requires 1 argument")
+	    	 kademlia.Assert(len(strTokens) == 2, "FindValue requires 1 argument")
 	    	 kInst.flags = 5;
 		 kInst.Key, err = kademlia.FromString(strTokens[1])
 	    case "get_node_id" :
-	    	 assert(len(strTokens) == 1, "GetNodeId requires 0 argument")
+	    	 kademlia.Assert(len(strTokens) == 1, "GetNodeId requires 0 argument")
 	    	 kInst.flags = 6;
 	    case "get_local_value" :
-	    	 assert(len(strTokens) == 2, "GetLocalValue requires 1 argument")
+	    	 kademlia.Assert(len(strTokens) == 2, "GetLocalValue requires 1 argument")
 	    	 kInst.flags = 7;
 		 kInst.Key, err = kademlia.FromString(strTokens[1])
     }
@@ -185,6 +179,28 @@ func main() {
     stdInReader := bufio.NewReader(os.Stdin)
     //input, _ := reader.ReadString('\n')
 
+    // Confirm our server is up with a PING request and then exit.
+    // Your code should loop forever, reading instructions from stdin and
+    // printing their results to stdout. See README.txt for more details.
+    client, err := rpc.DialHTTP("tcp", firstPeerStr)
+    if err != nil {
+        log.Fatal("DialHTTP: ", err)
+    }
+    ping := new(kademlia.Ping)
+    ping.MsgID = kademlia.NewRandomID()
+    ping.Sender = kademlia.GetNodeContactInfo(kadem)
+
+    var pong kademlia.Pong
+    err = client.Call("Kademlia.Ping", ping, &pong)
+    if err != nil {
+        log.Fatal("Call: ", err)
+    }
+
+    log.Printf("ping msgID: %s %s\n", ping.MsgID.AsString(), ping.Sender.AsString())
+    log.Printf("pong msgID: %s\n", pong.MsgID.AsString())
+
+
+
     var instStr string
     var inst *KademliaInstruction
     for ;; {
@@ -210,26 +226,5 @@ func main() {
 
     //finalizer()
 
-/*
-    // Confirm our server is up with a PING request and then exit.
-    // Your code should loop forever, reading instructions from stdin and
-    // printing their results to stdout. See README.txt for more details.
-    client, err := rpc.DialHTTP("tcp", firstPeerStr)
-    if err != nil {
-        log.Fatal("DialHTTP: ", err)
-    }
-    ping := new(kademlia.Ping)
-    ping.MsgID = kademlia.NewRandomID()
-    ping.Sender = kademlia.GetNodeContactInfo(kadem)
-
-    var pong kademlia.Pong
-    err = client.Call("Kademlia.Ping", ping, &pong)
-    if err != nil {
-        log.Fatal("Call: ", err)
-    }
-
-    log.Printf("ping msgID: %s %s\n", ping.MsgID.AsString(), ping.Sender.AsString())
-    log.Printf("pong msgID: %s\n", pong.MsgID.AsString())
-    */
 }
 

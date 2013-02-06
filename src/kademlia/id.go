@@ -60,6 +60,10 @@ func (id ID) PrefixLen() int {
     return IDBytes * 8
 }
 
+func (id ID) distance(id2 ID) int {
+     return (id.Xor(id2)).PrefixLen()
+}
+
 
 // Generate a new ID from nothing.
 func NewRandomID() (ret ID) {
