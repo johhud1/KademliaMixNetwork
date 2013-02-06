@@ -203,8 +203,8 @@ func main() {
 	   break;
 	}
 
-	inst.Execute()
 	//execute new instruction
+	inst.Execute()
 
     }
 

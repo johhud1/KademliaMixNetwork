@@ -53,7 +53,7 @@ type Pong struct {
 
 func (k *Kademlia) Ping(ping Ping, pong *Pong) error {
 
-     //TODO: UPDATA BUCKET REGARDING ping.NodeID
+     //TODO: UPDATE BUCKET REGARDING ping.Sender and ping.MsgID
 
      //Pong needs to have the same msgID
      pong.MsgID = CopyID(ping.MsgID)
@@ -186,8 +186,8 @@ func (k *Kademlia) FindValue(req FindValueRequest, res *FindValueResult) error {
     //search for the value
     //res.Value = data[req.Key]
 
-    if res.Value == nil {//you need to perform a FindNode
-       
+    if res.Value == nil {
+       //behave as a FindNode
     }
 
     res.MsgID = CopyID(req.MsgID)
