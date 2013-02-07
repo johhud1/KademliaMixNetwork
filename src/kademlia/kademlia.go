@@ -109,7 +109,6 @@ func Update(k *Kademlia, triplet Contact) (success bool, err error) {
 	
 	//find distance
 	dist = k.ContactInfo.NodeID.Distance(triplet.NodeID)
-	Assert(dist > 0, "distance error")//maybe we also need to check for <= 2*160
 	
 	//search kbucket and return pointer to the Triplet
 	exists, tripletP = k.Buckets[dist].Search(triplet.NodeID)

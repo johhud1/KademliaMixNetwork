@@ -13,6 +13,7 @@ import (
 	"os"
 	"bufio"
 	"container/list"
+	"fmt"
 )
 
 import (
@@ -153,10 +154,15 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 		
 	case kInst.IsGetNodeID() :
 	     	log.Printf("Executing GetNodeID Instruction\n");
-		
+		fmt.Printf("Local Node ID: %s\n", k.ContactInfo.NodeID.AsString())
 	case kInst.IsGetLocalValue() :
 	     	log.Printf("Executing GetLocalValue Instruction\n");
-		
+		var localValue []byte = k.HashMap[kInst.Key]
+		if localValue != nil {
+			fmt.Printf("Value for key %s --> %s\n", kInst.Key.AsString(), string(localValue))
+		} else {
+			fmt.Printf("Value for Key %s NOT found\n", kInst.Key.AsString())
+		}
 	case kInst.IsSkip() :
 	     	log.Printf("Executing Skip Instruction: _%s_\n", kInst.Data);
 	}
