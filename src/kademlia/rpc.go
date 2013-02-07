@@ -2,26 +2,44 @@ package kademlia
 // Contains definitions mirroring the Kademlia spec. You will need to stick
 // strictly to these to be compatible with the reference implementation and
 // other groups' code.
-
+	
 import (
-       "log"
-       "net"
-       "strconv"
+	"log"
+	"net"
+	"strconv"
 )
 
 // Host identification.
 type Contact struct {
-     NodeID ID
-     Host net.IP
-     Port uint16
+	NodeID ID
+	Host net.IP
+	Port uint16
 }
 
 func (cont *Contact) AsString() string {
-     //REVIEW: this function is mainly for debuggin and there may be a better format for the returned string
-     return cont.NodeID.AsString() + "_" + cont.Host.String() + "_" + strconv.FormatInt(int64(cont.Port), 10)
+	//REVIEW: this function is mainly for debuggin and there may be a better format for the returned string
+	return cont.NodeID.AsString() + "_" + cont.Host.String() + "_" + strconv.FormatInt(int64(cont.Port), 10)
 }
 
 
+func NewContact(AddrStr string) (Contact) {
+	var err error
+	var nodeID ID
+	var host net.IP
+	var port uint16
+	
+	nodeID = NewRandomID()
+	host, port, err = AddrStrToHostPort(AddrStr)
+	
+	if err != nil {
+     		//FIXME
+	}
+	return Contact{nodeID, host, port}
+}
+
+func CopyContact(c *Contact) (Contact) {
+	return Contact{c.NodeID, c.Host, c.Port}
+}
 
 /* PING
  * This RPC involves one node sending a PING message to another, which presumably replies with a PONG.
@@ -44,26 +62,26 @@ func (cont *Contact) AsString() string {
  * 
  */
 type Ping struct {
-     Sender Contact
-     MsgID ID
+	Sender Contact
+	MsgID ID
 }
 
 type Pong struct {
-     MsgID ID
+	MsgID ID
 }
 
 func (k *Kademlia) Ping(ping Ping, pong *Pong) error {
-
-     //UPDATE BUCKET REGARDING ping.Sender and ping.MsgID
-     Update(k, ping.Sender)
-
-
-     //Pong needs to have the same msgID
-     pong.MsgID = CopyID(ping.MsgID)
-
-     log.Printf("Ping --> MsgID: %s, SenderID: %s\n", ping.MsgID.AsString(), ping.Sender.NodeID.AsString())
-     
-     return nil
+	log.Printf("Ping --> MsgID: %s, SenderID: %s\n", ping.MsgID.AsString(), ping.Sender.NodeID.AsString())
+	
+	//UPDATE BUCKET REGARDING ping.Sender and ping.MsgID
+	Update(k, ping.Sender)
+	
+	
+	//Pong needs to have the same msgID
+	pong.MsgID = CopyID(ping.MsgID)
+	
+	
+	return nil
 }
 
 
@@ -85,35 +103,36 @@ func (k *Kademlia) Ping(ping Ping, pong *Pong) error {
  *
  */
 type StoreRequest struct {
-     Sender Contact //ID of the sender
-     MsgID ID  
-     Key ID
-     Value []byte
+	Sender Contact //ID of the sender
+	MsgID ID  
+	Key ID
+	Value []byte
 }
 
 type StoreResult struct {
-    MsgID ID
-    Err error
+	MsgID ID
+	Err error
 }
 
+
 func (k *Kademlia) Store(req StoreRequest, res *StoreResult) error {
-    // TODO: Implement.
-
-    ///Update contact information for the sender
-    ///CHECK IF WE ACTUALLY NEED ΤΟ DO THAT (PUT A REFERENCE ON WHERE THIS IS SPECIFIED IN THE PAPER)
-    Update(k, req.Sender)
-
-
-    res.MsgID = CopyID(req.MsgID)
-
-    ///Try to store the data into a hash map
-    //k.Data[req.Key] = req.Value
-    ///if the store fails create and error
-    //if NO_MORE_SPACE {
-    //	 res.Err = errors.New("No space to perform the store.")
-    //}
+	// TODO: Implement.
+	
+	///Update contact information for the sender
+	///CHECK IF WE ACTUALLY NEED ΤΟ DO THAT (PUT A REFERENCE ON WHERE THIS IS SPECIFIED IN THE PAPER)
+		Update(k, req.Sender)
+	
+	
+	res.MsgID = CopyID(req.MsgID)
+	
+	///Try to store the data into a hash map
+	k.HashMap[CopyID(req.Key)] = req.Value
+	///if the store fails create and error
+	//if NO_MORE_SPACE {
+	//	 res.Err = errors.New("No space to perform the store.")
+	//}
  
-    return nil
+	return nil
 }
 
 
@@ -133,34 +152,34 @@ func (k *Kademlia) Store(req StoreRequest, res *StoreResult) error {
  *
  */
 type FindNodeRequest struct {
-    Sender Contact
-    MsgID ID
-    NodeID ID
+	Sender Contact
+	MsgID ID
+	NodeID ID
 }
 
 type FoundNode struct {
-    IPAddr string
-    Port uint16
-    NodeID ID
+	IPAddr string
+	Port uint16
+	NodeID ID
 }
 
 type FindNodeResult struct {
-    MsgID ID
-    Nodes []FoundNode
-    Err error
+	MsgID ID
+	Nodes []FoundNode
+	Err error
 }
 
 func (k *Kademlia) FindNode(req FindNodeRequest, res *FindNodeResult) error {
-
-    ///TODO: Look into the local kbuckets and fetch k triplets if at all possible
-    ///      tiplets should not include the sender's contact info 
-
-
-    res.MsgID = CopyID(req.NodeID)
-
-    ///REVIEW: What kind of error can happen in this function?
-
-    return nil
+	
+	///TODO: Look into the local kbuckets and fetch k triplets if at all possible
+	///      tiplets should not include the sender's contact info 
+	
+	
+	res.MsgID = CopyID(req.NodeID)
+	
+	///REVIEW: What kind of error can happen in this function?
+	
+	return nil
 }
 
 
@@ -171,34 +190,33 @@ func (k *Kademlia) FindNode(req FindNodeRequest, res *FindNodeResult) error {
  *
  */
 type FindValueRequest struct {
-    Sender Contact
-    MsgID ID
-    Key ID
+	Sender Contact
+	MsgID ID
+	Key ID
 }
 
 // If Value is nil, it should be ignored, and Nodes means the same as in a
 // FindNodeResult.
 type FindValueResult struct {
-    MsgID ID
-    Value []byte
-    Nodes []FoundNode
+	MsgID ID
+	Value []byte
+	Nodes []FoundNode
     Err error
 }
 
 func (k *Kademlia) FindValue(req FindValueRequest, res *FindValueResult) error {
-    // TODO: Implement.
-
-    //search for the value
-    //res.Value = data[req.Key]
-
-    if res.Value == nil {
-       //behave as a FindNode
-    }
-
-    res.MsgID = CopyID(req.MsgID)
-
-    //REVIEW: What kind of error can happen in this function?
-    
-    return nil
+	// TODO: Implement.	
+	//search for the value
+	//res.Value = data[req.Key]
+		
+	if res.Value == nil {
+		//behave as a FindNode
+	}
+	
+	res.MsgID = CopyID(req.MsgID)
+	
+	//REVIEW: What kind of error can happen in this function?
+	
+	return nil
 }
 

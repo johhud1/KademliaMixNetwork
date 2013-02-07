@@ -1,47 +1,53 @@
 package kademlia
 
 import (
-       "container/list"
+	"container/list"
+	"log"
 )
 
 
 type K_Bucket struct {
-     l *list.List
+	l *list.List
 }
 
 
-func NewK_Bucket(kadem *Kademlia) (*K_Bucket) {
-     
-     b := new(K_Bucket)
-     
-     b.l = list.New()
-
-     return b
+//func NewK_Bucket(kadem *Kademlia) (*K_Bucket) {
+func NewK_Bucket() (*K_Bucket) {
+	
+	//log.Printf("NewK_Bucket\n")
+	b := new(K_Bucket)
+	
+	b.l = list.New()
+	
+	return b
 }
 
 
 func (kb *K_Bucket) IsFull() bool {
-     Assert(kb.l.Len() <= KConst, "Bucket is more than full.")
-     return     kb.l.Len() == KConst
+	Assert(kb.l.Len() <= KConst, "Bucket is more than full.")
+	return     kb.l.Len() == KConst
 }
 
 /*
-	Search the callee kbucket for a triplet with the given node id
-	if found returns true and a pointer to the triplet
-	else returns false and nil
-*/
+ Search the callee kbucket for a triplet with the given node id
+ if found returns true and a pointer to the triplet
+ else returns false and nil
+ */
 func (kb *K_Bucket) Search(NodeID ID) (bool, *list.Element) {
-
-     for e := kb.l.Front(); e != nil; e = e.Next() {
-    	 if e.Value.(*Contact).NodeID == NodeID {
-	    return true, e
-	 }
-     }
-     return false, nil
+	log.Printf("Search, %s\n", NodeID.AsString())
+	
+	Assert(kb.l != nil, "Assert list != nil")
+	
+	for e := kb.l.Front(); e != nil; e = e.Next() {
+    		if e.Value.(*Contact).NodeID == NodeID {
+			return true, e
+		}
+	}
+	return false, nil
 }
 
 func (kb *K_Bucket) MoveToTail(tripletP *list.Element) {
-     kb.l.MoveToBack(tripletP)
+	kb.l.MoveToBack(tripletP)
 }
 
 func (kb *K_Bucket) AddToTail(tripletP *Contact) {
@@ -49,5 +55,5 @@ func (kb *K_Bucket) AddToTail(tripletP *Contact) {
 }
 
 func (kb *K_Bucket) Drop(tripletP *list.Element) {
-     kb.l.Remove(tripletP)
+	kb.l.Remove(tripletP)
 }

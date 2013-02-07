@@ -1,12 +1,13 @@
 package kademlia
 
 import (
-       "log"
+	"log"
+	"os"
 )
 
 func Assert(cond bool, msg string) {
-     if !cond {
-     	log.Println("assertion fail: ", msg, "\n")
-	panic(1)
-     }
+	if !cond {
+     		log.Println("assertion fail: ", msg, "\n")
+		os.Exit(1)
+	}
 }
