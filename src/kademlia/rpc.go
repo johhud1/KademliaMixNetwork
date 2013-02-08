@@ -21,6 +21,16 @@ func (cont *Contact) AsString() string {
 	return cont.NodeID.AsString() + "_" + cont.Host.String() + "_" + strconv.FormatInt(int64(cont.Port), 10)
 }
 
+func (cont *Contact) ContactToFoundNode() (fn *FoundNode) {
+	var fn *FoundNode = new(FoundNode)
+
+	fn.NodeID = CopyID(cont.NodeID)
+	fn.IPAddr = cont.Host
+	fn.Port = cont.Port
+
+	return fn
+}
+
 
 func NewContact(AddrStr string) (Contact) {
 	var err error
@@ -120,7 +130,7 @@ func (k *Kademlia) Store(req StoreRequest, res *StoreResult) error {
 	
 	///Update contact information for the sender
 	///CHECK IF WE ACTUALLY NEED ΤΟ DO THAT (PUT A REFERENCE ON WHERE THIS IS SPECIFIED IN THE PAPER)
-		Update(k, req.Sender)
+	Update(k, req.Sender)
 	
 	
 	res.MsgID = CopyID(req.MsgID)
@@ -170,17 +180,42 @@ type FindNodeResult struct {
 }
 
 func (k *Kademlia) FindNode(req FindNodeRequest, res *FindNodeResult) error {
-	
+	var err error
 	///TODO: Look into the local kbuckets and fetch k triplets if at all possible
 	///      tiplets should not include the sender's contact info 
-	
+	var dist int = k.ContanctInfo.NodeID.Distance(req.Sender.NodeID)
+	res.Nodes, err = FindKClosest(k, dist)
 	
 	res.MsgID = CopyID(req.NodeID)
 	
 	///REVIEW: What kind of error can happen in this function?
 	
-	return nil
+	return err
 }
+
+
+func FindKClosest(k *Kademlia, dist int) *list.List, error {
+	var curBucket int = dist
+	var nodesFoundSoFar *list.List
+
+	nodesFoundSoFar = list.New()
+
+
+	for ; currBucket > 0; {
+		kb := k.Buckets[curBucket]
+		for e := kb.l.Front(); e != nil; e = e.Next() {
+			if numElements == kademlia.KConst {
+				return nodesFoundSoFar, nil
+			}
+			nodesFoundSoFar.PushBack(ContactToFoundNode(e.Value.(*Contact)))
+			numElements++
+		}
+		curBucket--
+	}
+
+	return nodesFoundSoFar, nil
+}
+
 
 
 /* FIND_VALUE
@@ -208,8 +243,9 @@ func (k *Kademlia) FindValue(req FindValueRequest, res *FindValueResult) error {
 	// TODO: Implement.	
 	//search for the value
 	//res.Value = data[req.Key]
-		
-	if res.Value == nil {
+	
+	res.Value, found = k.HashMap[req.Key]
+	if found {
 		//behave as a FindNode
 	}
 	

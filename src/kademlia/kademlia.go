@@ -14,7 +14,7 @@ import (
 
 
 const KConst = 20
-
+const AConst = 3
 
 // Core Kademlia type. You can put whatever state you want in this.
 type Kademlia struct {

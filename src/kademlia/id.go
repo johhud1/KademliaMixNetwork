@@ -14,7 +14,8 @@ const IDBytes = 20
 type ID [IDBytes]byte
 
 func (id ID) AsString() string {
-	return hex.EncodeToString(id[0:])
+	return hex.EncodeToString(id[0:
+])
 }
 
 func (id ID) Xor(other ID) (ret ID) {
@@ -63,9 +64,9 @@ func (id ID) PrefixLen() int {
 
 func (id ID) Distance(id2 ID) (dist int) {
 	//REVIEW: is the correct distance 160-NumberOfPrefixZeros?
-	dist = 160 - (id.Xor(id2)).PrefixLen()
+	dist = 159 - (id.Xor(id2)).PrefixLen()
 	log.Printf("distance: %s ^ %s = %d\n", id.AsString(), id2.AsString(), dist)
-	Assert(dist > 0 && dist < 160, "distance error")
+	Assert(dist >= 0 && dist < 160, "distance error")
 	return dist
 }
 
