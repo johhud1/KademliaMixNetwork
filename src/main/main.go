@@ -157,8 +157,8 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 		fmt.Printf("Local Node ID: %s\n", k.ContactInfo.NodeID.AsString())
 	case kInst.IsGetLocalValue() :
 	     	log.Printf("Executing GetLocalValue Instruction\n");
-		var localValue []byte = k.HashMap[kInst.Key]
-		if localValue != nil {
+		localValue, found := k.HashMap[kInst.Key]
+		if found {
 			fmt.Printf("Value for key %s --> %s\n", kInst.Key.AsString(), string(localValue))
 		} else {
 			fmt.Printf("Value for Key %s NOT found\n", kInst.Key.AsString())
@@ -187,7 +187,7 @@ func main() {
 	
 	log.Printf("First Peer: %s\n", firstPeerStr);
 	
-    kadem := kademlia.NewKademlia(listenStr)
+	kadem := kademlia.NewKademlia(listenStr)
 	
 	rpc.Register(kadem)
 	rpc.HandleHTTP()
@@ -224,6 +224,15 @@ func main() {
 	 log.Printf("pong msgID: %s\n", pong.MsgID.AsString())
 	 */
 	
+
+	//REMOVE: this is just to check if the map is working
+	tmpKey, _ := kademlia.FromString("abcd")
+	var tmpVal []byte = make([]byte, 3)
+	tmpVal[0] = 'f'
+	tmpVal[1] = 'o'
+	tmpVal[2] = 'o'
+	kadem.HashMap[tmpKey] = tmpVal
+	//~REMOVE
 	
 	var instStr string
 	var inst *KademliaInstruction

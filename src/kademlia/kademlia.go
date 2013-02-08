@@ -35,6 +35,7 @@ func NewKademlia(listenStr string) *Kademlia {
      		k.Buckets[i] = NewK_Bucket()
 	}
 	
+	k.HashMap = make(map[ID][]byte, 100)
 	
 	//Assign ID to currect node
 	///read from configuration file or create random (as the paper suggests we may

@@ -14,7 +14,7 @@ const IDBytes = 20
 type ID [IDBytes]byte
 
 func (id ID) AsString() string {
-	return hex.EncodeToString(id[0:IDBytes])
+	return hex.EncodeToString(id[0:])
 }
 
 func (id ID) Xor(other ID) (ret ID) {
@@ -90,10 +90,13 @@ func CopyID(id ID) (ret ID) {
 func FromString(idstr string) (ret ID, err error) {
 	bytes, err := hex.DecodeString(idstr)
 	if err != nil {
+		log.Printf("Error: FromString, %s\n", err)
 		return
 	}
-	
-	for i := 0; i < IDBytes; i++ {
+
+	//REVIEW: I changed the limit of the for to len(bytes) instead of IDBytes so that it would accept strings of arbitrary length
+	//Assert(len(bytes) == IDBytes, "FromString len!=IDBytes")
+	for i := 0; i < len(bytes); i++ {
 		ret[i] = bytes[i]
 	}
 	return
