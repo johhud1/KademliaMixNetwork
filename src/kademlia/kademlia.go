@@ -149,3 +149,45 @@ func Update(k *Kademlia, triplet Contact) (success bool, err error) {
 	
 	return false, errors.New("Update failure, FIXME:FIND REASON\n")
 }
+
+func iterativeFindNode(k *Kademlia, NodeID ID) ([]FoundNode, error) {
+	var shortList *list.List //shortlist is the list we are going to return
+	var sendList *list.List //sendList is to remember the nodes we've send rpcs 
+	var closestNode ID
+
+	shortList = list.New()
+	sendList = list.New()
+
+	kClosestArray, err := findKClosest(k, NodeID)
+	//select alpha from local closest k and add them to shortList
+	for i:=0; i < AConst; i++ {
+		shortList.PushBack(&kClosestArray[i])
+	}
+
+	for ; stillProgress && shortList.Len() < KConst; {
+		for i:=0;i < AConst && shortList.Len() > 0; i++ {
+			//WORK
+			//IN
+			//PROGRESS
+			//select from shortlist alpha nodes that we haven't already contacted
+			
+			//send findNode RPC to each
+			
+			//add to sendList so we know who we have probed
+
+			//Loop over reply, if a contact is closer than something in the short list, replace it
+
+			//maintain a max of k things in the shortlist
+
+			
+
+		}
+
+	//if node fails to reply we remove it from the shortlist (this requires that rpc calls are called with a timeout)
+
+	//take all the replies and add to the shortlist
+
+	}
+
+	
+}

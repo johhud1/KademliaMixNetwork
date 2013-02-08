@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"strconv"
+	"container/list"
 )
 
 // Host identification.
@@ -22,10 +23,10 @@ func (cont *Contact) AsString() string {
 }
 
 func (cont *Contact) ContactToFoundNode() (fn *FoundNode) {
-	var fn *FoundNode = new(FoundNode)
+	fn = new(FoundNode)
 
 	fn.NodeID = CopyID(cont.NodeID)
-	fn.IPAddr = cont.Host
+	fn.IPAddr = cont.Host.String()
 	fn.Port = cont.Port
 
 	return fn
@@ -181,11 +182,9 @@ type FindNodeResult struct {
 
 func (k *Kademlia) FindNode(req FindNodeRequest, res *FindNodeResult) error {
 	var err error
-	///TODO: Look into the local kbuckets and fetch k triplets if at all possible
-	///      tiplets should not include the sender's contact info 
-	var dist int = k.ContanctInfo.NodeID.Distance(req.Sender.NodeID)
-	res.Nodes, err = FindKClosest(k, dist)
-	
+
+	res.Nodes, err = FindKClosest(k, req.Sender.NodeID, req.Sender.NodeID)
+
 	res.MsgID = CopyID(req.NodeID)
 	
 	///REVIEW: What kind of error can happen in this function?
@@ -194,26 +193,37 @@ func (k *Kademlia) FindNode(req FindNodeRequest, res *FindNodeResult) error {
 }
 
 
-func FindKClosest(k *Kademlia, dist int) *list.List, error {
-	var curBucket int = dist
+func FindKClosest(k *Kademlia, remoteID ID, excludeID ID) ([]FoundNode, error) {
+	///TODO: Look into the local kbuckets and fetch k triplets if at all possible
+	///      tiplets should not include the sender's contact info 
+	var curBucket int = k.ContactInfo.NodeID.Distance(remoteID)
 	var nodesFoundSoFar *list.List
 
 	nodesFoundSoFar = list.New()
 
 
-	for ; currBucket > 0; {
+	for ; curBucket > 0 || nodesFoundSoFar.Len() == KConst; {
 		kb := k.Buckets[curBucket]
 		for e := kb.l.Front(); e != nil; e = e.Next() {
-			if numElements == kademlia.KConst {
-				return nodesFoundSoFar, nil
+			if nodesFoundSoFar.Len() == KConst {
+				break
 			}
-			nodesFoundSoFar.PushBack(ContactToFoundNode(e.Value.(*Contact)))
-			numElements++
+			if 0 != e.Value.(*Contact).NodeID.Compare(excludeID) {
+				nodesFoundSoFar.PushBack(e.Value.(*Contact).ContactToFoundNode())
+			}
 		}
 		curBucket--
 	}
 
-	return nodesFoundSoFar, nil
+	var listOfNodes []FoundNode = make([]FoundNode, nodesFoundSoFar.Len())
+	var i int = 0
+	for e := nodesFoundSoFar.Front(); e != nil; e = e.Next() {
+		listOfNodes[i] = *(e.Value.(*FoundNode))
+		i++
+	}
+
+
+	return listOfNodes, nil
 }
 
 
@@ -240,19 +250,20 @@ type FindValueResult struct {
 }
 
 func (k *Kademlia) FindValue(req FindValueRequest, res *FindValueResult) error {
+	var err error
 	// TODO: Implement.	
 	//search for the value
 	//res.Value = data[req.Key]
-	
+	var found bool
 	res.Value, found = k.HashMap[req.Key]
-	if found {
-		//behave as a FindNode
+	if !found {
+		res.Nodes, err = FindKClosest(k, req.Key, req.Sender.NodeID)
 	}
 	
 	res.MsgID = CopyID(req.MsgID)
 	
 	//REVIEW: What kind of error can happen in this function?
 	
-	return nil
+	return err
 }
 
