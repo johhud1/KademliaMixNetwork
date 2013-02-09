@@ -182,6 +182,8 @@ type FindNodeResult struct {
 
 func (k *Kademlia) FindNode(req FindNodeRequest, res *FindNodeResult) error {
 	var err error
+	Update(k, req.Sender)
+
 
 	res.Nodes, err = FindKClosest(k, req.Sender.NodeID, req.Sender.NodeID)
 
@@ -252,6 +254,8 @@ type FindValueResult struct {
 func (k *Kademlia) FindValue(req FindValueRequest, res *FindValueResult) error {
 	var err error
 	// TODO: Implement.	
+	Update(k, req.Sender)
+
 	//search for the value
 	//res.Value = data[req.Key]
 	var found bool

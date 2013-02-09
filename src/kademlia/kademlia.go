@@ -98,6 +98,31 @@ func MakePingCall(localContact *Contact, remoteContact *Contact) bool {
 	return true
 } 
 
+func MakeFindNodeCall(localContact *Contact, remoteContact *Contact) ([]FoundNode, bool) {
+	log.Printf("MakeFindNodeCall: From %s --> To %s\n", localContact.AsString(), remoteContact.AsString())
+	fnRequest := new(FindNodeRequest)
+	fnRequest.MsgID = NewRandomID()
+	fnRequest.Sender = CopyContact(localContact)
+	fnRequest.NodeID = CopyID(remoteContact.NodeID)
+	
+	fnResult := new(FindNodeResult)
+	
+	var remoteAddrStr string = remoteContact.Host.String() + ":" + strconv.Itoa(int(remoteContact.Port))
+	client, err := rpc.DialHTTP("tcp", remoteAddrStr)
+	if err != nil {
+     		log.Printf("Error: MakeFindNodeCall, DialHTTP, %s\n", err)
+     		return nil, false
+	}
+	
+	err = client.Call("Kademlia.FindNode", fnRequest, &fnResult)
+	if err != nil {
+     		log.Printf("Error: MakeFindNodeCall, Call, %s\n", err)
+     		return nil, false
+	}
+	
+	return fnResult.Nodes, true
+} 
+
 
 
 func Update(k *Kademlia, triplet Contact) (success bool, err error) {
@@ -150,44 +175,56 @@ func Update(k *Kademlia, triplet Contact) (success bool, err error) {
 	return false, errors.New("Update failure, FIXME:FIND REASON\n")
 }
 
-func iterativeFindNode(k *Kademlia, NodeID ID) ([]FoundNode, error) {
+func iterativeFind(k *Kademlia, searchID ID, findType int) ([]FoundNode, []byte, error) {
 	var shortList *list.List //shortlist is the list we are going to return
 	var sendList *list.List //sendList is to remember the nodes we've send rpcs 
-	var closestNode ID
+	var liveList *list.List
+	//var closestNode ID
+	var localContact *Contact = &(k.ContactInfo)
+
 
 	shortList = list.New()
 	sendList = list.New()
+	liveList = list.New()
 
-	kClosestArray, err := findKClosest(k, NodeID)
+	kClosestArray, err := FindKClosest(k, searchID, localContact.NodeID)
+	if err != nil {
+		Assert(false, "Kill yourself and fix me")
+	}
+
 	//select alpha from local closest k and add them to shortList
 	for i:=0; i < AConst; i++ {
 		shortList.PushBack(&kClosestArray[i])
 	}
 
-	for ; stillProgress && shortList.Len() < KConst; {
+	var stillProgress bool = false
+	for ; stillProgress && liveList.Len() < KConst; {
 		for i:=0;i < AConst && shortList.Len() > 0; i++ {
-			//WORK
-			//IN
-			//PROGRESS
-			//select from shortlist alpha nodes that we haven't already contacted
-			
-			//send findNode RPC to each
-			
-			//add to sendList so we know who we have probed
-
-			//Loop over reply, if a contact is closer than something in the short list, replace it
-
-			//maintain a max of k things in the shortlist
-
-			
-
+			//pop first node of the list
+			foundNodeTriplet := shortList.Remove(shortList.Front())
+			//send rpc
+			if findType == 1 {//FindNode
+				
+			} else if findType == 2 {//FindValue
+				
+			} else {
+				Assert(false, "Unknown case")
+			}
+			//put to sendList
+			sendList.PushBack(foundNodeTriplet)
 		}
+		
+		//wait for reply
 
-	//if node fails to reply we remove it from the shortlist (this requires that rpc calls are called with a timeout)
-
-	//take all the replies and add to the shortlist
+		//if reply
+		/// remove from sendList
+		/// put to liveList
+		/// go through the returned FoundNodes
+		//// if it is the answer return it
+		//// else 
+		///// check if it has already been probed and if not try to find if you can find a node at shortlist to replace with it
 
 	}
 
-	
+	return nil, nil, nil
 }
