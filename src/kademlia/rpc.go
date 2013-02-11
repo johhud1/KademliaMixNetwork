@@ -31,7 +31,13 @@ func (cont *Contact) ContactToFoundNode() (fn *FoundNode) {
 
 	return fn
 }
-
+func (fn *FoundNode) FoundNodeToContact() (c *Contact){
+	c = new(Contact)
+	c.NodeID = CopyID(fn.NodeID)
+	c.Host = net.ParseIP(fn.IPAddr)
+	c.Port = fn.Port
+	return c
+}
 
 func NewContact(AddrStr string) (Contact) {
 	var err error
@@ -167,7 +173,7 @@ type FindNodeRequest struct {
 	MsgID ID
 	NodeID ID
 }
-
+//TODO: Why we have FoundNode and Contact, they seem to hold the exact same info. Can we remove one?
 type FoundNode struct {
 	IPAddr string
 	Port uint16

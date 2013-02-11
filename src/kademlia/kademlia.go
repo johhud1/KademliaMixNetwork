@@ -23,7 +23,6 @@ type Kademlia struct {
 	ContactInfo Contact
 }
 
-
 func NewKademlia(listenStr string) *Kademlia {
 	// TODO: Assign yourself a random ID and prepare other state here.
 	
@@ -97,8 +96,8 @@ func MakePingCall(localContact *Contact, remoteContact *Contact) bool {
 	
 	return true
 } 
-
-func MakeFindNodeCall(localContact *Contact, remoteContact *Contact) ([]FoundNode, bool) {
+//Makes a FindNodeCall on remoteContact. returns list of KClosest nodes on that contact, and the id of the remote node
+func MakeFindNodeCall(localContact *Contact, remoteContact *Contact, NodeChan chan *FindNodeResult) (*FindNodeResult, bool) {
 	log.Printf("MakeFindNodeCall: From %s --> To %s\n", localContact.AsString(), remoteContact.AsString())
 	fnRequest := new(FindNodeRequest)
 	fnRequest.MsgID = NewRandomID()
@@ -119,12 +118,13 @@ func MakeFindNodeCall(localContact *Contact, remoteContact *Contact) ([]FoundNod
      		log.Printf("Error: MakeFindNodeCall, Call, %s\n", err)
      		return nil, false
 	}
-	
-	return fnResult.Nodes, true
-} 
+
+	NodeChan <- fnResult
+	return fnResult, true
+}
 
 
-
+//Call Update on Contact whenever you communicate successfully 
 func Update(k *Kademlia, triplet Contact) (success bool, err error) {
 	
 	
@@ -179,7 +179,7 @@ func iterativeFind(k *Kademlia, searchID ID, findType int) ([]FoundNode, []byte,
 	var shortList *list.List //shortlist is the list we are going to return
 	var sendList *list.List //sendList is to remember the nodes we've send rpcs 
 	var liveList *list.List
-	//var closestNode ID
+	var closestNode *FoundNode
 	var localContact *Contact = &(k.ContactInfo)
 
 
@@ -194,18 +194,28 @@ func iterativeFind(k *Kademlia, searchID ID, findType int) ([]FoundNode, []byte,
 
 	//select alpha from local closest k and add them to shortList
 	for i:=0; i < AConst; i++ {
-		shortList.PushBack(&kClosestArray[i])
+		newNode := &kClosestArray[i]
+		shortList.PushBack(newNode)
+		if closestNode != nil{
+		    curClosestDist := localContact.NodeID.Distance(closestNode.NodeID)
+		    compareDist := localContact.NodeID.Distance(newNode.NodeID)
+		    if compareDist < curClosestDist{
+			closestNode = newNode
+		    }
+		}
 	}
 
 	var stillProgress bool = false
+	NodeChan := make(chan *FindNodeResult, AConst)
 	for ; stillProgress && liveList.Len() < KConst; {
 		for i:=0;i < AConst && shortList.Len() > 0; i++ {
 			//pop first node of the list
-			foundNodeTriplet := shortList.Remove(shortList.Front())
+			foundNodeTriplet := shortList.Remove(shortList.Front()).(*FoundNode)
 			//send rpc
 			if findType == 1 {//FindNode
-				
-			} else if findType == 2 {//FindValue
+			    //will this work? foundNodeTriplet is a foundNode, makeFindNodeCall takes contacts ...
+			    go MakeFindNodeCall(localContact, foundNodeTriplet.FoundNodeToContact(), NodeChan)
+			} else if findType == 2 {//
 				
 			} else {
 				Assert(false, "Unknown case")
@@ -213,8 +223,21 @@ func iterativeFind(k *Kademlia, searchID ID, findType int) ([]FoundNode, []byte,
 			//put to sendList
 			sendList.PushBack(foundNodeTriplet)
 		}
-		
+	
 		//wait for reply
+		for i:=0; i<AConst ; i++{
+		    findNodeResponse := <- NodeChan	
+		    if findNodeResponse == nil || findNodeResponse.Err != nil{
+			log.Printf("Error: get back bad findNoddeResponse %s\n", err)
+			break
+		    }
+		    //insertInLiveList(findNodeResponse, &liveList)
+		    //distance := localContact.NodeID.Distance(findNodeResponse.FromNode)
+		    //if distance < localContact.NodeID.Distance(closestNode.NodeID){
+			//closestNode = findNodeResponse.FromNode
+		    //}
+		}
+		//How are we going to order the returned FoundNodes?? Do we only keep the k closest?
 
 		//if reply
 		/// remove from sendList
