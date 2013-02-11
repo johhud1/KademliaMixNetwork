@@ -147,6 +147,7 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 	     	log.Printf("Executing Store Instruction\n");
 		
 	case kInst.IsFindNode() :
+		kademlia.IterativeFind(k, kInst.Key, 1) //findType of 1 is FindNode
 	     	log.Printf("Executing FindNode Instruction\n");
 		
 	case kInst.IsFindValue() :

@@ -137,8 +137,7 @@ func (k *Kademlia) Store(req StoreRequest, res *StoreResult) error {
 	
 	///Update contact information for the sender
 	///CHECK IF WE ACTUALLY NEED ΤΟ DO THAT (PUT A REFERENCE ON WHERE THIS IS SPECIFIED IN THE PAPER)
-	Update(k, req.Sender)
-	
+	_, err := Update(k, req.Sender)
 	
 	res.MsgID = CopyID(req.MsgID)
 	
@@ -148,6 +147,7 @@ func (k *Kademlia) Store(req StoreRequest, res *StoreResult) error {
 	//if NO_MORE_SPACE {
 	//	 res.Err = errors.New("No space to perform the store.")
 	//}
+	res.Err = err
  
 	return nil
 }
@@ -173,13 +173,13 @@ type FindNodeRequest struct {
 	MsgID ID
 	NodeID ID
 }
-//TODO: Why we have FoundNode and Contact, they seem to hold the exact same info. Can we remove one?
 type FoundNode struct {
 	IPAddr string
 	Port uint16
 	NodeID ID
 }
 
+//could we possibly add a 'remoteID' field? to track who we are getting this list of nodes from. 
 type FindNodeResult struct {
 	MsgID ID
 	Nodes []FoundNode
@@ -205,18 +205,20 @@ func FindKClosest(k *Kademlia, remoteID ID, excludeID ID) ([]FoundNode, error) {
 	///TODO: Look into the local kbuckets and fetch k triplets if at all possible
 	///      tiplets should not include the sender's contact info 
 	var curBucket int = k.ContactInfo.NodeID.Distance(remoteID)
+	log.Printf("FindKClosest: myID=%s remoteID=%s curBucket calculated as %d\n", excludeID.AsString(), remoteID.AsString(), curBucket)
 	var nodesFoundSoFar *list.List
 
 	nodesFoundSoFar = list.New()
 
-
-	for ; curBucket > 0 || nodesFoundSoFar.Len() == KConst; {
+	//for condition used to be (... || nodesFoundSoFar.len() == Kconst). didnt' make any sense, so I changed it
+	for ; curBucket > 0 && !(nodesFoundSoFar.Len() == KConst); {
 		kb := k.Buckets[curBucket]
 		for e := kb.l.Front(); e != nil; e = e.Next() {
 			if nodesFoundSoFar.Len() == KConst {
 				break
 			}
 			if 0 != e.Value.(*Contact).NodeID.Compare(excludeID) {
+				log.Printf("adding node to return list\n")
 				nodesFoundSoFar.PushBack(e.Value.(*Contact).ContactToFoundNode())
 			}
 		}

@@ -175,25 +175,26 @@ func Update(k *Kademlia, triplet Contact) (success bool, err error) {
 	return false, errors.New("Update failure, FIXME:FIND REASON\n")
 }
 
-func iterativeFind(k *Kademlia, searchID ID, findType int) ([]FoundNode, []byte, error) {
+func IterativeFind(k *Kademlia, searchID ID, findType int) ([]FoundNode, []byte, error) {
 	var shortList *list.List //shortlist is the list we are going to return
 	var sendList *list.List //sendList is to remember the nodes we've send rpcs 
 	var liveList *list.List
 	var closestNode *FoundNode
 	var localContact *Contact = &(k.ContactInfo)
-
+	log.Printf("IterativeFind: searchID=%s findType:%d\n", searchID.AsString(), findType)
 
 	shortList = list.New()
 	sendList = list.New()
 	liveList = list.New()
 
 	kClosestArray, err := FindKClosest(k, searchID, localContact.NodeID)
+	log.Printf("FindKClosest returned array of size:%d\n", len(kClosestArray))
 	if err != nil {
 		Assert(false, "Kill yourself and fix me")
 	}
 
 	//select alpha from local closest k and add them to shortList
-	for i:=0; i < AConst; i++ {
+	for i:=0; (i < AConst) && (i<len(kClosestArray)); i++ {
 		newNode := &kClosestArray[i]
 		shortList.PushBack(newNode)
 		if closestNode != nil{
@@ -205,15 +206,17 @@ func iterativeFind(k *Kademlia, searchID ID, findType int) ([]FoundNode, []byte,
 		}
 	}
 
-	var stillProgress bool = false
+	var stillProgress bool = true
 	NodeChan := make(chan *FindNodeResult, AConst)
 	for ; stillProgress && liveList.Len() < KConst; {
+		log.Printf("in main findNode iterative loop. shortList.Len()=%d liveList.Len()=%d\n", shortList.Len(), liveList.Len())
 		for i:=0;i < AConst && shortList.Len() > 0; i++ {
 			//pop first node of the list
 			foundNodeTriplet := shortList.Remove(shortList.Front()).(*FoundNode)
 			//send rpc
 			if findType == 1 {//FindNode
 			    //made MakeFindNodeCall take a channel, where it puts the result
+			    log.Printf("makeFindNodeCall to ID=%s\n", foundNodeTriplet.NodeID.AsString())
 			    go MakeFindNodeCall(localContact, foundNodeTriplet.FoundNodeToContact(), NodeChan)
 			} else if findType == 2 {//
 				
@@ -230,11 +233,12 @@ func iterativeFind(k *Kademlia, searchID ID, findType int) ([]FoundNode, []byte,
 		//after 1 response?
 		for i:=0; i<AConst ; i++{
 		    foundNodeResult := <- NodeChan	
+		    log.Printf("pulling from NodeChannel. MsgID=%s. result.Nodes[0].NodeID=%s\n", foundNodeResult.MsgID.AsString(), foundNodeResult.Nodes[0].NodeID.AsString())
 		    if foundNodeResult == nil || foundNodeResult.Err != nil{
-			log.Printf("Error: get back bad findNoddeResponse %s\n", err)
+			log.Printf("Error: get back bad FindNodeResult %s\n", err)
 			break
 		    }
-		    //need some way to get what node gave us this response (info is not in FoundNodeResponse.. should we add that?)
+		    //need some way to get what node gave us this response (info is not in FindNodeResult.. should we add that?)
 		    insertInLiveList(foundNodeResult, liveList)
 		    addResponseNodesToSL(foundNodeResult, shortList)
 		    //TODO: next 3 lines won't work
@@ -260,6 +264,7 @@ func iterativeFind(k *Kademlia, searchID ID, findType int) ([]FoundNode, []byte,
 
 func insertInLiveList(foundNodeResult *FindNodeResult, liveList *list.List){
     //TODO: implement. Doesn't seem like we can currently without putting more information in FindNodeResult, or something
+    liveList.PushBack(foundNodeResult)
 }
 
 func addResponseNodesToSL(foundNodeResult *FindNodeResult, shortList *list.List){
