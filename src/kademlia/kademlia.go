@@ -213,7 +213,7 @@ func iterativeFind(k *Kademlia, searchID ID, findType int) ([]FoundNode, []byte,
 			foundNodeTriplet := shortList.Remove(shortList.Front()).(*FoundNode)
 			//send rpc
 			if findType == 1 {//FindNode
-			    //will this work? foundNodeTriplet is a foundNode, makeFindNodeCall takes contacts ...
+			    //made MakeFindNodeCall take a channel, where it puts the result
 			    go MakeFindNodeCall(localContact, foundNodeTriplet.FoundNodeToContact(), NodeChan)
 			} else if findType == 2 {//
 				
@@ -225,16 +225,22 @@ func iterativeFind(k *Kademlia, searchID ID, findType int) ([]FoundNode, []byte,
 		}
 	
 		//wait for reply
+		//I can't figure out from the spec how many responses we're supposed to
+		//keep in our shortlist.. They say K, but then wouldn't it be full
+		//after 1 response?
 		for i:=0; i<AConst ; i++{
-		    findNodeResponse := <- NodeChan	
-		    if findNodeResponse == nil || findNodeResponse.Err != nil{
+		    foundNodeResult := <- NodeChan	
+		    if foundNodeResult == nil || foundNodeResult.Err != nil{
 			log.Printf("Error: get back bad findNoddeResponse %s\n", err)
 			break
 		    }
-		    //insertInLiveList(findNodeResponse, &liveList)
-		    //distance := localContact.NodeID.Distance(findNodeResponse.FromNode)
+		    //need some way to get what node gave us this response (info is not in FoundNodeResponse.. should we add that?)
+		    insertInLiveList(foundNodeResult, liveList)
+		    addResponseNodesToSL(foundNodeResult, shortList)
+		    //TODO: next 3 lines won't work
+		    //distance := localContact.NodeID.Distance(foundNodeResult.FromNode)
 		    //if distance < localContact.NodeID.Distance(closestNode.NodeID){
-			//closestNode = findNodeResponse.FromNode
+			//closestNode = foundNodeResult.FromNode
 		    //}
 		}
 		//How are we going to order the returned FoundNodes?? Do we only keep the k closest?
@@ -250,4 +256,13 @@ func iterativeFind(k *Kademlia, searchID ID, findType int) ([]FoundNode, []byte,
 	}
 
 	return nil, nil, nil
+}
+
+func insertInLiveList(foundNodeResult *FindNodeResult, liveList *list.List){
+    //TODO: implement. Doesn't seem like we can currently without putting more information in FindNodeResult, or something
+}
+
+func addResponseNodesToSL(foundNodeResult *FindNodeResult, shortList *list.List){
+    //TODO: implment
+    //should add all(some?) of the nodes in findNodesResponse to the shortList, and keep them ordered by distance?
 }
