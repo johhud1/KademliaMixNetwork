@@ -31,13 +31,7 @@ func (cont *Contact) ContactToFoundNode() (fn *FoundNode) {
 
 	return fn
 }
-func (fn *FoundNode) FoundNodeToContact() (c *Contact){
-	c = new(Contact)
-	c.NodeID = CopyID(fn.NodeID)
-	c.Host = net.ParseIP(fn.IPAddr)
-	c.Port = fn.Port
-	return c
-}
+
 
 func NewContact(AddrStr string) (Contact) {
 	var err error
@@ -108,6 +102,12 @@ func (k *Kademlia) Ping(ping Ping, pong *Pong) error {
  *
  * This is a primitive operation, not an iterative one.
  *
+ * While this is not formally specified, it is clear that the initial STORE message must contain
+ * in addition to the message ID at least the data to be stored (including its length) and the associated key.
+ * As the transport may be UDP, the message needs to also contain at least the nodeID of the sender, and the 
+ * reply the nodeID of the recipient.
+ *
+ * The reply to any RPC should also contain an indication of the result of the operation. For example, in a STORE 
  * While this is not formally specified, it is clear that the initial STORE message must contain
  * in addition to the message ID at least the data to be stored (including its length) and the associated key.
  * As the transport may be UDP, the message needs to also contain at least the nodeID of the sender, and the 
@@ -235,16 +235,6 @@ func FindKClosest(k *Kademlia, remoteID ID, excludeID ID) ([]FoundNode, error) {
 
 	return listOfNodes, nil
 }
-
-
-
-/* FIND_VALUE
- * A FIND_VALUE RPC includes a B=160-bit key. If a corresponding value is present on the recipient, the associated data is returned.
- * Otherwise the RPC is equivalent to a FIND_NODE and a set of k triples is returned.
- * This is a primitive operation, not an iterative one.
- *
- */
-type FindValueRequest struct {
 	Sender Contact
 	MsgID ID
 	Key ID
@@ -262,8 +252,6 @@ type FindValueResult struct {
 func (k *Kademlia) FindValue(req FindValueRequest, res *FindValueResult) error {
 	var err error
 	// TODO: Implement.	
-	Update(k, req.Sender)
-
 	//search for the value
 	//res.Value = data[req.Key]
 	var found bool
