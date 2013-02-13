@@ -75,15 +75,15 @@ func getHostPort(k *Kademlia) (net.IP, uint16) {
     return k.ContactInfo.Host, k.ContactInfo.Port
 }
 
-func MakePingCall(localContact *Contact, remoteContact *Contact) bool {
-    log.Printf("MakePingCall: From %s --> To %s\n", localContact.AsString(), remoteContact.AsString())
+func MakePingCall(localContact *Contact, remoteHost net.IP, remotePort uint16) bool {
+    log.Printf("MakePingCall: From %s --> To %s:%d\n", localContact.AsString(), remoteHost.String(), remotePort)
     ping := new(Ping)
     ping.MsgID = NewRandomID()
     ping.Sender = CopyContact(localContact)
 
     pong := new(Pong)
 
-    var remoteAddrStr string = remoteContact.Host.String() + ":" + strconv.Itoa(int(remoteContact.Port))
+    var remoteAddrStr string = remoteHost.String() + ":" + strconv.FormatUint(uint64(remotePort), 10)
     client, err := rpc.DialHTTP("tcp", remoteAddrStr)
     if err != nil {
              log.Printf("Error: MakePingCall, DialHTTP, %s\n", err)
@@ -101,13 +101,13 @@ func MakePingCall(localContact *Contact, remoteContact *Contact) bool {
     return true
 }
 
-func MakeStore(localContact *Contact, remoteContact *Contact, Key ID, Value []byte) bool {
+func MakeStore(localContact *Contact, remoteContact *Contact, Key ID, Value string) bool {
     log.Printf("MakeStore: From %s --> To %s\n", localContact.AsString(), remoteContact.AsString())
     storeReq := new(StoreRequest)
     storeReq.MsgID = NewRandomID()
     storeReq.Sender = CopyContact(localContact)
     storeReq.Key = CopyID(Key)
-    storeReq.Value = Value
+    storeReq.Value = []byte(Value)
 
     storeRes  := new(StoreResult)
 
@@ -134,7 +134,7 @@ func MakeFindNode(localContact *Contact, remoteContact *Contact, Key ID) bool {
     findNodeReq := new(FindNodeRequest)
     findNodeReq.MsgID = NewRandomID()
     findNodeReq.Sender = CopyContact(localContact)
-    //findNodeReq.Key = CopyID(Key)
+    findNodeReq.NodeID = CopyID(Key)
 
     findNodeRes  := new(FindNodeResult)
 
@@ -288,7 +288,7 @@ func Update(k *Kademlia, triplet Contact) (success bool, err error) {
             lFront := k.Buckets[dist].l.Front()
             var remoteContact *Contact = lFront.Value.(*Contact)
             ///make ping
-            succ := MakePingCall(localContact, remoteContact)
+            succ := MakePingCall(localContact, remoteContact.Host, remoteContact.Port)
             if !succ {
                 //drop old
                 k.Buckets[dist].Drop(lFront)
