@@ -34,7 +34,7 @@ func (cont *Contact) ContactToFoundNode() (fn *FoundNode) {
 func (fn *FoundNode) FoundNodeToContact() (c *Contact){
 	c = new(Contact)
 	c.NodeID = fn.NodeID
-	c.Host = net.ParseIP(fn.Host)
+	c.Host = net.ParseIP(fn.IPAddr)
 	c.Port = fn.Port
 	return c
 }
@@ -250,6 +250,12 @@ type FindValueResult struct {
 	Value []byte
 	Nodes []FoundNode
     Err error
+}
+
+type FindValueRequest struct {
+    MsgID ID
+    Sender Contact
+    Key ID
 }
 
 func (k *Kademlia) FindValue(req FindValueRequest, res *FindValueResult) error {

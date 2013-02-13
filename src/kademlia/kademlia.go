@@ -221,7 +221,7 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) ([]FoundNode, []byte,
 
     var stillProgress bool = true
     //a map to translate back to nodes
-    msgIDMap := make(map[ID]ID)
+    //msgIDMap := make(map[ID]ID)
 
     NodeChan := make(chan *FindNodeCallResponse, AConst)
     for ; stillProgress; {
@@ -259,7 +259,7 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) ([]FoundNode, []byte,
                 //Take its data
 		liveMap[foundNodeResult.Responder.NodeID]=true
                 //insertInLiveList(foundNodeResult.ResponderID, liveList)
-                addResponseNodesToSL(foundNodeResult.ReturnedResult.Nodes, shortList, &sentMap, searchID)
+                addResponseNodesToSL(foundNodeResult.ReturnedResult.Nodes, shortList, sentMap, searchID)
                 distance := searchID.Distance(shortList.Front().Value.(*FoundNode).NodeID)
                 if distance < searchID.Distance(closestNode){
                     log.Printf("New closest! dist:%d\n", distance)
@@ -302,29 +302,29 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) ([]FoundNode, []byte,
     return nil, nil, nil
 }
 func sendRPCsToFoundNodes(k *Kademlia, findType int, localContact *Contact, slist *list.List){
-    resChan := make(chan *FindNodeResult, slist.Len())
+    resChan := make(chan *FindNodeCallResponse, slist.Len())
     for e:=slist.Front(); e!=nil; e=e.Next(){
 	foundNode := e.Value.(*FoundNode)
 	remote := foundNode.FoundNodeToContact()
 	if findType ==1 {
-	    go MakeFindNodeCall(local, remote, resChan)
+	    go MakeFindNodeCall(localContact, remote, resChan)
 	}
 	//TODO:findValue case goes here
     }
     //pull replies out of the channel
-    for i :=0; i<slist.Length(); i++{
+    for i :=0; i<slist.Len(); i++{
 	findNodeResult := <-resChan
 	if (!findNodeResult.Responded){
 	    //node failed to respond, remove from slist
 	    //since slist holds e *Element which were pushed onto slist from shortList, removing from slist should also remove e from shortList
 	    for e:=slist.Front(); e!=nil; e=e.Next(){
-		if e.(*FoundNode).NodeID.Equals(foundNodeResult.ResponderID) {
+		if e.Value.(*FoundNode).NodeID.Equals(findNodeResult.Responder.NodeID) {
 		    slist.Remove(e)
 		    break
 		}
 	    }
 	}
-	Update(k, findNodeResult.NodeID)
+	Update(k, *findNodeResult.Responder.FoundNodeToContact())
     }
 }
 
@@ -332,8 +332,8 @@ func setDifference(listA *list.List, sentMap map[ID]bool) (*list.List){
     ret := list.New()
     for e:=listA.Front(); e != nil; e=e.Next(){
 	inB :=false
-	for k, _ = range sentMap {
-	    if(k.Equals(e.(*FoundNode).NodeID)){
+	for k, _ := range sentMap {
+	    if(k.Equals(e.Value.(*FoundNode).NodeID)){
 		inB = true
 	    }
 	}
@@ -345,16 +345,16 @@ func setDifference(listA *list.List, sentMap map[ID]bool) (*list.List){
 }
 
 //add Nodes we here about in the reply to the shortList, only if that node is not in the sentList
-func addResponseNodesToSL(fnodes []FoundNode, shortList *list.List, sentMap *map[ID]bool, targetID ID){
+func addResponseNodesToSL(fnodes []FoundNode, shortList *list.List, sentMap map[ID]bool, targetID ID){
     for i:=0; i < len(fnodes) ; i++{
 	foundNode := fnodes[i]
-	_,inSentList := sentList[foundNode.NodeID]
+	_,inSentList := sentMap[foundNode.NodeID]
 	//if the foundNode is already in sentList, dont add it to shortList
 	if inSentList{
 	    continue
 	}
 	for e := shortList.Front(); e != nil; e=e.Next(){
-	    dist := e.(*FoundNode).NodeID.Distance(targetID)
+	    dist := e.Value.(*FoundNode).NodeID.Distance(targetID)
 	    foundNodeDist := foundNode.NodeID.Distance(targetID)
 	    //if responseNode is closer than node in ShortList, add it
 	    if foundNodeDist < dist {
