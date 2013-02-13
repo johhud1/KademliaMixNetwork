@@ -31,6 +31,13 @@ func (cont *Contact) ContactToFoundNode() (fn *FoundNode) {
 
 	return fn
 }
+func (fn *FoundNode) FoundNodeToContact() (c *Contact){
+	c = new(Contact)
+	c.NodeID = fn.NodeID
+	c.Host = net.ParseIP(fn.IPAddr)
+	c.Port = fn.Port
+	return c
+}
 
 
 func NewContact(AddrStr string) (Contact) {
@@ -235,14 +242,6 @@ func FindKClosest(k *Kademlia, remoteID ID, excludeID ID) ([]FoundNode, error) {
 
 	return listOfNodes, nil
 }
-/*
- TODO:DELETE IF NOT NEEDED
-	Sender Contact
-	MsgID ID
-	Key ID
-}
-*/
-
 
 // If Value is nil, it should be ignored, and Nodes means the same as in a
 // FindNodeResult.
@@ -251,6 +250,12 @@ type FindValueResult struct {
 	Value []byte
 	Nodes []FoundNode
     Err error
+}
+
+type FindValueRequest struct {
+    MsgID ID
+    Sender Contact
+    Key ID
 }
 
 func (k *Kademlia) FindValue(req FindValueRequest, res *FindValueResult) error {
