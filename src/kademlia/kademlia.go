@@ -91,6 +91,90 @@ func MakePingCall(localContact *Contact, remoteContact *Contact) bool {
              return false
     }
 
+	//TODO: ADD UPDATE
+
+    return true
+}
+
+func MakeStore(localContact *Contact, remoteContact *Contact, Key ID, Value []byte) bool {
+    log.Printf("MakeStore: From %s --> To %s\n", localContact.AsString(), remoteContact.AsString())
+    storeReq := new(StoreRequest)
+    storeReq.MsgID = NewRandomID()
+    storeReq.Sender = CopyContact(localContact)
+    storeReq.Key = CopyID(Key)
+    storeReq.Value = Value
+
+    storeRes  := new(StoreResult)
+
+    var remoteAddrStr string = remoteContact.Host.String() + ":" + strconv.Itoa(int(remoteContact.Port))
+    client, err := rpc.DialHTTP("tcp", remoteAddrStr)
+    if err != nil {
+             log.Printf("Error: MakeStore, DialHTTP, %s\n", err)
+             return false
+    }
+
+    err = client.Call("Kademlia.Store", storeReq, &storeRes)
+    if err != nil {
+             log.Printf("Error: MakeStore, Call, %s\n", err)
+             return false
+    }
+
+	//TODO: ADD UPDATE
+
+    return true
+}
+
+func MakeFindNode(localContact *Contact, remoteContact *Contact, Key ID) bool {
+    log.Printf("MakeFindNode: From %s --> To %s\n", localContact.AsString(), remoteContact.AsString())
+    findNodeReq := new(FindNodeRequest)
+    findNodeReq.MsgID = NewRandomID()
+    findNodeReq.Sender = CopyContact(localContact)
+    findNodeReq.Key = CopyID(Key)
+
+    findNodeRes  := new(FindNodeResult)
+
+    var remoteAddrStr string = remoteContact.Host.String() + ":" + strconv.Itoa(int(remoteContact.Port))
+    client, err := rpc.DialHTTP("tcp", remoteAddrStr)
+    if err != nil {
+             log.Printf("Error: MakeFindNode, DialHTTP, %s\n", err)
+             return false
+    }
+
+    err = client.Call("Kademlia.FindNode", findNodeReq, &findNodeRes)
+    if err != nil {
+             log.Printf("Error: MakeFindNode, Call, %s\n", err)
+             return false
+    }
+
+	//TODO: ADD UPDATE
+
+    return true
+}
+
+func MakeFindValue(localContact *Contact, remoteContact *Contact, Key ID) bool {
+    log.Printf("MakeFindValue: From %s --> To %s\n", localContact.AsString(), remoteContact.AsString())
+    findValueReq := new(FindValueRequest)
+    findValueReq.MsgID = NewRandomID()
+    findValueReq.Sender = CopyContact(localContact)
+    findValueReq.Key = CopyID(Key)
+
+    findValueRes  := new(FindValueResult)
+
+    var remoteAddrStr string = remoteContact.Host.String() + ":" + strconv.Itoa(int(remoteContact.Port))
+    client, err := rpc.DialHTTP("tcp", remoteAddrStr)
+    if err != nil {
+             log.Printf("Error: MakeFindValue, DialHTTP, %s\n", err)
+             return false
+    }
+
+    err = client.Call("Kademlia.FindValue", findValueReq, &findValueRes)
+    if err != nil {
+             log.Printf("Error: MakeFindNode, Call, %s\n", err)
+             return false
+    }
+
+    //TODO: ADD UPDATE
+
     return true
 }
 

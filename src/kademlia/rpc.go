@@ -235,10 +235,14 @@ func FindKClosest(k *Kademlia, remoteID ID, excludeID ID) ([]FoundNode, error) {
 
 	return listOfNodes, nil
 }
+/*
+ TODO:DELETE IF NOT NEEDED
 	Sender Contact
 	MsgID ID
 	Key ID
 }
+*/
+
 
 // If Value is nil, it should be ignored, and Nodes means the same as in a
 // FindNodeResult.
