@@ -20,6 +20,8 @@ type Kademlia struct {
     Buckets [160]*K_Bucket
     HashMap map[ID][]byte
     ContactInfo Contact
+    UpdateChannel chan Contact
+    FindChannel chan *FindRequest
 }
 
 func NewKademlia(listenStr string) *Kademlia {
@@ -38,6 +40,9 @@ func NewKademlia(listenStr string) *Kademlia {
     /// want to store the created ID for future usage -after restart-)
 
     k.ContactInfo = NewContact(listenStr)
+
+    //instantiate kbucket handler here
+    k.UpdateChannel, k.FindChannel = KBuucketHandler(k)
 
     log.Printf("kademlia starting up! %s", k.ContactInfo.AsString())//kademliaInstance.AsString()
     return k
@@ -189,6 +194,38 @@ func MakeFindValue(localContact *Contact, remoteContact *Contact, Key ID) bool {
     return true
 }
 
+//Handler for Kademlia K_Buckets
+type FindRequest struct {
+    remoteID ID
+    excludeID ID
+    returnChan chan *FindResponse
+}
+
+type FindResponse struct {
+    nodes []FoundNode
+    err error
+}
+
+func KBuucketHandler(k *Kademlia) (chan Contact, chan *FindRequest) {
+    updates := make(chan Contact)
+    finds := make(chan *FindRequest)
+
+    go func() {
+        for {
+            select {
+                case c := <-updates:
+                    log.Printf("In update handler. Updating contact: %s\n", c.AsString())
+                    Update(k, c)
+                case f := <-finds:
+                    n, err := FindKClosest_mutex(k, f.remoteID, f.excludeID)
+                    f.returnChan <-&FindResponse{n, err}
+            }
+        }
+    }()
+
+    return updates, finds
+
+}
 
 // A struct we can toss in a channel and get the sender ID, results, and status
 type FindNodeCallResponse struct {
@@ -214,7 +251,7 @@ func MakeFindNodeCall(localContact *Contact, remoteContact *Contact, NodeChan ch
     resultSet.Responder = remoteContact.ContactToFoundNode()
     resultSet.Responded = false
     if err != nil {
-             log.Printf("Error: MakeFindNodeCall, DialHTTP, %s\n", err)
+             log.Printf(")rror: MakeFindNodeCall, DialHTTP, %s\n", err)
              NodeChan <- resultSet
              return nil, false
     }
@@ -376,7 +413,8 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) ([]FoundNode, []byte,
 		}
 	    }
             //Update the node
-            Update(k, *foundNodeResult.Responder.FoundNodeToContact())
+            //Update(k, *foundNodeResult.Responder.FoundNodeToContact())
+            k.UpdateChannel<-*foundNodeResult.Responder.FoundNodeToContact()
 
         }
 	sendToList := setDifference(shortList, sentMap)
@@ -420,7 +458,8 @@ func sendRPCsToFoundNodes(k *Kademlia, findType int, localContact *Contact, slis
 		}
 	    }
 	}
-	Update(k, *findNodeResult.Responder.FoundNodeToContact())
+	//Update(k, *findNodeResult.Responder.FoundNodeToContact())
+    k.UpdateChannel<-*findNodeResult.Responder.FoundNodeToContact()
     }
 }
 
