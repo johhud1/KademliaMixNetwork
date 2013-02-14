@@ -8,6 +8,7 @@ import (
     "container/list"
     "errors"
     "net/rpc"
+    "net/http"
     "os"
 )
 
@@ -43,6 +44,17 @@ func NewKademlia(listenStr string) *Kademlia {
 
     //instantiate kbucket handler here
     k.UpdateChannel, k.FindChannel = KBuucketHandler(k)
+
+    rpc.Register(k)
+    rpc.HandleHTTP()
+    l, err := net.Listen("tcp", listenStr)
+    if err != nil {
+	log.Fatal("Listen: ", err)
+    }
+
+    // Serve forever.
+    go http.Serve(l, nil)
+
 
     log.Printf("kademlia starting up! %s", k.ContactInfo.AsString())//kademliaInstance.AsString()
     return k

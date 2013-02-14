@@ -5,9 +5,6 @@ import (
 	"flag"
 	"log"
 	"math/rand"
-	"net"
-	"net/http"
-	"net/rpc"
 	"time"
 	"strings"
 	"os"
@@ -258,6 +255,7 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 
 
 func main() {
+	var err error
 	// By default, Go seeds its RNG with 1. This would cause every program to
 	// generate the same sequence of IDs.
 	rand.Seed(time.Now().UnixNano())
@@ -274,17 +272,7 @@ func main() {
 	log.Printf("First Peer: %s\n", firstPeerStr);
 	
 	kadem := kademlia.NewKademlia(listenStr)
-	
-	rpc.Register(kadem)
-	rpc.HandleHTTP()
-	l, err := net.Listen("tcp", listenStr)
-	if err != nil {
-		log.Fatal("Listen: ", err)
-	}
-	
-	// Serve forever.
-	go http.Serve(l, nil)
-	
+		
 	stdInReader := bufio.NewReader(os.Stdin)
 	//input, _ := reader.ReadString('\n')
 	

@@ -210,8 +210,8 @@ type FindNodeResult struct {
 func (k *Kademlia) FindNode(req FindNodeRequest, res *FindNodeResult) error {
 	var err error
 	//Update(k, req.Sender)
-    k.UpdateChannel<-req.Sender
-
+        k.UpdateChannel<-req.Sender
+	log.Printf("RPC: FindNode from %s\n", req.Sender.NodeID.AsString())
 
 	res.Nodes, err = FindKClosest(k, req.Sender.NodeID, req.Sender.NodeID)
 
@@ -241,10 +241,13 @@ func FindKClosest(k *Kademlia, remoteID ID, excludeID ID) ([]FoundNode, error){
     return kClosestArray, err
 
 }
+
 func FindKClosest_mutex(k *Kademlia, remoteID ID, excludeID ID) ([]FoundNode, error) {
 	///TODO: Look into the local kbuckets and fetch k triplets if at all possible
 	///      tiplets should not include the sender's contact info 
-	var curBucket int = k.ContactInfo.NodeID.Distance(remoteID)
+	var initBucket int = k.ContactInfo.NodeID.Distance(remoteID) 
+
+	var curBucket int = initBucket
 	log.Printf("FindKClosest: myID=%s remoteID=%s curBucket calculated as %d\n", excludeID.AsString(), remoteID.AsString(), curBucket)
 	var nodesFoundSoFar *list.List
 
@@ -263,6 +266,22 @@ func FindKClosest_mutex(k *Kademlia, remoteID ID, excludeID ID) ([]FoundNode, er
 			}
 		}
 		curBucket--
+	}
+	
+	//if we haven't found KConst nodes we search again only this time in buckets that have nodes farther than the local node
+	curBucket = initBucket + 1
+	for ; curBucket < 160 && !(nodesFoundSoFar.Len() == KConst); {
+		kb := k.Buckets[curBucket]
+		for e := kb.l.Front(); e != nil; e = e.Next() {
+			if nodesFoundSoFar.Len() == KConst {
+				break
+			}
+			if 0 != e.Value.(*Contact).NodeID.Compare(excludeID) {
+				log.Printf("adding node to return list\n")
+				nodesFoundSoFar.PushBack(e.Value.(*Contact).ContactToFoundNode())
+			}
+		}
+		curBucket++
 	}
 
 	var listOfNodes []FoundNode = make([]FoundNode, nodesFoundSoFar.Len())
