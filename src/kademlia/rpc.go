@@ -225,7 +225,7 @@ func (k *Kademlia) FindNode(req FindNodeRequest, res *FindNodeResult) error {
 
 func FindKClosest(k *Kademlia, remoteID ID, excludeID ID) ([]FoundNode, error){
 
-    findRequest := FindRequest{remoteID, excludeID, make(chan FindResponse)}
+    findRequest := &FindRequest{remoteID, excludeID, make(chan *FindResponse)}
 
     log.Printf("Sending to FindChannel -> %s\n", remoteID.AsString())
     k.FindChannel<-findRequest

@@ -21,7 +21,7 @@ type Kademlia struct {
     HashMap map[ID][]byte
     ContactInfo Contact
     UpdateChannel chan Contact
-    FindChannel chan FindRequest 
+    FindChannel chan *FindRequest
 }
 
 func NewKademlia(listenStr string) *Kademlia {
@@ -192,7 +192,7 @@ func MakeFindValue(localContact *Contact, remoteContact *Contact, Key ID) bool {
 type FindRequest struct {
     remoteID ID
     excludeID ID
-    returnChan chan FindResponse
+    returnChan chan *FindResponse
 }
 
 type FindResponse struct {
@@ -200,9 +200,9 @@ type FindResponse struct {
     err error
 }
 
-func KBuucketHandler(k *Kademlia) (chan Contact, chan FindRequest) {
+func KBuucketHandler(k *Kademlia) (chan Contact, chan *FindRequest) {
     updates := make(chan Contact)
-    finds := make(chan FindRequest)
+    finds := make(chan *FindRequest)
 
     go func() {
         for {
@@ -211,8 +211,8 @@ func KBuucketHandler(k *Kademlia) (chan Contact, chan FindRequest) {
                     log.Printf("In update handler. Updating contact: %s\n", c.AsString())
                     Update(k, c)
                 case f := <-finds:
-                    n, err := FindKClosest(k, f.remoteID, f.excludeID)
-                    f.returnChan <-FindResponse{n, err}
+                    n, err := FindKClosest_mutex(k, f.remoteID, f.excludeID)
+                    f.returnChan <-&FindResponse{n, err}
             }
         }
     }()
