@@ -387,10 +387,11 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) ([]FoundNode, []byte,
 
     NodeChan := make(chan *FindNodeCallResponse, AConst)
     for ; stillProgress; {
+	var i int
         stillProgress = false
         log.Printf("in main findNode iterative loop. shortList.Len()=%d len(liveMap)=%d\n", shortList.Len(),len(liveMap))
         e := shortList.Front()
-        for i:=0;i < AConst && e != nil; {
+        for i=0; i < AConst && e != nil; {
             foundNodeTriplet := e.Value.(*FoundNode)
 	    _, inSentList := sentMap[foundNodeTriplet.NodeID]
 	    if inSentList {continue}
@@ -409,9 +410,12 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) ([]FoundNode, []byte,
             e = e.Next()
 	    i++
         }
+	log.Printf("iterativeFind: Made FindNodeCall on %d hosts\n", i)
+	var numProbs = i
 
         //wait for reply
-	for i:=0; i<AConst ; i++ {
+	for i=0; i < numProbs ; i++ {
+	    log.Printf("IterativeFind: α loop start\n")	    
 	    var foundNodeResult *FindNodeCallResponse
 	    foundNodeResult = <-NodeChan
 	    log.Printf("IterativeFind: Reading responce from: %s\n", foundNodeResult.Responder.NodeID.AsString())
@@ -445,7 +449,7 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) ([]FoundNode, []byte,
             //Update the node
             //Update(k, *foundNodeResult.Responder.FoundNodeToContact())
             k.UpdateChannel<-*foundNodeResult.Responder.FoundNodeToContact()
-
+	    log.Printf("IterativeFind: α loop end\n")
         }
 
         //OLD OLD OLD OLD OLD OLD 
@@ -464,9 +468,10 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) ([]FoundNode, []byte,
     sendToList := setDifference(shortList, sentMap)
     sendRPCsToFoundNodes(k, findType, localContact, sendToList)
 
-
+    log.Printf("iterativeFind: end\n")
     return nil, nil, nil
 }
+
 func sendRPCsToFoundNodes(k *Kademlia, findType int, localContact *Contact, slist *list.List){
     resChan := make(chan *FindNodeCallResponse, slist.Len())
     for e:=slist.Front(); e!=nil; e=e.Next(){
