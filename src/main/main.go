@@ -185,7 +185,6 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 		return true
 	case kInst.IsStore() :
 	     	log.Printf("Executing Store Instruction\n");
-		//TODO:IMPLEMENT
 		var dist int = k.ContactInfo.NodeID.Distance(kInst.NodeID)
 		found, elem := k.Buckets[dist].Search(kInst.NodeID)
 		if found {
@@ -197,29 +196,26 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 		return true
 	case kInst.IsFindNode() :
 	     	log.Printf("Executing FindNode Instruction\n");
-		//TODO:IMPLEMENT
 		var dist int = k.ContactInfo.NodeID.Distance(kInst.NodeID)
 		found, elem := k.Buckets[dist].Search(kInst.NodeID)
 		if found {
 			kademlia.MakeFindNode(&(k.ContactInfo), elem.Value.(*kademlia.Contact), kInst.Key)
-			//TODO: do something with the result of makeStore
+			//TODO: do something with the result of findNode
 		} else {
 			log.Printf("Store ERR")
 		}
 		return true
 	case kInst.IsFindValue() :
 	     	log.Printf("Executing FindValue Instruction\n");
-		//TODO:IMPLEMENT		
 		var dist int = k.ContactInfo.NodeID.Distance(kInst.NodeID)
 		found, elem := k.Buckets[dist].Search(kInst.NodeID)
 		if found {
 			kademlia.MakeFindValue(&(k.ContactInfo), elem.Value.(*kademlia.Contact), kInst.Key)
-			//TODO: do something with the result of makeStore
+			//TODO: do something with the result of findValue
 		} else {
 			log.Printf("Store ERR")
 		}
 		return true
-		
 	case kInst.IsWhoami() :
 	     	log.Printf("Executing Whoami Instruction\n");
 		fmt.Printf("Local Node ID: %s\n", k.ContactInfo.NodeID.AsString())
@@ -249,7 +245,6 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 		return true
 	case kInst.IsIterativeFindNode() :
 		log.Printf("Executing iterativeFindNode Instruction\n");
-		//TODO:IMPLEMENT
 		kademlia.IterativeFind(k, kInst.Key, 1) //findType of 1 is FindNode
 		return true
 	case kInst.IsIterativeFindValue() :

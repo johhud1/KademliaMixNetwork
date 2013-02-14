@@ -91,6 +91,8 @@ func MakePingCall(localContact *Contact, remoteHost net.IP, remotePort uint16) b
              return false
     }
 
+    client.Close()
+
 	//TODO: ADD UPDATE
 
     return true
@@ -119,6 +121,7 @@ func MakeStore(localContact *Contact, remoteContact *Contact, Key ID, Value stri
              return false
     }
 
+    client.Close()
 	//TODO: ADD UPDATE
 
     return true
@@ -146,6 +149,7 @@ func MakeFindNode(localContact *Contact, remoteContact *Contact, Key ID) bool {
              return false
     }
 
+    client.Close()
 	//TODO: ADD UPDATE
 
     return true
@@ -178,6 +182,8 @@ func MakeFindValue(localContact *Contact, remoteContact *Contact, Key ID) bool {
     } else {
 	printArrayOfFoundNodes(&(findValueRes.Nodes))
     }
+
+    client.Close()
     //TODO: ADD UPDATE
 
     return true
@@ -224,6 +230,7 @@ func MakeFindNodeCall(localContact *Contact, remoteContact *Contact, NodeChan ch
     resultSet.Responded = true
 
     NodeChan <- resultSet
+    client.Close()
     //?
     return fnResult, true
 }
@@ -254,7 +261,7 @@ func Update(k *Kademlia, triplet Contact) (success bool, err error) {
                    k.Buckets[dist].AddToTail(&triplet)
             return true, nil
         } else {
-                   //ping the contant at the head
+            //ping the contant at the head
             //get local contact info
             localContact := &(k.ContactInfo)
             ///get head
