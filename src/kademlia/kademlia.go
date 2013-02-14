@@ -25,7 +25,7 @@ type Kademlia struct {
     FindChannel chan *FindRequest
 }
 
-func NewKademlia(listenStr string) *Kademlia {
+func NewKademlia(listenStr string, rpcPath *string) *Kademlia {
     // TODO: Assign yourself a random ID and prepare other state here.
     var k *Kademlia
     k = new(Kademlia)
@@ -45,8 +45,14 @@ func NewKademlia(listenStr string) *Kademlia {
     //instantiate kbucket handler here
     k.UpdateChannel, k.FindChannel = KBuucketHandler(k)
 
-    rpc.Register(k)
-    rpc.HandleHTTP()
+    s := rpc.NewServer()
+    if(rpcPath != nil){
+	s.Register(k)
+        s.HandleHTTP(*rpcPath, "/debug/"+*rpcPath)
+    } else {
+	rpc.Register(k)
+	rpc.HandleHTTP()
+    }
     l, err := net.Listen("tcp", listenStr)
     if err != nil {
 	log.Fatal("Listen: ", err)
@@ -87,16 +93,21 @@ func getHostPort(k *Kademlia) (net.IP, uint16) {
     return k.ContactInfo.Host, k.ContactInfo.Port
 }
 
-func MakePingCall(localContact *Contact, remoteHost net.IP, remotePort uint16) bool {
+func MakePingCall(localContact *Contact, remoteHost net.IP, remotePort uint16, path *string) bool {
     log.Printf("MakePingCall: From %s --> To %s:%d\n", localContact.AsString(), remoteHost.String(), remotePort)
     ping := new(Ping)
     ping.MsgID = NewRandomID()
     ping.Sender = CopyContact(localContact)
 
     pong := new(Pong)
-
+    var client *rpc.Client
+    var err error
     var remoteAddrStr string = remoteHost.String() + ":" + strconv.FormatUint(uint64(remotePort), 10)
-    client, err := rpc.DialHTTP("tcp", remoteAddrStr)
+    if(path != nil){
+	client, err = rpc.DialHTTPPath("tcp", remoteAddrStr, *path)
+    } else{
+	client, err = rpc.DialHTTP("tcp", remoteAddrStr)
+    }
     if err != nil {
              log.Printf("Error: MakePingCall, DialHTTP, %s\n", err)
              return false
@@ -334,7 +345,7 @@ func Update(k *Kademlia, triplet Contact) (success bool, err error) {
             lFront := k.Buckets[dist].l.Front()
             var remoteContact *Contact = lFront.Value.(*Contact)
             ///make ping
-            succ := MakePingCall(localContact, remoteContact.Host, remoteContact.Port)
+            succ := MakePingCall(localContact, remoteContact.Host, remoteContact.Port, nil)
             if !succ {
                 //drop old
                 k.Buckets[dist].Drop(lFront)

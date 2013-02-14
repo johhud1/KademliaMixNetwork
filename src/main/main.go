@@ -104,8 +104,9 @@ func NewKademliaInstruction(s string) (kInst *KademliaInstruction) {
 		kInst.flags = 11;
 		kInst.Key, err = kademlia.FromString(strTokens[1])		
 	case "runtests" :
-		kademlia.Assert(len(strTokens) == 1, "runtests requires 0 arguments")
+		kademlia.Assert(len(strTokens) == 2, "runtests requires 1 arguments")
 		kInst.flags = 12;
+		kInst.Data = strTokens[1]
 	}
 	log.Printf("Flag: %d\n", kInst.flags);
 	
@@ -173,11 +174,11 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 			remoteHost, remotePort, err := kademlia.AddrStrToHostPort(kInst.Addr)
 			kademlia.Assert(err == nil, "FIXME")
 			
-			kademlia.MakePingCall(&(k.ContactInfo), remoteHost, remotePort)
+			kademlia.MakePingCall(&(k.ContactInfo), remoteHost, remotePort, nil)
 		} else {
 			found, remoteContact = kademlia.Search(k, kInst.NodeID)
 			if found {
-				kademlia.MakePingCall(&(k.ContactInfo), remoteContact.Host, remoteContact.Port)
+				kademlia.MakePingCall(&(k.ContactInfo), remoteContact.Host, remoteContact.Port, nil)
 			} else {
 				log.Printf("Error: Ping\n")
 				os.Exit(1)
@@ -250,7 +251,7 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 		return true
 	case kInst.IsRunTests() :
 		log.Printf("Executing RunTests!\n")
-		kademlia.RunTests()
+		kademlia.RunTests(kInst.Data)
 		return true
 	}
 	
@@ -275,7 +276,7 @@ func main() {
 	
 	log.Printf("First Peer: %s\n", firstPeerStr);
 	
-	kadem := kademlia.NewKademlia(listenStr)
+	kadem := kademlia.NewKademlia(listenStr, nil)
 		
 	stdInReader := bufio.NewReader(os.Stdin)
 	//input, _ := reader.ReadString('\n')
