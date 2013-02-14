@@ -167,7 +167,10 @@ func MakeFindNode(localContact *Contact, remoteContact *Contact, Key ID) bool {
     }
 
     client.Close()
-	//TODO: ADD UPDATE
+
+    printArrayOfFoundNodes(&(findNodeRes.Nodes))
+
+    //TODO: ADD UPDATE
 
     return true
 }
