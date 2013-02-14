@@ -171,7 +171,7 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 			remoteHost, remotePort, err := kademlia.AddrStrToHostPort(kInst.Addr)
 			kademlia.Assert(err == nil, "FIXME")
 			
-			kademlia.MakePingCall(&(k.ContactInfo), remoteHost, remotePort)
+			kademlia.MakePingCall(&(k.ContactInfo), remoteHost, remotePort, nil)
 		} else {
 			var found bool
 			var elem *list.Element
@@ -179,7 +179,7 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 			found, elem = k.Buckets[dist].Search(kInst.NodeID)
 			if found {
 				var remoteContact *kademlia.Contact = elem.Value.(*kademlia.Contact)
-				kademlia.MakePingCall(&(k.ContactInfo), remoteContact.Host, remoteContact.Port)
+				kademlia.MakePingCall(&(k.ContactInfo), remoteContact.Host, remoteContact.Port, nil)
 			} else {
 				log.Printf("Error: Ping\n")
 				os.Exit(1)
@@ -281,7 +281,7 @@ func main() {
 	
 	log.Printf("First Peer: %s\n", firstPeerStr);
 	
-	kadem := kademlia.NewKademlia(listenStr)
+	kadem := kademlia.NewKademlia(listenStr, nil)
 		
 	stdInReader := bufio.NewReader(os.Stdin)
 	//input, _ := reader.ReadString('\n')
