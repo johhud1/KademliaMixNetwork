@@ -8,6 +8,7 @@ import (
 	"net"
 	"strconv"
 	"container/list"
+	"fmt"
 )
 
 // Host identification.
@@ -41,6 +42,7 @@ func (fn *FoundNode) FoundNodeToContact() (c *Contact){
 
 
 func NewContact(AddrStr string) (Contact) {
+    log.Printf("initializing new contact -> string -> %s", AddrStr)
 	var err error
 	var nodeID ID
 	var host net.IP
@@ -92,7 +94,10 @@ func (k *Kademlia) Ping(ping Ping, pong *Pong) error {
 	log.Printf("Ping --> MsgID: %s, SenderID: %s\n", ping.MsgID.AsString(), ping.Sender.NodeID.AsString())
 	
 	//UPDATE BUCKET REGARDING ping.Sender and ping.MsgID
-	Update(k, ping.Sender)
+	//Update(k, ping.Sender)
+    //Testing new update channel
+    log.Printf("Sending to Update Channel -> %s", ping.Sender.AsString())
+    k.UpdateChannel<-ping.Sender
 	
 	
 	//Pong needs to have the same msgID
@@ -144,7 +149,8 @@ func (k *Kademlia) Store(req StoreRequest, res *StoreResult) error {
 	
 	///Update contact information for the sender
 	///CHECK IF WE ACTUALLY NEED ΤΟ DO THAT (PUT A REFERENCE ON WHERE THIS IS SPECIFIED IN THE PAPER)
-	_, err := Update(k, req.Sender)
+	//_, err := Update(k, req.Sender)
+    k.UpdateChannel<-req.Sender
 	
 	res.MsgID = CopyID(req.MsgID)
 	
@@ -154,7 +160,7 @@ func (k *Kademlia) Store(req StoreRequest, res *StoreResult) error {
 	//if NO_MORE_SPACE {
 	//	 res.Err = errors.New("No space to perform the store.")
 	//}
-	res.Err = err
+	//res.Err = err
  
 	return nil
 }
@@ -186,6 +192,14 @@ type FoundNode struct {
 	NodeID ID
 }
 
+func printArrayOfFoundNodes(array *[]FoundNode) {
+	fmt.Printf("Print Returned Found Nodes\n")
+	for i, v := range *array {
+		fmt.Printf("[%d] --> %s %s %d\n", i, v.NodeID.AsString(), v.IPAddr, v.Port)
+	}
+    return
+}
+
 //could we possibly add a 'remoteID' field? to track who we are getting this list of nodes from. 
 type FindNodeResult struct {
 	MsgID ID
@@ -195,7 +209,8 @@ type FindNodeResult struct {
 
 func (k *Kademlia) FindNode(req FindNodeRequest, res *FindNodeResult) error {
 	var err error
-	Update(k, req.Sender)
+	//Update(k, req.Sender)
+    k.UpdateChannel<-req.Sender
 
 
 	res.Nodes, err = FindKClosest(k, req.Sender.NodeID, req.Sender.NodeID)
@@ -208,7 +223,25 @@ func (k *Kademlia) FindNode(req FindNodeRequest, res *FindNodeResult) error {
 }
 
 
-func FindKClosest(k *Kademlia, remoteID ID, excludeID ID) ([]FoundNode, error) {
+func FindKClosest(k *Kademlia, remoteID ID, excludeID ID) ([]FoundNode, error){
+
+    findRequest := &FindRequest{remoteID, excludeID, make(chan *FindResponse)}
+
+    log.Printf("Sending to FindChannel -> %s\n", remoteID.AsString())
+    k.FindChannel<-findRequest
+
+    log.Printf("Waitng for return channel -> %s\n", remoteID.AsString())
+    resp := <-findRequest.returnChan
+
+
+    kClosestArray := resp.nodes
+    err := resp.err
+    log.Printf("Got kClosestArray -> length -> %d\n", len(kClosestArray))
+
+    return kClosestArray, err
+
+}
+func FindKClosest_mutex(k *Kademlia, remoteID ID, excludeID ID) ([]FoundNode, error) {
 	///TODO: Look into the local kbuckets and fetch k triplets if at all possible
 	///      tiplets should not include the sender's contact info 
 	var curBucket int = k.ContactInfo.NodeID.Distance(remoteID)
@@ -260,6 +293,7 @@ type FindValueRequest struct {
 
 func (k *Kademlia) FindValue(req FindValueRequest, res *FindValueResult) error {
 	var err error
+	log.Printf("RPC:FindValue, from %s\n", req.Sender.NodeID.AsString())
 	// TODO: Implement.	
 	//search for the value
 	//res.Value = data[req.Key]
@@ -267,6 +301,8 @@ func (k *Kademlia) FindValue(req FindValueRequest, res *FindValueResult) error {
 	res.Value, found = k.HashMap[req.Key]
 	if !found {
 		res.Nodes, err = FindKClosest(k, req.Key, req.Sender.NodeID)
+	} else {
+		log.Printf("RPC:FindValue, found value [%s:%s]\n", req.Key.AsString(), string(res.Value))
 	}
 	
 	res.MsgID = CopyID(req.MsgID)
