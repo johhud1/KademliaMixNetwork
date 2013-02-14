@@ -187,7 +187,12 @@ func MakeFindValue(localContact *Contact, remoteContact *Contact, Key ID) bool {
 type FindRequest struct {
     remoteID ID
     excludeID ID
-    returnChan chan []FoundNode
+    returnChan chan FindResponse
+}
+
+type FindResponse struct {
+    nodes []FoundNode
+    err error
 }
 
 func KBuucketHandler(k *Kademlia) (chan Contact, chan FindRequest) {
@@ -201,8 +206,8 @@ func KBuucketHandler(k *Kademlia) (chan Contact, chan FindRequest) {
                     log.Printf("In update handler. Updating contact: %s\n", c.AsString())
                     Update(k, c)
                 case f := <-finds:
-                    n, _ := FindKClosest(k, f.remoteID, f.excludeID)
-                    f.returnChan <-n
+                    n, err := FindKClosest(k, f.remoteID, f.excludeID)
+                    f.returnChan <-FindResponse{n, err}
             }
         }
     }()
@@ -396,7 +401,8 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) ([]FoundNode, []byte,
 		}
 	    }
             //Update the node
-            Update(k, *foundNodeResult.Responder.FoundNodeToContact())
+            //Update(k, *foundNodeResult.Responder.FoundNodeToContact())
+            k.UpdateChannel<-*foundNodeResult.Responder.FoundNodeToContact()
 
         }
 	sendToList := setDifference(shortList, sentMap)
@@ -440,7 +446,8 @@ func sendRPCsToFoundNodes(k *Kademlia, findType int, localContact *Contact, slis
 		}
 	    }
 	}
-	Update(k, *findNodeResult.Responder.FoundNodeToContact())
+	//Update(k, *findNodeResult.Responder.FoundNodeToContact())
+    k.UpdateChannel<-*findNodeResult.Responder.FoundNodeToContact()
     }
 }
 
