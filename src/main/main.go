@@ -178,7 +178,6 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 		} else {
 			found, remoteContact = kademlia.Search(k, kInst.NodeID)
 			if found {
-				var remoteContact *kademlia.Contact = elem.Value.(*kademlia.Contact)
 				kademlia.MakePingCall(&(k.ContactInfo), remoteContact.Host, remoteContact.Port, nil)
 			} else {
 				log.Printf("Error: Ping\n")
