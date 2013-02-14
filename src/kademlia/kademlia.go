@@ -178,7 +178,10 @@ func MakeFindNode(localContact *Contact, remoteContact *Contact, Key ID) bool {
     }
 
     client.Close()
-	//TODO: ADD UPDATE
+
+    printArrayOfFoundNodes(&(findNodeRes.Nodes))
+
+    //TODO: ADD UPDATE
 
     return true
 }
@@ -413,18 +416,24 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) ([]FoundNode, []byte,
                 //Non data trash
 
                 //Take its data
-		liveMap[foundNodeResult.Responder.NodeID]=true
+		        liveMap[foundNodeResult.Responder.NodeID]=true
                 //insertInLiveList(foundNodeResult.ResponderID, liveList)
                 addResponseNodesToSL(foundNodeResult.ReturnedResult.Nodes, shortList, sentMap, searchID)
-                distance := searchID.Distance(shortList.Front().Value.(*FoundNode).NodeID)
-                if distance < searchID.Distance(closestNode){
-                    log.Printf("New closest! dist:%d\n", distance)
+                if (searchID.Compare(shortList.Front().Value.(*FoundNode).NodeID) == 0){
+                    log.Printf("New closest, Found it! dist:0\n")
                     closestNode = foundNodeResult.Responder.NodeID
                     stillProgress = true
                 } else {
-		    //closestNode didn't change, flood RPCs and prep to return
-		    stillProgress = false
-		}
+                    distance := searchID.Distance(shortList.Front().Value.(*FoundNode).NodeID)
+                    if distance < searchID.Distance(closestNode){
+                        log.Printf("New closest! dist:%d\n", distance)
+                        closestNode = foundNodeResult.Responder.NodeID
+                        stillProgress = true
+                    } else {
+		                //closestNode didn't change, flood RPCs and prep to return
+		                stillProgress = false
+                    }
+		        }
 
 	    } else {
                 //It failed, remove it from the shortlist
