@@ -9,7 +9,7 @@ import (
 	"strings"
 	"os"
 	"bufio"
-	"container/list"
+//	"container/list"
 	"fmt"
 )
 
@@ -157,6 +157,8 @@ func (kInst *KademliaInstruction) IsSkip() bool {
 }
 
 func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
+	var found bool
+	var remoteContact *kademlia.Contact
 	
 	switch  {
 	case kInst.IsExit() :
@@ -173,12 +175,8 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 			
 			kademlia.MakePingCall(&(k.ContactInfo), remoteHost, remotePort)
 		} else {
-			var found bool
-			var elem *list.Element
-			var dist int = k.ContactInfo.NodeID.Distance(kInst.NodeID)
-			found, elem = k.Buckets[dist].Search(kInst.NodeID)
+			found, remoteContact = kademlia.Search(k, kInst.NodeID)
 			if found {
-				var remoteContact *kademlia.Contact = elem.Value.(*kademlia.Contact)
 				kademlia.MakePingCall(&(k.ContactInfo), remoteContact.Host, remoteContact.Port)
 			} else {
 				log.Printf("Error: Ping\n")
@@ -188,10 +186,9 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 		return true
 	case kInst.IsStore() :
 	     	log.Printf("Executing Store Instruction\n");
-		var dist int = k.ContactInfo.NodeID.Distance(kInst.NodeID)
-		found, elem := k.Buckets[dist].Search(kInst.NodeID)
+		found, remoteContact = kademlia.Search(k, kInst.NodeID)
 		if found {
-			kademlia.MakeStore(&(k.ContactInfo), elem.Value.(*kademlia.Contact), kInst.Key, kInst.Data)
+			kademlia.MakeStore(&(k.ContactInfo), remoteContact, kInst.Key, kInst.Data)
 			//TODO: do something with the result of makeStore
 		} else {
 			log.Printf("Store ERR")
@@ -199,10 +196,9 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 		return true
 	case kInst.IsFindNode() :
 	     	log.Printf("Executing FindNode Instruction\n");
-		var dist int = k.ContactInfo.NodeID.Distance(kInst.NodeID)
-		found, elem := k.Buckets[dist].Search(kInst.NodeID)
+		found, remoteContact = kademlia.Search(k, kInst.NodeID)
 		if found {
-			kademlia.MakeFindNode(&(k.ContactInfo), elem.Value.(*kademlia.Contact), kInst.Key)
+			kademlia.MakeFindNode(&(k.ContactInfo), remoteContact, kInst.Key)
 			//TODO: do something with the result of findNode
 		} else {
 			log.Printf("Store ERR")
@@ -210,10 +206,9 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 		return true
 	case kInst.IsFindValue() :
 	     	log.Printf("Executing FindValue Instruction\n");
-		var dist int = k.ContactInfo.NodeID.Distance(kInst.NodeID)
-		found, elem := k.Buckets[dist].Search(kInst.NodeID)
+		found, remoteContact = kademlia.Search(k, kInst.NodeID)
 		if found {
-			kademlia.MakeFindValue(&(k.ContactInfo), elem.Value.(*kademlia.Contact), kInst.Key)
+			kademlia.MakeFindValue(&(k.ContactInfo), remoteContact, kInst.Key)
 			//TODO: do something with the result of findValue
 		} else {
 			log.Printf("Store ERR")
@@ -234,10 +229,9 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 		return true
 	case kInst.IsGetContact() :
 	     	log.Printf("Executing GetContact Instruction\n");
-		var dist int = k.ContactInfo.NodeID.Distance(kInst.NodeID)
-		found, elem := k.Buckets[dist].Search(kInst.NodeID)
+		found, remoteContact = kademlia.Search(k, kInst.NodeID)
 		if found {
-			log.Printf("GetContact Addr:%v, Port: %v\n", elem.Value.(*kademlia.Contact).Host, elem.Value.(*kademlia.Contact).Port)
+			log.Printf("GetContact Addr:%v, Port: %v\n", remoteContact.Host, remoteContact.Port)
 		} else {
 			log.Printf("GetContact ERR\n")
 		}

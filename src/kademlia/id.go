@@ -66,7 +66,7 @@ func (id ID) Distance(id2 ID) (dist int) {
 	//REVIEW: is the correct distance 160-NumberOfPrefixZeros?
 	dist = 159 - (id.Xor(id2)).PrefixLen()
 	log.Printf("distance: %s ^ %s = %d\n", id.AsString(), id2.AsString(), dist)
-	Assert(dist >= 0 && dist < 160, "distance error")
+	Assert(dist >= -1 && dist < 160, "distance error")
 	return dist
 }
 
