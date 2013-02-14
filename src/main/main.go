@@ -106,6 +106,9 @@ func NewKademliaInstruction(s string) (kInst *KademliaInstruction) {
 		kademlia.Assert(len(strTokens) == 2, "IterativeFindValue requires 1 argument")
 		kInst.flags = 11;
 		kInst.Key, err = kademlia.FromString(strTokens[1])		
+	case "runtests" :
+		kademlia.Assert(len(strTokens) == 1, "runtests requires 0 arguments")
+		kInst.flags = 12;
 	}
 	log.Printf("Flag: %d\n", kInst.flags);
 	
@@ -148,6 +151,9 @@ func (kInst *KademliaInstruction) IsIterativeFindNode() bool {
 }
 func (kInst *KademliaInstruction) IsIterativeFindValue() bool {
 	return kInst.flags == 11
+}
+func (kInst *KademliaInstruction) IsRunTests() bool{
+	return kInst.flags == 12
 }
 func (kInst *KademliaInstruction) IsSkip() bool {
 	return kInst.flags == 255
@@ -255,6 +261,10 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 	case kInst.IsIterativeFindValue() :
 	     	log.Printf("Executing iterativeFindValue Instruction\n");
 		//TODO:IMPLEMENT
+		return true
+	case kInst.IsRunTests() :
+		log.Printf("Executing RunTests!\n")
+		kademlia.RunTests()
 		return true
 	}
 	
