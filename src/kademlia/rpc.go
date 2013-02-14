@@ -8,6 +8,7 @@ import (
 	"net"
 	"strconv"
 	"container/list"
+	"fmt"
 )
 
 // Host identification.
@@ -191,6 +192,14 @@ type FoundNode struct {
 	NodeID ID
 }
 
+func printArrayOfFoundNodes(array *[]FoundNode) {
+	fmt.Printf("Print Returned Found Nodes\n")
+	for i, v := range *array {
+		fmt.Printf("[%d] --> %s %s %d\n", i, v.NodeID.AsString(), v.IPAddr, v.Port)
+	}
+    return
+}
+
 //could we possibly add a 'remoteID' field? to track who we are getting this list of nodes from. 
 type FindNodeResult struct {
 	MsgID ID
@@ -284,13 +293,16 @@ type FindValueRequest struct {
 
 func (k *Kademlia) FindValue(req FindValueRequest, res *FindValueResult) error {
 	var err error
+	log.Printf("RPC:FindValue, from %s\n", req.Sender.NodeID.AsString())
 	// TODO: Implement.	
 	//search for the value
 	//res.Value = data[req.Key]
 	var found bool
 	res.Value, found = k.HashMap[req.Key]
 	if !found {
-		//res.Nodes, err = FindKClosest(k, req.Key, req.Sender.NodeID)
+		res.Nodes, err = FindKClosest(k, req.Key, req.Sender.NodeID)
+	} else {
+		log.Printf("RPC:FindValue, found value [%s:%s]\n", req.Key.AsString(), string(res.Value))
 	}
 	
 	res.MsgID = CopyID(req.MsgID)

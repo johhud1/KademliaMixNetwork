@@ -93,16 +93,16 @@ func NewKademliaInstruction(s string) (kInst *KademliaInstruction) {
 	    	kademlia.Assert(len(strTokens) == 2, "GetContact requires 1 argument")
 		kInst.flags = 8;
 		kInst.NodeID, err = kademlia.FromString(strTokens[1])
-	case "iterativeStore" :
+	case "iterativestore" :
 		kademlia.Assert(len(strTokens) == 3, "IterativeStore requires 2 argument")
 		kInst.flags = 9;
 		kInst.Key, err = kademlia.FromString(strTokens[1])
 		kInst.Data = strTokens[2]
-	case "iterativeFindNode" :
+	case "iterativefindnode" :
 		kademlia.Assert(len(strTokens) == 2, "IterativeFindNode requires 1 argument")
 		kInst.flags = 10;
 		kInst.NodeID, err = kademlia.FromString(strTokens[1])
-	case "iterativeFindValue" :
+	case "iterativefindvalue" :
 		kademlia.Assert(len(strTokens) == 2, "IterativeFindValue requires 1 argument")
 		kInst.flags = 11;
 		kInst.Key, err = kademlia.FromString(strTokens[1])		

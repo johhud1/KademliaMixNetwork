@@ -178,6 +178,11 @@ func MakeFindValue(localContact *Contact, remoteContact *Contact, Key ID) bool {
              return false
     }
 
+    if findValueRes.Value != nil {
+	log.Printf("MakeFindValue: found [%s:%s]\n", Key.AsString(), string(findValueRes.Value))
+    } else {
+	printArrayOfFoundNodes(&(findValueRes.Nodes))
+    }
     //TODO: ADD UPDATE
 
     return true
