@@ -104,8 +104,9 @@ func NewKademliaInstruction(s string) (kInst *KademliaInstruction) {
 		kInst.flags = 11;
 		kInst.Key, err = kademlia.FromString(strTokens[1])		
 	case "runtests" :
-		kademlia.Assert(len(strTokens) == 1, "runtests requires 0 arguments")
+		kademlia.Assert(len(strTokens) == 2, "runtests requires 1 arguments")
 		kInst.flags = 12;
+		kInst.Data = strTokens[1]
 	}
 	log.Printf("Flag: %d\n", kInst.flags);
 	
@@ -256,7 +257,7 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 		return true
 	case kInst.IsRunTests() :
 		log.Printf("Executing RunTests!\n")
-		kademlia.RunTests()
+		kademlia.RunTests(kInst.Data)
 		return true
 	}
 	

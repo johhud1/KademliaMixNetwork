@@ -15,9 +15,14 @@ func Assert(cond bool, msg string) {
 	}
 }
 
-func RunTests() {
-    portrange := 5
-    log.Printf("putting up kademlia's on localhost:[7900-8000]\n")
+func RunTests(numNodes string) {
+    var portrange int
+    var err error
+    portrange, err= strconv.Atoi(numNodes)
+    if (err != nil){
+	log.Printf("Error RunTest: arg parse failed. Got:%s\n", numNodes)
+    }
+    log.Printf("putting up %d kademlia's starting at localhost:[7900]\n", portrange)
     kAndPaths := make(map[*Kademlia]string, portrange)
     for i:=0; i<portrange; i++ {
 	istr := strconv.FormatInt(int64(7900+i), 10)
