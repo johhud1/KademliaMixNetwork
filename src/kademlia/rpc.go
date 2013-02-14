@@ -246,6 +246,9 @@ func FindKClosest_mutex(k *Kademlia, remoteID ID, excludeID ID) ([]FoundNode, er
 	///TODO: Look into the local kbuckets and fetch k triplets if at all possible
 	///      tiplets should not include the sender's contact info 
 	var initBucket int = k.ContactInfo.NodeID.Distance(remoteID) 
+	if -1 == initBucket {
+		initBucket = 0
+	}
 
 	var curBucket int = initBucket
 	log.Printf("FindKClosest: myID=%s remoteID=%s curBucket calculated as %d\n", excludeID.AsString(), remoteID.AsString(), curBucket)
@@ -254,7 +257,7 @@ func FindKClosest_mutex(k *Kademlia, remoteID ID, excludeID ID) ([]FoundNode, er
 	nodesFoundSoFar = list.New()
 
 	//for condition used to be (... || nodesFoundSoFar.len() == Kconst). didnt' make any sense, so I changed it
-	for ; curBucket > 0 && !(nodesFoundSoFar.Len() == KConst); {
+	for ; curBucket >= 0 && !(nodesFoundSoFar.Len() == KConst); {
 		kb := k.Buckets[curBucket]
 		for e := kb.l.Front(); e != nil; e = e.Next() {
 			if nodesFoundSoFar.Len() == KConst {

@@ -299,6 +299,17 @@ func MakeFindNodeCall(localContact *Contact, remoteContact *Contact, NodeChan ch
 }
 
 
+func Search(k *Kademlia, searchID ID) (found bool, cont *Contact) {
+	var elem *list.Element
+
+	var dist int = k.ContactInfo.NodeID.Distance(searchID)
+	if -1 == dist {
+		return true, &(k.ContactInfo)
+	}
+	found, elem = k.Buckets[dist].Search(searchID)
+	return found, elem.Value.(*Contact)
+}
+
 //Call Update on Contact whenever you communicate successfully 
 func Update(k *Kademlia, triplet Contact) (success bool, err error) {
 
@@ -310,6 +321,9 @@ func Update(k *Kademlia, triplet Contact) (success bool, err error) {
 
     //find distance
     dist = k.ContactInfo.NodeID.Distance(triplet.NodeID)
+    if -1 == dist {
+	return true, nil
+    }
 
     //search kbucket and return pointer to the Triplet
     exists, tripletP = k.Buckets[dist].Search(triplet.NodeID)
@@ -373,7 +387,7 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) ([]FoundNode, []byte,
         shortList.PushBack(newNode)
         curClosestDist := localContact.NodeID.Distance(closestNode)
         compareDist := localContact.NodeID.Distance(newNode.NodeID)
-        if compareDist < curClosestDist{
+        if compareDist < curClosestDist {
             closestNode = newNode.NodeID
         }
     }
@@ -408,33 +422,28 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) ([]FoundNode, []byte,
         }
 
         //wait for reply
-        for i:=0; i<AConst ; i++{
-            foundNodeResult := <-NodeChan
+	for i:=0; i<AConst ; i++ {
+	    var foundNodeResult *FindNodeCallResponse
+	    foundNodeResult = <-NodeChan
+	    log.Printf("IterativeFind: Reading responce from: %s\n", foundNodeResult.Responder.NodeID.AsString())
             //TODO: CRASHES IF ALL ALPHA RETURN EMPTY
-
             if foundNodeResult.Responded {
                 //Non data trash
 
                 //Take its data
-		        liveMap[foundNodeResult.Responder.NodeID]=true
+	        liveMap[foundNodeResult.Responder.NodeID]=true
                 //insertInLiveList(foundNodeResult.ResponderID, liveList)
                 addResponseNodesToSL(foundNodeResult.ReturnedResult.Nodes, shortList, sentMap, searchID)
-                if (searchID.Compare(shortList.Front().Value.(*FoundNode).NodeID) == 0){
-                    log.Printf("New closest, Found it! dist:0\n")
+
+                distance := searchID.Distance(shortList.Front().Value.(*FoundNode).NodeID)
+                if distance < searchID.Distance(closestNode){
+                    log.Printf("New closest! dist:%d\n", distance)
                     closestNode = foundNodeResult.Responder.NodeID
                     stillProgress = true
                 } else {
-                    distance := searchID.Distance(shortList.Front().Value.(*FoundNode).NodeID)
-                    if distance < searchID.Distance(closestNode){
-                        log.Printf("New closest! dist:%d\n", distance)
-                        closestNode = foundNodeResult.Responder.NodeID
-                        stillProgress = true
-                    } else {
-		                //closestNode didn't change, flood RPCs and prep to return
-		                stillProgress = false
-                    }
-		        }
-
+		    //closestNode didn't change, flood RPCs and prep to return
+		    stillProgress = false
+                }
 	    } else {
                 //It failed, remove it from the shortlist
 		for e:=shortList.Front(); e!=nil; e=e.Next(){
@@ -449,8 +458,6 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) ([]FoundNode, []byte,
             k.UpdateChannel<-*foundNodeResult.Responder.FoundNodeToContact()
 
         }
-	sendToList := setDifference(shortList, sentMap)
-	sendRPCsToFoundNodes(k, findType, localContact, sendToList)
 
         //OLD OLD OLD OLD OLD OLD 
         //How are we going to order the returned FoundNodes?? Do we only keep the k closest?
@@ -464,6 +471,10 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) ([]FoundNode, []byte,
         ///// check if it has already been probed and if not try to find if you can find a node at shortlist to replace with it
 
     }
+    log.Printf("iterativeFind: exiting main iterative loop\n")
+    sendToList := setDifference(shortList, sentMap)
+    sendRPCsToFoundNodes(k, findType, localContact, sendToList)
+
 
     return nil, nil, nil
 }
@@ -514,7 +525,7 @@ func setDifference(listA *list.List, sentMap map[ID]bool) (*list.List){
 //add Nodes we here about in the reply to the shortList, only if that node is not in the sentList
 func addResponseNodesToSL(fnodes []FoundNode, shortList *list.List, sentMap map[ID]bool, targetID ID){
     for i:=0; i < len(fnodes) ; i++{
-	foundNode := fnodes[i]
+	foundNode := &fnodes[i]
 	_,inSentList := sentMap[foundNode.NodeID]
 	//if the foundNode is already in sentList, dont add it to shortList
 	if inSentList{
