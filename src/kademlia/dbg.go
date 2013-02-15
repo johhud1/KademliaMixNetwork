@@ -89,7 +89,7 @@ func PingTests(kAndPaths map[*Kademlia]string, portrange int, rounds int){
 		remoteContact:= remoteK.ContactInfo
 		remotepath :=  kAndPaths[remoteK]
 		log.Printf("pingTest: pinging %s:%d with rpcPath:%s\n", remoteContact.Host, remoteContact.Port, remotepath)
-		MakePingCall(&k.ContactInfo, remoteContact.Host, remoteContact.Port, &remotepath)
+		MakePingCall(k, remoteContact.Host, remoteContact.Port, &remotepath)
 	}
     }
     log.Printf("done with ping tests\n")

@@ -174,11 +174,11 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 			remoteHost, remotePort, err := kademlia.AddrStrToHostPort(kInst.Addr)
 			kademlia.Assert(err == nil, "FIXME")
 			
-			kademlia.MakePingCall(&(k.ContactInfo), remoteHost, remotePort, nil)
+			kademlia.MakePingCall(k, remoteHost, remotePort, nil)
 		} else {
 			found, remoteContact = kademlia.Search(k, kInst.NodeID)
 			if found {
-				kademlia.MakePingCall(&(k.ContactInfo), remoteContact.Host, remoteContact.Port, nil)
+				kademlia.MakePingCall(k, remoteContact.Host, remoteContact.Port, nil)
 			} else {
 				log.Printf("Error: Ping\n")
 				os.Exit(1)
@@ -189,7 +189,7 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 	     	log.Printf("Executing Store Instruction\n");
 		found, remoteContact = kademlia.Search(k, kInst.NodeID)
 		if found {
-			kademlia.MakeStore(&(k.ContactInfo), remoteContact, kInst.Key, kInst.Data)
+			kademlia.MakeStore(k, remoteContact, kInst.Key, kInst.Data)
 			//TODO: do something with the result of makeStore
 		} else {
 			log.Printf("Store ERR")
@@ -199,7 +199,7 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 	     	log.Printf("Executing FindNode Instruction\n");
 		found, remoteContact = kademlia.Search(k, kInst.NodeID)
 		if found {
-			kademlia.MakeFindNode(&(k.ContactInfo), remoteContact, kInst.Key)
+			kademlia.MakeFindNode(k, remoteContact, kInst.Key)
 			//TODO: do something with the result of findNode
 		} else {
 			log.Printf("Store ERR")
@@ -209,7 +209,7 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 	     	log.Printf("Executing FindValue Instruction\n");
 		found, remoteContact = kademlia.Search(k, kInst.NodeID)
 		if found {
-			kademlia.MakeFindValue(&(k.ContactInfo), remoteContact, kInst.Key)
+			kademlia.MakeFindValue(k, remoteContact, kInst.Key)
 			//TODO: do something with the result of findValue
 		} else {
 			log.Printf("Store ERR")

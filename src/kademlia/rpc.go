@@ -93,18 +93,18 @@ type Pong struct {
 
 func (k *Kademlia) Ping(ping Ping, pong *Pong) error {
 	log.Printf("Ping --> MsgID: %s, Sender: %s, Reciever:%s\n", ping.MsgID.AsString(), ping.Sender.AsString(), k.ContactInfo.AsString())
-	
+
 	//UPDATE BUCKET REGARDING ping.Sender and ping.MsgID
 	//Update(k, ping.Sender)
     //Testing new update channel
     log.Printf("Sending to Update Channel -> %s", ping.Sender.AsString())
     k.UpdateChannel<-ping.Sender
-	
-	
+
+
 	//Pong needs to have the same msgID
 	pong.MsgID = CopyID(ping.MsgID)
-	
-	
+    pong.Sender = k.ContactInfo
+
 	return nil
 }
 

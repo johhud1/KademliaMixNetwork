@@ -115,8 +115,12 @@ func getHostPort(k *Kademlia) (net.IP, uint16) {
     return k.ContactInfo.Host, k.ContactInfo.Port
 }
 
-func MakePingCall(localContact *Contact, remoteHost net.IP, remotePort uint16, path *string) bool {
+func MakePingCall(k *Kademlia, remoteHost net.IP, remotePort uint16, path *string) bool {
+    var localContact *Contact
+    localContact = &(k.ContactInfo)
+
     log.Printf("MakePingCall: From %s --> To %s:%d\n", localContact.AsString(), remoteHost.String(), remotePort)
+
     ping := new(Ping)
     ping.MsgID = NewRandomID()
     ping.Sender = CopyContact(localContact)
@@ -143,12 +147,15 @@ func MakePingCall(localContact *Contact, remoteHost net.IP, remotePort uint16, p
 
     client.Close()
 
-	//TODO: ADD UPDATE
+    // Go ahead and add them
+	k.UpdateChannel<-pong.Sender
 
     return true
 }
 
-func MakeStore(localContact *Contact, remoteContact *Contact, Key ID, Value string) bool {
+func MakeStore(k *Kademlia, remoteContact *Contact, Key ID, Value string) bool {
+    var localContact *Contact
+    localContact = &(k.ContactInfo)
     log.Printf("MakeStore: From %s --> To %s\n", localContact.AsString(), remoteContact.AsString())
     storeReq := new(StoreRequest)
     storeReq.MsgID = NewRandomID()
@@ -172,12 +179,15 @@ func MakeStore(localContact *Contact, remoteContact *Contact, Key ID, Value stri
     }
 
     client.Close()
-	//TODO: ADD UPDATE
+	//Update the sender
+	k.UpdateChannel<-*remoteContact
 
     return true
 }
 //WTF IS THIS. do we ever even use it?
-func MakeFindNode(localContact *Contact, remoteContact *Contact, Key ID) bool {
+func MakeFindNode(k *Kademlia, remoteContact *Contact, Key ID) bool {
+    var localContact *Contact
+    localContact = &(k.ContactInfo)
     log.Printf("MakeFindNode: From %s --> To %s\n", localContact.AsString(), remoteContact.AsString())
     findNodeReq := new(FindNodeRequest)
     findNodeReq.MsgID = NewRandomID()
@@ -205,12 +215,15 @@ func MakeFindNode(localContact *Contact, remoteContact *Contact, Key ID) bool {
 
     printArrayOfFoundNodes(&(findNodeRes.Nodes))
 
-    //TODO: ADD UPDATE
+    //Update in the buckets
+	k.UpdateChannel<-*remoteContact
 
     return true
 }
 
-func MakeFindValue(localContact *Contact, remoteContact *Contact, Key ID) bool {
+func MakeFindValue(k *Kademlia, remoteContact *Contact, Key ID) bool {
+    var localContact *Contact
+    localContact = &(k.ContactInfo)
     log.Printf("MakeFindValue: From %s --> To %s\n", localContact.AsString(), remoteContact.AsString())
     findValueReq := new(FindValueRequest)
     findValueReq.MsgID = NewRandomID()
@@ -416,13 +429,11 @@ func Update(k *Kademlia, triplet Contact) (success bool, err error) {
             return true, nil
         } else {
             //ping the contant at the head
-            //get local contact info
-            localContact := &(k.ContactInfo)
             ///get head
             lFront := k.Buckets[dist].l.Front()
             var remoteContact *Contact = lFront.Value.(*Contact)
             ///make ping
-            succ := MakePingCall(localContact, remoteContact.Host, remoteContact.Port, nil)
+            succ := MakePingCall(k, remoteContact.Host, remoteContact.Port, nil)
             if !succ {
                 //drop old
                 k.Buckets[dist].Drop(lFront)
