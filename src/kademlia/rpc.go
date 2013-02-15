@@ -42,7 +42,6 @@ func (fn *FoundNode) FoundNodeToContact() (c *Contact){
 
 
 func NewContact(AddrStr string) (Contact) {
-    log.Printf("initializing new contact -> string -> %s", AddrStr)
 	var err error
 	var nodeID ID
 	var host net.IP
@@ -54,6 +53,8 @@ func NewContact(AddrStr string) (Contact) {
 	if err != nil {
      		//FIXME
 	}
+
+    log.Printf("Creating new contact %s %s\n", nodeID.AsString(), AddrStr)
 	return Contact{nodeID, host, port}
 }
 
@@ -191,13 +192,14 @@ type FoundNode struct {
 	NodeID ID
 }
 
-func printArrayOfFoundNodes(array *[]FoundNode) {
+func PrintArrayOfFoundNodes(array *[]FoundNode) {
 	fmt.Printf("Print Returned Found Nodes\n")
 	for i, v := range *array {
 		fmt.Printf("[%d] --> %s %s %d\n", i, v.NodeID.AsString(), v.IPAddr, v.Port)
 	}
     return
 }
+
 
 //could we possibly add a 'remoteID' field? to track who we are getting this list of nodes from. 
 type FindNodeResult struct {
@@ -230,7 +232,7 @@ func FindKClosest(k *Kademlia, remoteID ID, excludeID ID) ([]FoundNode, error){
     k.FindChannel<-findRequest
 
     log.Printf("Waitng for return channel -> %s\n", remoteID.AsString())
-    resp := <-findRequest.returnChan
+    resp :=<- findRequest.ReturnChan
 
 
     kClosestArray := resp.nodes

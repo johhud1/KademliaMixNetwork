@@ -13,10 +13,8 @@ type K_Bucket struct {
 
 //func NewK_Bucket(kadem *Kademlia) (*K_Bucket) {
 func NewK_Bucket() (*K_Bucket) {
-	
 	//log.Printf("NewK_Bucket\n")
 	b := new(K_Bucket)
-	
 	b.l = list.New()
 	
 	return b
@@ -25,7 +23,7 @@ func NewK_Bucket() (*K_Bucket) {
 
 func (kb *K_Bucket) IsFull() bool {
 	Assert(kb.l.Len() <= KConst, "Bucket is more than full.")
-	return     kb.l.Len() == KConst
+	return kb.l.Len() == KConst
 }
 
 /*
@@ -36,10 +34,10 @@ func (kb *K_Bucket) IsFull() bool {
 func (kb *K_Bucket) Search(NodeID ID) (bool, *list.Element) {
 	log.Printf("Search, %s\n", NodeID.AsString())
 	
-	Assert(kb.l != nil, "Assert list != nil")
+	Assert(kb.l != nil, "Search: Assert list == nil")
 	
 	for e := kb.l.Front(); e != nil; e = e.Next() {
-    		if e.Value.(*Contact).NodeID == NodeID {
+    	if e.Value.(*Contact).NodeID == NodeID {
 			return true, e
 		}
 	}
