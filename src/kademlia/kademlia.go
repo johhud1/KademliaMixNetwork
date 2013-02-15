@@ -214,6 +214,7 @@ func MakeStore(k *Kademlia, remoteContact *Contact, Key ID, Value string) bool {
     return true
 }
 
+/*
 //FIXME
 //WTF IS THIS. do we ever even use it
 //George: Yes we do, look at main.go. However maybe we can switch to MakeFindNodeCall and do the main.go call asynchronous too, any thoughts
@@ -257,6 +258,7 @@ func MakeFindNode(k *Kademlia, remoteContact *Contact, Key ID) (bool, *[]FoundNo
 
     return true, &(findNodeRes.Nodes)
 }
+*/
 
 func MakeFindValue(k *Kademlia, remoteContact *Contact, Key ID) (bool, []byte, *[]FoundNode) {
     var localContact *Contact
@@ -419,40 +421,50 @@ type FindNodeCallResponse struct {
 }
 
 //Makes a FindNodeCall on remoteContact. returns list of KClosest nodes on that contact, and the id of the remote node
-func MakeFindNodeCall(localContact *Contact, remoteContact *Contact, NodeChan chan *FindNodeCallResponse) (*FindNodeResult, bool) {
+//REVIEW
+//George: On the ground that this should be an asynchronous call, I modified the definition of the function
+//func MakeFindNodeCall(localContact *Contact, remoteContact *Contact, NodeChan chan *FindNodeCallResponse) (*FindNodeResult, bool) {
+func MakeFindNodeCall(k *Kademlia, remoteContact *Contact, searchKey ID, NodeChan chan *FindNodeCallResponse) {
 	var fnRequest *FindNodeRequest
 	var fnResult *FindNodeResult
     var remoteAddrStr string 
     var client *rpc.Client
 	var resultSet *FindNodeCallResponse
     var err error
+	var localContact *Contact
 
+	localContact = &(k.ContactInfo)
+	remoteAddrStr = remoteContact.Host.String() + ":" + strconv.Itoa(int(remoteContact.Port))
     log.Printf("MakeFindNodeCall: From %s --> To %s\n", localContact.AsString(), remoteContact.AsString())
+
     fnRequest = new(FindNodeRequest)
     fnRequest.MsgID = NewRandomID()
     fnRequest.Sender = CopyContact(localContact)
-    fnRequest.NodeID = CopyID(remoteContact.NodeID)
+    fnRequest.NodeID = CopyID(searchKey)
 
     fnResult = new(FindNodeResult)
-
-	remoteAddrStr = remoteContact.Host.String() + ":" + strconv.Itoa(int(remoteContact.Port))
-    client, err = rpc.DialHTTP("tcp", remoteAddrStr)
 
     resultSet = new(FindNodeCallResponse)
     resultSet.ReturnedResult = fnResult
     resultSet.Responder = remoteContact.ContactToFoundNode()
     resultSet.Responded = false
+
+    client, err = rpc.DialHTTP("tcp", remoteAddrStr)
     if err != nil {
         log.Printf("Error: MakeFindNodeCall, DialHTTP, %s\n", err)
+		resultSet.Responded = false
         NodeChan <- resultSet
-        return nil, false
+        //return nil, false
+		return
     }
-	
+
     err = client.Call("Kademlia.FindNode", fnRequest, &fnResult)
     if err != nil {
         log.Printf("Error: MakeFindNodeCall, Call, %s\n", err)
+		resultSet.Responded = false
         NodeChan <- resultSet
-        return nil, false
+        //return nil, false
+		return
     }
 	
     // Mark the result as being good
@@ -460,11 +472,15 @@ func MakeFindNodeCall(localContact *Contact, remoteContact *Contact, NodeChan ch
 	
     NodeChan <- resultSet
     client.Close()
-    //REVIEW
-	//We probably need to add an update here. Something like 'k.UpdateChannel <- *remoteContact'.
-	//For that though we need to include the kademlia object to the call as done with MakeFindNode()
 
-    return fnResult, true
+    //REVIEW
+	//We probably need to add an update here. Something like 'k.UpdateChannel <- *remoteContact'
+	//For that though we need to include the kademlia object to the call as done with 'MakeFindNode()'
+	//update the remote node contact information
+	k.UpdateChannel <- *remoteContact
+
+    //return fnResult, true
+	return
 }
 
 
@@ -606,7 +622,10 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) (bool, []FoundNode, [
 				//    kAndPaths[
 				//probably need to rearchitect this path bullshit. maybe a const array/map of kadems 
 				//so don't have to pass all this shit around
-                go MakeFindNodeCall(localContact, foundNodeTriplet.FoundNodeToContact(), NodeChan)
+
+				//REVIEW: Change for merge of MakeFindNode and MakeFindNodeCall
+                //go MakeFindNodeCall(localContact, foundNodeTriplet.FoundNodeToContact(), NodeChan)
+				go MakeFindNodeCall(k, foundNodeTriplet.FoundNodeToContact(), searchID, NodeChan)
             } else if findType == 2 {//
 				
             } else {
@@ -653,39 +672,31 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) (bool, []FoundNode, [
 					}
 				}
 			}
+			//NOTE: No need to update here it is done in MakeFindNodeCall()
             //Update the node
             //Update(k, *foundNodeResult.Responder.FoundNodeToContact())
-            k.UpdateChannel<-*foundNodeResult.Responder.FoundNodeToContact()
+            //k.UpdateChannel<-*foundNodeResult.Responder.FoundNodeToContact()
+
 			log.Printf("IterativeFind: α loop end\n")
         }
 		
-        //OLD OLD OLD OLD OLD OLD 
-        //How are we going to order the returned FoundNodes?? Do we only keep the k closest?
-		
-        //if reply
-        /// remove from sendList
-        /// put to liveList
-        /// go through the returned FoundNodes
-        //// if it is the answer return it
-        //// else 
-        ///// check if it has already been probed and if not try to find if you can find a node at shortlist to replace with it
-			
-		}
+	}
     log.Printf("iterativeFind: exiting main iterative loop\n")
     sendToList := setDifference(shortList, sentMap)
-    sendRPCsToFoundNodes(k, findType, localContact, sendToList)
+    sendRPCsToFoundNodes(k, findType, localContact, searchID, sendToList)
 	
     log.Printf("iterativeFind: end\n")
     return true, nil, nil, nil
 }
 
-func sendRPCsToFoundNodes(k *Kademlia, findType int, localContact *Contact, slist *list.List){
+func sendRPCsToFoundNodes(k *Kademlia, findType int, localContact *Contact, searchID ID, slist *list.List){
     resChan := make(chan *FindNodeCallResponse, slist.Len())
     for e:=slist.Front(); e!=nil; e=e.Next(){
 		foundNode := e.Value.(*FoundNode)
 		remote := foundNode.FoundNodeToContact()
 		if findType ==1 {
-			go MakeFindNodeCall(localContact, remote, resChan)
+			//go MakeFindNodeCall(localContact, remote, resChan)
+			go MakeFindNodeCall(k, remote, searchID, resChan)
 		}
 		//TODO:findValue case goes here
     }
