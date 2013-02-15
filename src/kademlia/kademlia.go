@@ -19,12 +19,31 @@ const AConst = 3
 // Core Kademlia type. You can put whatever state you want in this.
 type Kademlia struct {
     Buckets [160]*K_Bucket
-    HashMap map[ID][]byte
+    //HashMap map[ID][]byte
     ContactInfo Contact
     UpdateChannel chan Contact
     FindChannel chan *FindRequest
+    SearchChannel chan *SearchRequest
+    ValueStore *Store
 }
 
+type Store struct {
+    PutChannel chan *PutRequest
+    GetChannel chan *GetRequest
+    HashMap map[ID][]byte
+}
+
+func (s *Store) Put(key ID, value []byte) {
+    s.PutChannel<- &PutRequest{key, value}
+}
+
+func (s *Store) Get(key ID) ([]byte, bool) {
+    gRequest := &GetRequest{key, make(chan *GetResponse)}
+    s.GetChannel<- gRequest
+    gResponse := <-gRequest.returnChan
+
+    return gResponse.value, gResponse.found
+}
 func NewKademlia(listenStr string, rpcPath *string) *Kademlia {
     // TODO: Assign yourself a random ID and prepare other state here.
     var k *Kademlia
@@ -34,7 +53,10 @@ func NewKademlia(listenStr string, rpcPath *string) *Kademlia {
              k.Buckets[i] = NewK_Bucket()
     }
 
-    k.HashMap = make(map[ID][]byte, 100)
+    //k.HashMap = make(map[ID][]byte, 100)
+    k.ValueStore = new(Store)
+    k.ValueStore.HashMap = make(map[ID][]byte, 100)
+    k.ValueStore.PutChannel, k.ValueStore.GetChannel = StoreHandler(k)
 
     //Assign ID to currect node
     ///read from configuration file or create random (as the paper suggests we may
@@ -43,7 +65,7 @@ func NewKademlia(listenStr string, rpcPath *string) *Kademlia {
     k.ContactInfo = NewContact(listenStr)
 
     //instantiate kbucket handler here
-    k.UpdateChannel, k.FindChannel = KBuucketHandler(k)
+    k.UpdateChannel, k.FindChannel, k.SearchChannel = KBucketHandler(k)
 
     s := rpc.NewServer()
     if(rpcPath != nil){
@@ -232,9 +254,16 @@ type FindResponse struct {
     err error
 }
 
-func KBuucketHandler(k *Kademlia) (chan Contact, chan *FindRequest) {
+type SearchRequest struct {
+    dist int
+    NodeID ID
+    returnChan chan *list.Element
+}
+
+func KBucketHandler(k *Kademlia) (chan Contact, chan *FindRequest, chan *SearchRequest) {
     updates := make(chan Contact)
     finds := make(chan *FindRequest)
+    searches := make(chan *SearchRequest)
 
     go func() {
         for {
@@ -245,12 +274,54 @@ func KBuucketHandler(k *Kademlia) (chan Contact, chan *FindRequest) {
                 case f := <-finds:
                     n, err := FindKClosest_mutex(k, f.remoteID, f.excludeID)
                     f.returnChan <-&FindResponse{n, err}
+                case s := <-searches:
+                    _, elem := k.Buckets[s.dist].Search(s.NodeID)
+                    s.returnChan <- elem
             }
         }
     }()
 
-    return updates, finds
+    return updates, finds, searches
 
+}
+
+//Handler for Store
+type PutRequest struct {
+    key ID
+    value []byte
+}
+
+type GetRequest struct {
+    key ID
+    returnChan chan *GetResponse
+}
+
+type GetResponse struct {
+    value []byte
+    found bool
+}
+
+func StoreHandler(k *Kademlia) (chan *PutRequest, chan *GetRequest) {
+   puts := make(chan *PutRequest)
+   gets := make(chan *GetRequest)
+
+    go func() {
+        for {
+            select {
+                case p := <-puts:
+                    //put
+                    log.Printf("In put handler for Store. key->%s value->%s", p.key.AsString(), p.value)
+                    k.ValueStore.HashMap[p.key] = p.value
+                case g := <-gets:
+                    //get
+                    log.Printf("In get handler for Store. key->%s", g.key.AsString())
+                    val, fnd := k.ValueStore.HashMap[g.key]
+                    g.returnChan<- &GetResponse{val, fnd}
+            }
+        }
+    }()
+
+    return puts, gets
 }
 
 // A struct we can toss in a channel and get the sender ID, results, and status
@@ -306,8 +377,12 @@ func Search(k *Kademlia, searchID ID) (found bool, cont *Contact) {
 	if -1 == dist {
 		return true, &(k.ContactInfo)
 	}
-	found, elem = k.Buckets[dist].Search(searchID)
-	return found, elem.Value.(*Contact)
+
+    searchRequest := &SearchRequest{dist, searchID, make(chan *list.Element)}
+    k.SearchChannel<- searchRequest
+    elem = <-searchRequest.returnChan
+
+	return (elem != nil), elem.Value.(*Contact)
 }
 
 //Call Update on Contact whenever you communicate successfully 

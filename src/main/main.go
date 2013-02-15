@@ -216,14 +216,16 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 		}
 		return true
 	case kInst.IsWhoami() :
-	     	log.Printf("Executing Whoami Instruction\n");
+		log.Printf("Executing Whoami Instruction\n");
 		fmt.Printf("Local Node ID: %s\n", k.ContactInfo.NodeID.AsString())
 		return true
 	case kInst.IsLocalFindValue() :
-	     	log.Printf("Executing LocalFindValue Instruction\n");
-		localValue, found := k.HashMap[kInst.Key]
+		log.Printf("Executing LocalFindValue Instruction\n");
+
+        localvalue, found := k.ValueStore.Get(kInst.Key)
+
 		if found {
-			fmt.Printf("Value for key %s --> %s\n", kInst.Key.AsString(), string(localValue))
+			fmt.Printf("Value for key %s --> %s\n", kInst.Key.AsString(), string(localvalue))
 		} else {
 			fmt.Printf("Value for Key %s NOT found\n", kInst.Key.AsString())
 		}
@@ -310,7 +312,7 @@ func main() {
 	tmpVal[0] = 'f'
 	tmpVal[1] = 'o'
 	tmpVal[2] = 'o'
-	kadem.HashMap[tmpKey] = tmpVal
+	kadem.ValueStore.HashMap[tmpKey] = tmpVal
 	//~REMOVE
 	
 	var instStr string

@@ -88,6 +88,7 @@ type Ping struct {
 
 type Pong struct {
 	MsgID ID
+    Sender Contact //added this to match updated tedspec
 }
 
 func (k *Kademlia) Ping(ping Ping, pong *Pong) error {
@@ -155,8 +156,11 @@ func (k *Kademlia) Store(req StoreRequest, res *StoreResult) error {
 	res.MsgID = CopyID(req.MsgID)
 	
 	///Try to store the data into a hash map
-	k.HashMap[CopyID(req.Key)] = req.Value
-	///if the store fails create and error
+	//k.HashMap[CopyID(req.Key)] = req.Value
+
+    k.ValueStore.Put(CopyID(req.Key), req.Value)
+
+    ///if the store fails create and error
 	//if NO_MORE_SPACE {
 	//	 res.Err = errors.New("No space to perform the store.")
 	//}
@@ -242,6 +246,7 @@ func FindKClosest(k *Kademlia, remoteID ID, excludeID ID) ([]FoundNode, error){
 
 }
 
+//jpr. not sure why this is called mutex, seems confusing possibly
 func FindKClosest_mutex(k *Kademlia, remoteID ID, excludeID ID) ([]FoundNode, error) {
 	///TODO: Look into the local kbuckets and fetch k triplets if at all possible
 	///      tiplets should not include the sender's contact info 
@@ -315,13 +320,19 @@ type FindValueRequest struct {
 
 func (k *Kademlia) FindValue(req FindValueRequest, res *FindValueResult) error {
 	var err error
+    var found bool
+
 	log.Printf("RPC:FindValue, from %s\n", req.Sender.NodeID.AsString())
 	// TODO: Implement.	
 	//search for the value
 	//res.Value = data[req.Key]
-	var found bool
-	res.Value, found = k.HashMap[req.Key]
-	if !found {
+	//var found bool
+	//res.Value, found = k.HashMap[req.Key]
+
+    //Updated code for store handler --> seems too verbose
+	res.Value, found = k.ValueStore.Get(req.Key)
+
+    if found {
 		res.Nodes, err = FindKClosest(k, req.Key, req.Sender.NodeID)
 	} else {
 		log.Printf("RPC:FindValue, found value [%s:%s]\n", req.Key.AsString(), string(res.Value))
