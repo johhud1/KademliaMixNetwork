@@ -96,7 +96,7 @@ func NewKademliaInstruction(s string) (kInst *KademliaInstruction) {
 		kInst.flags = 11;
 		kInst.Key, err = kademlia.FromString(strTokens[1])		
 	case "runtests" :
-		kademlia.Assert(len(strTokens) == 2, "runtests requires 1 arguments")//runtests //FIXME what is the argument?
+		kademlia.Assert(len(strTokens) == 2, "runtests requires 1 arguments")//runtests number of kademlia instances to start
 		kInst.flags = 12;
 		kInst.Data = strTokens[1]
 	}
@@ -168,7 +168,7 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 		if kInst.Addr != "" {//ping host:port
 			remoteHost, remotePort, err := kademlia.AddrStrToHostPort(kInst.Addr)
 			kademlia.Assert(err == nil, "Error converting AddrToHostPort")
-			success = kademlia.MakePingCall(k, remoteHost, remotePort, nil)
+			success = kademlia.MakePingCall(k, remoteHost, remotePort)
 		} else {//ping nodeID
 			var searchRequest *kademlia.SearchRequest
 
@@ -177,7 +177,7 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 			remoteContact =<- searchRequest.ReturnChan
 			found = (remoteContact != nil)
 			if found {
-				success = kademlia.MakePingCall(k, remoteContact.Host, remoteContact.Port, nil)
+				success = kademlia.MakePingCall(k, remoteContact.Host, remoteContact.Port)
 			} else {
 				log.Printf("Error: Ping, nodeID %s could not be found\n", kInst.NodeID.AsString())
 				return false
@@ -318,7 +318,7 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 func main() {
 	var err error
 	var args []string
-	var listenStr string 
+	var listenStr string
 	var kadem *kademlia.Kademlia
 	var stdInReader *bufio.Reader
 
@@ -337,7 +337,7 @@ func main() {
 	//log.Printf("First Peer: %s\n", firstPeerStr);
 	
 	kadem = kademlia.NewKademlia(listenStr, nil)
-		
+
 	stdInReader = bufio.NewReader(os.Stdin)
 	//input, _ := reader.ReadString('\n')
 	

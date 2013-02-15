@@ -50,7 +50,8 @@ func (s *Store) Get(key ID) ([]byte, bool) {
 
     return gResponse.value, gResponse.found
 }
-
+//TODO: can get rid of rpcPath argument. use RunningTests global 
+//to check if testing, and, use global+portnum to generate path. 
 func NewKademlia(listenStr string, rpcPath *string) *Kademlia {
     var k *Kademlia
     k = new(Kademlia)
@@ -76,12 +77,13 @@ func NewKademlia(listenStr string, rpcPath *string) *Kademlia {
 	//Create rpc Server and register a Kademlia struct
     s := rpc.NewServer()
     if(rpcPath != nil){
+		Assert(kAndPaths != nil, "trying to setup testing kadem without initializing kAndPaths")
 		s.Register(k)
         s.HandleHTTP(*rpcPath, "/debug/"+*rpcPath)
-    } else {
+	} else {
 		rpc.Register(k)
 		rpc.HandleHTTP()
-    }
+	}
 
     l, err := net.Listen("tcp", listenStr)
     if err != nil {
@@ -129,7 +131,7 @@ func getHostPort(k *Kademlia) (net.IP, uint16) {
     return k.ContactInfo.Host, k.ContactInfo.Port
 }
 
-func MakePingCall(k *Kademlia, remoteHost net.IP, remotePort uint16, path *string) bool {
+func MakePingCall(k *Kademlia, remoteHost net.IP, remotePort uint16) bool {
     var localContact *Contact
     var client *rpc.Client
 	var remoteAddrStr string
@@ -147,11 +149,13 @@ func MakePingCall(k *Kademlia, remoteHost net.IP, remotePort uint16, path *strin
     pong := new(Pong)
 
 	//Dial the server
-    if path != nil {
-		client, err = rpc.DialHTTPPath("tcp", remoteAddrStr, *path)
+    if RunningTests == true {
+		var portstr string = rpcPath + strconv.FormatInt(int64(remotePort), 10)
+		log.Printf("test ping to rpcPath:%s\n", portstr)
+		client, err = rpc.DialHTTPPath("tcp", remoteAddrStr, portstr)
     } else {
 		client, err = rpc.DialHTTP("tcp", remoteAddrStr)
-    }
+	}
     if err != nil {
         log.Printf("Error: MakePingCall, DialHTTP, %s\n", err)
         return false
@@ -405,6 +409,7 @@ func StoreHandler(k *Kademlia) (chan *PutRequest, chan *GetRequest) {
                 val, found = k.ValueStore.HashMap[g.key]
                 g.ReturnChan<- &GetResponse{val, found}
             }
+			log.Println("StoreHandler loop end\n")
         }
     }()
 	
@@ -423,6 +428,7 @@ func MakeFindNodeCall(localContact *Contact, remoteContact *Contact, NodeChan ch
 	var fnRequest *FindNodeRequest
 	var fnResult *FindNodeResult
     var remoteAddrStr string 
+	var remotePortStr string
     var client *rpc.Client
 	var resultSet *FindNodeCallResponse
     var err error
@@ -434,10 +440,17 @@ func MakeFindNodeCall(localContact *Contact, remoteContact *Contact, NodeChan ch
     fnRequest.NodeID = CopyID(remoteContact.NodeID)
 
     fnResult = new(FindNodeResult)
-
-	remoteAddrStr = remoteContact.Host.String() + ":" + strconv.Itoa(int(remoteContact.Port))
-    client, err = rpc.DialHTTP("tcp", remoteAddrStr)
-
+	remotePortStr = strconv.Itoa(int(remoteContact.Port))
+	remoteAddrStr = remoteContact.Host.String() + ":" + remotePortStr
+	//Dial the server
+    if RunningTests == true {
+		//if we're running tests, need to DialHTTPPath
+		var portstr string = rpcPath + remotePortStr
+		log.Printf("test FindNodeCall to rpcPath:%s\n", portstr)
+		client, err = rpc.DialHTTPPath("tcp", remoteAddrStr, portstr)
+    } else {
+		client, err = rpc.DialHTTP("tcp", remoteAddrStr)
+	}
     resultSet = new(FindNodeCallResponse)
     resultSet.ReturnedResult = fnResult
     resultSet.Responder = remoteContact.ContactToFoundNode()
@@ -530,7 +543,7 @@ func Update(k *Kademlia, triplet Contact) (success bool, err error) {
             lFront := k.Buckets[dist].l.Front()
             var remoteContact *Contact = lFront.Value.(*Contact)
             ///make ping
-            succ := MakePingCall(k, remoteContact.Host, remoteContact.Port, nil)
+            succ := MakePingCall(k, remoteContact.Host, remoteContact.Port)
             if !succ {
                 //drop old
                 k.Buckets[dist].Drop(lFront)
@@ -553,12 +566,12 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) (bool, []FoundNode, [
     var shortList *list.List //shortlist is the list we are going to return
     var closestNode ID
     var localContact *Contact = &(k.ContactInfo)
-    var sentMap map[ID]bool //sendList is to remember the nodes we've send rpcs (should probably make this a map also) 
-    var liveMap map[ID]bool //should probably make this a map for quick lookup
+    var sentMap map[ID]bool //map of nodes we've sent rpcs to 
+    var liveMap map[ID]bool //map of nodes we've gotten responses from
 
     log.Printf("IterativeFind: searchID=%s findType:%d\n", searchID.AsString(), findType)
 
-    shortList = list.New()
+    shortList = list.New() //list of kConst nodes we're considering 
     sentMap = make(map[ID]bool)
     liveMap = make(map[ID]bool)
 	
@@ -580,22 +593,20 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) (bool, []FoundNode, [
     }
 	
     var stillProgress bool = true
-    //a map to translate back to nodes
-    //msgIDMap := make(map[ID]ID)
-	
+
     NodeChan := make(chan *FindNodeCallResponse, AConst)
     for ; stillProgress; {
 		var i int
         stillProgress = false
         log.Printf("in main findNode iterative loop. shortList.Len()=%d len(liveMap)=%d\n", shortList.Len(),len(liveMap))
         e := shortList.Front()
-        for i=0; i < AConst && e != nil; {
+        for i=0; i < AConst && e != nil;e=e.Next() {
             foundNodeTriplet := e.Value.(*FoundNode)
 			_, inSentList := sentMap[foundNodeTriplet.NodeID]
 			if inSentList {
 				//don't do RPC on nodes in SentList
 				//don't increment i (essentially the sentNodes counter)
-				e = e.Next()
+				//e = e.Next()
 				continue
 			}
             //send rpc
@@ -614,8 +625,9 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) (bool, []FoundNode, [
             }
             //put to sendList
             sentMap[foundNodeTriplet.NodeID] = true
-            e = e.Next()
+            //e = e.Next()
 			i++
+			log.Printf("iterativeFindNode Find* rpc loop end\n")
         }
 		log.Printf("iterativeFind: Made FindNodeCall on %d hosts\n", i)
 		var numProbs = i
@@ -657,29 +669,18 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) (bool, []FoundNode, [
             //Update(k, *foundNodeResult.Responder.FoundNodeToContact())
             k.UpdateChannel<-*foundNodeResult.Responder.FoundNodeToContact()
 			log.Printf("IterativeFind: α loop end\n")
-        }
-		
-        //OLD OLD OLD OLD OLD OLD 
-        //How are we going to order the returned FoundNodes?? Do we only keep the k closest?
-		
-        //if reply
-        /// remove from sendList
-        /// put to liveList
-        /// go through the returned FoundNodes
-        //// if it is the answer return it
-        //// else 
-        ///// check if it has already been probed and if not try to find if you can find a node at shortlist to replace with it
-			
 		}
+	}
     log.Printf("iterativeFind: exiting main iterative loop\n")
-    sendToList := setDifference(shortList, sentMap)
-    sendRPCsToFoundNodes(k, findType, localContact, sendToList)
-	
+    //sendToList := setDifference(shortList, sentMap)
+	var retList *list.List = list.New()
+    sendRPCsToFoundNodesNotInSentMapAndCull(k, findType, localContact, shortList, sentMap)
+
     log.Printf("iterativeFind: end\n")
     return true, nil, nil, nil
 }
 
-func sendRPCsToFoundNodes(k *Kademlia, findType int, localContact *Contact, slist *list.List){
+func sendRPCsToFoundNodesNotInSentMapAndCull(k *Kademlia, findType int, localContact *Contact, slist *list.List, map[ID]bool){
     resChan := make(chan *FindNodeCallResponse, slist.Len())
     for e:=slist.Front(); e!=nil; e=e.Next(){
 		foundNode := e.Value.(*FoundNode)
@@ -710,12 +711,8 @@ func sendRPCsToFoundNodes(k *Kademlia, findType int, localContact *Contact, slis
 func setDifference(listA *list.List, sentMap map[ID]bool) (*list.List){
     ret := list.New()
     for e:=listA.Front(); e != nil; e=e.Next(){
-		inB :=false
-		for k, _ := range sentMap {
-			if(k.Equals(e.Value.(*FoundNode).NodeID)){
-				inB = true
-			}
-		}
+		var inSentMap bool = false
+		_, inB := sentMap[e.Value.(*FoundNode).NodeID]
 		if (!inB){
 			ret.PushBack(e.Value.(*FoundNode))
 		}
