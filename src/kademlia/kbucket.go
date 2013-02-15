@@ -3,6 +3,7 @@ package kademlia
 import (
 	"container/list"
 	"log"
+	"fmt"
 )
 
 
@@ -54,4 +55,10 @@ func (kb *K_Bucket) AddToTail(tripletP *Contact) {
 
 func (kb *K_Bucket) Drop(tripletP *list.Element) {
 	kb.l.Remove(tripletP)
+}
+
+func (kb *K_Bucket) PrintElements() {
+	for e := kb.l.Front(); e != nil; e = e.Next() {
+    	fmt.Printf("Triplet: %s\n", e.Value.(*Contact).AsString())
+	}	
 }

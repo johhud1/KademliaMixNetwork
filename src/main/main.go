@@ -99,6 +99,12 @@ func NewKademliaInstruction(s string) (kInst *KademliaInstruction) {
 		kademlia.Assert(len(strTokens) == 2, "runtests requires 1 arguments")//runtests number of kademlia instances to start
 		kInst.flags = 12;
 		kInst.Data = strTokens[1]
+	case "printlocalbuckets" :
+		kademlia.Assert(len(strTokens) == 1, "printLocalBuckets requires 0 arguments")//printLocalBuckets
+		kInst.flags = 13
+	case "printlocaldata" :
+		kademlia.Assert(len(strTokens) == 1, "printLocalData requires 0 arguments")//printLocalData
+		kInst.flags = 14
 	}
 	//log.Printf("Flag: %d\n", kInst.flags);
 	
@@ -144,6 +150,12 @@ func (kInst *KademliaInstruction) IsIterativeFindValue() bool {
 }
 func (kInst *KademliaInstruction) IsRunTests() bool{
 	return kInst.flags == 12
+}
+func (kInst *KademliaInstruction) IsPrintLocalBuckets() bool{
+	return kInst.flags == 13
+}
+func (kInst *KademliaInstruction) IsPrintLocalData() bool{
+	return kInst.flags == 14
 }
 func (kInst *KademliaInstruction) IsSkip() bool {
 	return kInst.flags == 255
@@ -314,6 +326,14 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 	case kInst.IsRunTests() :
 		log.Printf("Executing RunTests!\n")
 		kademlia.RunTests(kInst.Data)
+		return true
+	case kInst.IsPrintLocalBuckets() :
+		log.Printf("Print Local Buckets!\n")
+		kademlia.PrintLocalBuckets(k)
+		return true
+	case kInst.IsPrintLocalData() :
+		log.Printf("Print Local Data!\n")
+		kademlia.PrintLocalData(k)
 		return true
 	}
 	

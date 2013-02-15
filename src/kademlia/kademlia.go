@@ -10,6 +10,7 @@ import (
     "net/rpc"
     "net/http"
     "os"
+	"fmt"
 )
 
 
@@ -25,6 +26,21 @@ type Kademlia struct {
     FindChannel chan *FindRequest
     SearchChannel chan *SearchRequest
     ValueStore *Store
+}
+
+func PrintLocalBuckets(k *Kademlia) {
+	for index, kb := range k.Buckets {
+		if 0 != kb.l.Len() {
+			fmt.Printf("Print Bucket[%d]\n", index)
+			kb.PrintElements()
+		}
+	}
+}
+
+func PrintLocalData(k *Kademlia) {
+	for key, value := range k.ValueStore.HashMap {
+		fmt.Printf("Print HashMap[%s]=%s\n", key.AsString(), string(value))
+	}
 }
 
 type Store struct {
@@ -483,6 +499,11 @@ func MakeFindNodeCall(k *Kademlia, remoteContact *Contact, searchKey ID, NodeCha
 		return
     }
 	
+
+	for _, value := range fnResult.Nodes {
+		k.UpdateChannel <- *(value.FoundNodeToContact())
+	}
+
     // Mark the result as being good
     resultSet.Responded = true
 	
