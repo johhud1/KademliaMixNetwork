@@ -154,7 +154,7 @@ func MakeStore(localContact *Contact, remoteContact *Contact, Key ID, Value stri
 
     return true
 }
-
+//WTF IS THIS. do we ever even use it?
 func MakeFindNode(localContact *Contact, remoteContact *Contact, Key ID) bool {
     log.Printf("MakeFindNode: From %s --> To %s\n", localContact.AsString(), remoteContact.AsString())
     findNodeReq := new(FindNodeRequest)
@@ -165,7 +165,9 @@ func MakeFindNode(localContact *Contact, remoteContact *Contact, Key ID) bool {
     findNodeRes  := new(FindNodeResult)
 
     var remoteAddrStr string = remoteContact.Host.String() + ":" + strconv.Itoa(int(remoteContact.Port))
-    client, err := rpc.DialHTTP("tcp", remoteAddrStr)
+    var client *rpc.Client
+    var err error
+    client, err = rpc.DialHTTP("tcp", remoteAddrStr)
     if err != nil {
              log.Printf("Error: MakeFindNode, DialHTTP, %s\n", err)
              return false
@@ -405,11 +407,20 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) ([]FoundNode, []byte,
         for i=0; i < AConst && e != nil; {
             foundNodeTriplet := e.Value.(*FoundNode)
 	    _, inSentList := sentMap[foundNodeTriplet.NodeID]
-	    if inSentList {continue}
+	    if inSentList {
+		//don't do RPC on nodes in SentList
+		//don't increment i (essentially the sentNodes counter)
+		e = e.Next()
+		continue
+	    }
             //send rpc
             if findType == 1 {//FindNode
                 //made MakeFindNodeCall take a channel, where it puts the result
                 log.Printf("makeFindNodeCall to ID=%s\n", foundNodeTriplet.NodeID.AsString())
+		//if kAndPaths != nil {
+		//    kAndPaths[
+		//probably need to rearchitect this path bullshit. maybe a const array/map of kadems 
+		//so don't have to pass all this shit around
                 go MakeFindNodeCall(localContact, foundNodeTriplet.FoundNodeToContact(), NodeChan)
             } else if findType == 2 {//
 
@@ -429,7 +440,7 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) ([]FoundNode, []byte,
 	    log.Printf("IterativeFind: α loop start\n")	    
 	    var foundNodeResult *FindNodeCallResponse
 	    foundNodeResult = <-NodeChan
-	    log.Printf("IterativeFind: Reading responce from: %s\n", foundNodeResult.Responder.NodeID.AsString())
+	    log.Printf("IterativeFind: Reading response from: %s\n", foundNodeResult.Responder.NodeID.AsString())
             //TODO: CRASHES IF ALL ALPHA RETURN EMPTY
             if foundNodeResult.Responded {
                 //Non data trash
@@ -521,7 +532,7 @@ func setDifference(listA *list.List, sentMap map[ID]bool) (*list.List){
 	    }
 	}
 	if (!inB){
-	    ret.PushBack(e)
+	    ret.PushBack(e.Value.(*FoundNode))
 	}
     }
     return ret

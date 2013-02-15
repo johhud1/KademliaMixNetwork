@@ -91,7 +91,7 @@ type Pong struct {
 }
 
 func (k *Kademlia) Ping(ping Ping, pong *Pong) error {
-	log.Printf("Ping --> MsgID: %s, SenderID: %s\n", ping.MsgID.AsString(), ping.Sender.NodeID.AsString())
+	log.Printf("Ping --> MsgID: %s, Sender: %s, Reciever:%s\n", ping.MsgID.AsString(), ping.Sender.AsString(), k.ContactInfo.AsString())
 	
 	//UPDATE BUCKET REGARDING ping.Sender and ping.MsgID
 	//Update(k, ping.Sender)
@@ -111,12 +111,7 @@ func (k *Kademlia) Ping(ping Ping, pong *Pong) error {
 /* STORE
  * The sender of the STORE RPC provides a key and a block of data and
  * requires that the recipient store the data and make it available for later retrieval by that key.
- *
- * This is a primitive operation, not an iterative one.
- *
- * While this is not formally specified, it is clear that the initial STORE message must contain
- * in addition to the message ID at least the data to be stored (including its length) and the associated key.
- * As the transport may be UDP, the message needs to also contain at least the nodeID of the sender, and the 
+ * * This is a primitive operation, not an iterative one.  * * While this is not formally specified, it is clear that the initial STORE message must contain * in addition to the message ID at least the data to be stored (including its length) and the associated key.  * As the transport may be UDP, the message needs to also contain at least the nodeID of the sender, and the 
  * reply the nodeID of the recipient.
  *
  * The reply to any RPC should also contain an indication of the result of the operation. For example, in a STORE 
@@ -211,9 +206,9 @@ func (k *Kademlia) FindNode(req FindNodeRequest, res *FindNodeResult) error {
 	var err error
 	//Update(k, req.Sender)
         k.UpdateChannel<-req.Sender
-	log.Printf("RPC: FindNode from %s\n", req.Sender.NodeID.AsString())
+	log.Printf("RPC: FindNode from %s ---> %s\n", req.Sender.NodeID.AsString(), k.ContactInfo.AsString())
 
-	res.Nodes, err = FindKClosest(k, req.Sender.NodeID, req.Sender.NodeID)
+	res.Nodes, err = FindKClosest(k, req.NodeID, req.Sender.NodeID)
 
 	res.MsgID = CopyID(req.NodeID)
 	
@@ -251,7 +246,7 @@ func FindKClosest_mutex(k *Kademlia, remoteID ID, excludeID ID) ([]FoundNode, er
 	}
 
 	var curBucket int = initBucket
-	log.Printf("FindKClosest: myID=%s remoteID=%s curBucket calculated as %d\n", excludeID.AsString(), remoteID.AsString(), curBucket)
+	log.Printf("FindKClosest: excludeID=%s remoteID=%s curBucket calculated as %d\n", excludeID.AsString(), remoteID.AsString(), curBucket)
 	var nodesFoundSoFar *list.List
 
 	nodesFoundSoFar = list.New()
