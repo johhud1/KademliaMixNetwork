@@ -202,8 +202,8 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 		}
 		return success
 	case kInst.IsFindNode() :
-		var searchRequest *kademlia.SearchRequest
 		var success bool
+		var searchRequest *kademlia.SearchRequest
 		log.Printf("Executing FindNode Instruction\n");
 				
 		searchRequest = &kademlia.SearchRequest{kInst.NodeID, make(chan *kademlia.Contact)}
@@ -211,10 +211,16 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 		remoteContact =<- searchRequest.ReturnChan
 		found = (remoteContact != nil)
 		if found {
-			var nodes *[]kademlia.FoundNode
-			success, nodes = kademlia.MakeFindNode(k, remoteContact, kInst.Key)
-			if success {
-				kademlia.PrintArrayOfFoundNodes(nodes)	
+			var fnResponseChan chan *kademlia.FindNodeCallResponse
+			var foundNodeResult *kademlia.FindNodeCallResponse
+
+			fnResponseChan = make(chan *kademlia.FindNodeCallResponse, 1)
+			go kademlia.MakeFindNodeCall(k, remoteContact, kInst.Key, fnResponseChan)
+			foundNodeResult =<- fnResponseChan
+
+			success = foundNodeResult.Responded
+			if success  {
+				kademlia.PrintArrayOfFoundNodes(&(foundNodeResult.ReturnedResult.Nodes))
 			}
 		} else {
 			log.Printf("Error: FindNode, nodeID %s could not be found\n", kInst.NodeID.AsString())
