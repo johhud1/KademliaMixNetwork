@@ -198,6 +198,7 @@ func MakeStore(k *Kademlia, remoteContact *Contact, Key ID, Value string) bool {
 	var storeReq *StoreRequest
 	var storeRes *StoreResult
 	var remoteAddrStr string
+	var remotePortStr string
 	var err error
 
     localContact = &(k.ContactInfo)
@@ -212,13 +213,20 @@ func MakeStore(k *Kademlia, remoteContact *Contact, Key ID, Value string) bool {
 
     storeRes = new(StoreResult)
 
+	remotePortStr = strconv.Itoa(int(remoteContact.Port))
 	//Dial the server
-    client, err = rpc.DialHTTP("tcp", remoteAddrStr)
+    if RunningTests == true {
+		//if we're running tests, need to DialHTTPPath
+		var portstr string = rpcPath + remotePortStr
+		log.Printf("test FindNodeValue to rpcPath:%s\n", portstr)
+		client, err = rpc.DialHTTPPath("tcp", remoteAddrStr, portstr)
+    } else {
+		client, err = rpc.DialHTTP("tcp", remoteAddrStr)
+	}
     if err != nil {
         log.Printf("Error: MakeStore, DialHTTP, %s\n", err)
-        return false
-    }
-	
+		return false
+	}	
 	//make the rpc
     err = client.Call("Kademlia.Store", storeReq, &storeRes)
     if err != nil {
@@ -729,6 +737,8 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) (bool, []FoundNode, [
 					Assert(foundStarResult.ReturnedFVRes != nil, "findStarResult Struct error in iterativeFindValue")
 					if foundStarResult.ReturnedFVRes.Value != nil {
 						Assert(false, "WE SHOULD BREAK HERE, FIXME")
+					} else {
+						log.Println("ARE YOU FUCKING KIDDING ME DUDE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 					}
 					addResponseNodesToSL(foundStarResult.ReturnedFVRes.Nodes, shortList, sentMap, searchID)
 				}

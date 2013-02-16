@@ -99,11 +99,11 @@ func NewKademliaInstruction(s string) (kInst *KademliaInstruction) {
 		kademlia.Assert(len(strTokens) == 2, "runtests requires 1 arguments")//runtests number of kademlia instances to start
 		kInst.flags = 12;
 		kInst.Data = strTokens[1]
-	case "printlocalbuckets" :
-		kademlia.Assert(len(strTokens) == 1, "printLocalBuckets requires 0 arguments")//printLocalBuckets
+	case "plb" :
+		kademlia.Assert(len(strTokens) == 1, "printLocalBuckets requires 0 arguments")//plb
 		kInst.flags = 13
-	case "printlocaldata" :
-		kademlia.Assert(len(strTokens) == 1, "printLocalData requires 0 arguments")//printLocalData
+	case "pld" :
+		kademlia.Assert(len(strTokens) == 1, "printLocalData requires 0 arguments")//pld
 		kInst.flags = 14
 	}
 	//log.Printf("Flag: %d\n", kInst.flags);
