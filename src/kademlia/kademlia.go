@@ -280,12 +280,22 @@ func MakeFindNode(k *Kademlia, remoteContact *Contact, Key ID) (bool, *[]FoundNo
 }
 */
 
-func MakeFindValue(k *Kademlia, remoteContact *Contact, Key ID) (bool, []byte, *[]FoundNode) {
-    var localContact *Contact
+// A struct we can toss in a channel and get the sender ID, results, and status
+type FindValueCallResponse struct {
+    ReturnedResult *FindValueResult
+    Responder *FoundNode
+    Responded bool
+}
+
+//func MakeFindValue(k *Kademlia, remoteContact *Contact, Key ID, fvChan chan *FindValueCallResponse) (bool, []byte, *[]FoundNode) {
+func MakeFindValue(k *Kademlia, remoteContact *Contact, Key ID, fvChan chan *FindValueCallResponse) {
 	var findValueReq *FindValueRequest
 	var findValueRes *FindValueResult
 	var remoteAddrStr string
+	var remotePortStr string
     var client *rpc.Client
+    var localContact *Contact
+	var resultSet *FindValueCallResponse
     var err error
 
     localContact = &(k.ContactInfo)
@@ -299,26 +309,50 @@ func MakeFindValue(k *Kademlia, remoteContact *Contact, Key ID) (bool, []byte, *
 
     findValueRes  = new(FindValueResult)
 
+    resultSet = new(FindValueCallResponse)
+    resultSet.ReturnedResult = findValueRes
+    resultSet.Responder = remoteContact.ContactToFoundNode()
+    resultSet.Responded = false
+
+	remotePortStr = strconv.Itoa(int(remoteContact.Port))
 	//Dial the server
-    client, err = rpc.DialHTTP("tcp", remoteAddrStr)
+    if RunningTests == true {
+		//if we're running tests, need to DialHTTPPath
+		var portstr string = rpcPath + remotePortStr
+		log.Printf("test FindNodeValue to rpcPath:%s\n", portstr)
+		client, err = rpc.DialHTTPPath("tcp", remoteAddrStr, portstr)
+    } else {
+		client, err = rpc.DialHTTP("tcp", remoteAddrStr)
+	}
     if err != nil {
-        log.Printf("Error: MakeFindValue, DialHTTP, %s\n", err)
-        return false, nil, nil
+        log.Printf("Error: MakeFindValueCall, DialHTTP, %s\n", err)
+        fvChan <- resultSet
+		return
     }
 	
 	//make rpc
     err = client.Call("Kademlia.FindValue", findValueReq, &findValueRes)
     if err != nil {
         log.Printf("Error: MakeFindValue, Call, %s\n", err)
-        return false, nil, nil
+		fvChan <- resultSet
+        return
     }
 	
+	//if you get any nodes update you kbuckets with them
+	for _, node := range findValueRes.Nodes {
+		k.UpdateChannel <- *(node.FoundNodeToContact())
+	}
+
+	//Mark the result as being good
+	resultSet.Responded = true
+	
+	fvChan <- resultSet
     client.Close()
 
 	//update the remote node contact information
 	k.UpdateChannel <- *remoteContact
 	
-    return true, findValueRes.Value, &(findValueRes.Nodes)
+    return
 }
 
 //Handler for Kademlia K_Buckets
@@ -465,8 +499,13 @@ func MakeFindNodeCall(k *Kademlia, remoteContact *Contact, searchKey ID, NodeCha
     fnRequest.NodeID = CopyID(searchKey)
 
     fnResult = new(FindNodeResult)
+
+    resultSet = new(FindNodeCallResponse)
+    resultSet.ReturnedResult = fnResult
+    resultSet.Responder = remoteContact.ContactToFoundNode()
+    resultSet.Responded = false
+
 	remotePortStr = strconv.Itoa(int(remoteContact.Port))
-	remoteAddrStr = remoteContact.Host.String() + ":" + remotePortStr
 	//Dial the server
     if RunningTests == true {
 		//if we're running tests, need to DialHTTPPath
@@ -476,32 +515,22 @@ func MakeFindNodeCall(k *Kademlia, remoteContact *Contact, searchKey ID, NodeCha
     } else {
 		client, err = rpc.DialHTTP("tcp", remoteAddrStr)
 	}
-    resultSet = new(FindNodeCallResponse)
-    resultSet.ReturnedResult = fnResult
-    resultSet.Responder = remoteContact.ContactToFoundNode()
-    resultSet.Responded = false
-
-    client, err = rpc.DialHTTP("tcp", remoteAddrStr)
     if err != nil {
         log.Printf("Error: MakeFindNodeCall, DialHTTP, %s\n", err)
-		resultSet.Responded = false
         NodeChan <- resultSet
-        //return nil, false
 		return
     }
 
     err = client.Call("Kademlia.FindNode", fnRequest, &fnResult)
     if err != nil {
         log.Printf("Error: MakeFindNodeCall, Call, %s\n", err)
-		resultSet.Responded = false
         NodeChan <- resultSet
-        //return nil, false
 		return
     }
 	
-
-	for _, value := range fnResult.Nodes {
-		k.UpdateChannel <- *(value.FoundNodeToContact())
+	//if you get any nodes update you kbuckets with them
+	for _, node := range fnResult.Nodes {
+		k.UpdateChannel <- *(node.FoundNodeToContact())
 	}
 
     // Mark the result as being good
@@ -510,13 +539,9 @@ func MakeFindNodeCall(k *Kademlia, remoteContact *Contact, searchKey ID, NodeCha
     NodeChan <- resultSet
     client.Close()
 
-    //REVIEW
-	//We probably need to add an update here. Something like 'k.UpdateChannel <- *remoteContact'
-	//For that though we need to include the kademlia object to the call as done with 'MakeFindNode()'
 	//update the remote node contact information
 	k.UpdateChannel <- *remoteContact
 
-    //return fnResult, true
 	return
 }
 
@@ -662,6 +687,7 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) (bool, []FoundNode, [
 				go MakeFindNodeCall(k, foundNodeTriplet.FoundNodeToContact(), searchID, NodeChan)
             } else if findType == 2 {//
 				//TODO:findValue goes here
+				
             } else {
                 Assert(false, "Unknown case")
             }

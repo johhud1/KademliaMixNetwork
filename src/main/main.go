@@ -214,8 +214,8 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 		}
 		return success
 	case kInst.IsFindNode() :
-		var success bool
 		var searchRequest *kademlia.SearchRequest
+		var success bool
 		log.Printf("Executing FindNode Instruction\n");
 				
 		searchRequest = &kademlia.SearchRequest{kInst.NodeID, make(chan *kademlia.Contact)}
@@ -249,15 +249,22 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 		remoteContact =<- searchRequest.ReturnChan
 		found = (remoteContact != nil)
 		if found {
-			var value []byte
-			var nodes *[]kademlia.FoundNode
-			success, value, nodes = kademlia.MakeFindValue(k, remoteContact, kInst.Key)
+			var fvResponseChan chan *kademlia.FindValueCallResponse
+			var foundValueResult *kademlia.FindValueCallResponse
+			//var value []byte
+			//var nodes *[]kademlia.FoundNode
+
+			fvResponseChan = make(chan *kademlia.FindValueCallResponse, 1)
+			go kademlia.MakeFindValue(k, remoteContact, kInst.Key, fvResponseChan)
+			foundValueResult =<- fvResponseChan
+
+			success = foundValueResult.Responded
 			if success {
-				if value != nil {
-					log.Printf("FindValue: found [%s:%s]\n", kInst.Key.AsString(), string(value))
+				if foundValueResult.ReturnedResult.Value != nil {
+					log.Printf("FindValue: found [%s:%s]\n", kInst.Key.AsString(), string(foundValueResult.ReturnedResult.Value))
 				} else {
 					log.Printf("FindValue: Could not locate value, printing closest nodes\n")
-				kademlia.PrintArrayOfFoundNodes(nodes)
+					kademlia.PrintArrayOfFoundNodes(&(foundValueResult.ReturnedResult.Nodes))
 				}	
 			}
 		} else {
