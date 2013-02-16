@@ -396,7 +396,7 @@ func KBucketHandler(k *Kademlia) (chan Contact, chan *FindRequest, chan *SearchR
 	var finds chan *FindRequest
 	var searches chan *SearchRequest
 
-    updates = make(chan Contact, 6)
+    updates = make(chan Contact, KConst*KConst)
     finds = make(chan *FindRequest, 2)
     searches = make(chan *SearchRequest, 2)
 	
