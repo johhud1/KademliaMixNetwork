@@ -95,6 +95,10 @@ func PingTests( portrange int, rounds int){
 			remoteContact:= remoteK.ContactInfo
 			log.Printf("pingTest: pinging %s:%d\n", remoteContact.Host, remoteContact.Port)
 			MakePingCall(k, remoteContact.Host, remoteContact.Port)
+			if (k.DoJoinFlag) {
+				DoJoin(k)
+				k.DoJoinFlag = false
+			}
 		}
     }
     log.Printf("done with ping tests\n")
