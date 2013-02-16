@@ -48,40 +48,56 @@ func RunTests(numNodes string) {
 	PingTests(TestKademlias, portrange, rounds)
     StoreValue_RPCTests( portrange)
     FindValue_RPCTests( portrange)
-    //IterativeFindNodeTests(TestKademlias, portrange, rounds)
+    IterativeFindNodeTests(TestKademlias, portrange, rounds)
     IterativeFindValueTests( portrange)
     IterativeStoreTests( portrange)
     log.Printf("done testing!\n")
 }
 
-func compareClosestContacts(fn []FoundNode, kadems []*Kademlia, portrange int, searchID ID) ([]Contact){
-	var retContacts []Contact =  make([]Contact, portrange)
-	//var closestList *list.List = findRefKClosestTo(kadems, portrange, searchID, KConst)
-
-	return retContacts
+func compareClosestContacts(fn []FoundNode, kadems []*Kademlia, portrange int, searchID ID) {
+	var closestList *list.List = findRefKClosestTo(kadems, portrange, searchID, KConst)
+	var e *list.Element = closestList.Front()
+	log.Printf("searching for:%s\n", searchID.AsString())
+	log.Printf("reference List: \t\t\t\t\t iterativeFound List:\n")
+	for i:=0; i<len(fn);i++{
+		 var id ID = e.Value.(ID)
+		 log.Printf("[%d]:%s\t%s :", i, id.AsString(), fn[i].NodeID.AsString())
+		 if(id.Equals(fn[i].NodeID)){
+			log.Printf("match!\n")
+		 } else {
+			for k := closestList.Front(); k!= nil; k=k.Next(){
+				if(k.Value.(ID).Equals(fn[i].NodeID)){
+					log.Printf("contained in list\n")
+				}
+			}
+			log.Printf(" - \n")
+		 }
+		 e = e.Next()
+	}
+	//return retContacts
 }
 
 func findRefKClosestTo(kadems []*Kademlia, portrange int, searchID ID, KConst int) (*list.List){
 	var retList *list.List = list.New()
 	for i:=0; (i < KConst) && (i<len(kadems)); i++ {
-		var newNode Contact
-		var newNodeDist int
-        newNode = kadems[i].ContactInfo
-		newNodeDist = newNode.NodeID.Distance(searchID)
+		var newNodeID ID
+		var newNodeIDDist int
+        newNodeID = CopyID(kadems[i].ContactInfo.NodeID)
+		newNodeIDDist = newNodeID.Distance(searchID)
 		var e *list.Element = retList.Front()
 		for ; e != nil; e = e.Next(){
 			var dist int
-			dist = e.Value.(*FoundNode).NodeID.Distance(searchID)
+			dist = e.Value.(ID).Distance(searchID)
 			//if responseNode is closer than node in ShortList, add it
-			if newNodeDist < dist {
-				retList.InsertBefore(newNode, e)
+			if newNodeIDDist < dist {
+				retList.InsertBefore(newNodeID, e)
 				//node inserted! getout
 				break;
 			}
 		}
 		if (e == nil){
 			//node is farthest yet
-			retList.PushBack(newNode)
+			retList.PushBack(newNodeID)
 		}
     }
 	return retList
@@ -101,19 +117,19 @@ func IterativeFindNodeTests(kadems []*Kademlia, portrange int, rounds int){
 	//var kadems []*Kademlia
 	//kadems = buildKademArray( portrange)
 	for count:=0; count< rounds; count++{
-			/*
 		var success bool
 		var foundNodes []FoundNode
-		var data []byte
+		//var data []byte
 		var err error
-		*/
 	    for k, _ := range kAndPaths {
 			//pick a random ID from list to search for
-			time.Sleep(150 * time.Millisecond)
 			var searchID ID = NewRandomID()
 		    log.Printf("iterativeFindNodeTest: NodeID:%s look for NodeID: %s\n", k.ContactInfo.AsString(), searchID.AsString())
-		    //success, foundNodes, data, err = 
-			IterativeFind(k, searchID, 1)
+		    success, foundNodes, _, err = IterativeFind(k, searchID, 1)
+			if (success && (err == nil)){
+				compareClosestContacts(foundNodes, kadems, portrange, searchID)
+			}
+			time.Sleep(10 * time.Second)
 	    }
 	}
 
