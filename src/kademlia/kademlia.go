@@ -693,7 +693,7 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) (bool, []FoundNode, [
     var localContact *Contact = &(k.ContactInfo)
     var sentMap map[ID]bool //map of nodes we've sent rpcs to 
     var liveMap map[ID]bool //map of nodes we've gotten responses from
-	var KClosestArray []FoundNode
+	var kClosestArray []FoundNode
 	var err error
 	
     //log.Printf("IterativeFind: searchID=%s findType:%d\n", searchID.AsString(), findType)
@@ -730,7 +730,7 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) (bool, []FoundNode, [
 		}
     }
 	//set closestNode to first item from shortlist
-	closestNode = shortList.Front().Value.(*FoundNode)
+	closestNode = shortList.Front().Value.(*FoundNode).NodeID
 	
     var stillProgress bool = true
 
