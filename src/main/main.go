@@ -492,7 +492,7 @@ func main() {
 	var instStr string
 	var inst *KademliaInstruction
 	for ;; {
-		fmt.Printf("δώσε:")//Print prompt
+		fmt.Printf("δώσε %d:", kadem.FirstKBucketStore)//Print prompt
 
     	//read new instruction
 		//ret, err := fmt.Scanln(&instStr)
@@ -512,6 +512,10 @@ func main() {
 		
 		//execute new instruction
 		inst.Execute(kadem)
+
+		if (kadem.DoJoinFlag) {
+			go kademlia.DoJoin(kadem)
+		}
 	}
 	
 	//finalizer()
