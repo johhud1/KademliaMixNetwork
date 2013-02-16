@@ -99,11 +99,11 @@ func NewKademliaInstruction(s string) (kInst *KademliaInstruction) {
 		kademlia.Assert(len(strTokens) == 2, "runtests requires 1 arguments")//runtests number of kademlia instances to start
 		kInst.flags = 12;
 		kInst.Data = strTokens[1]
-	case "printlocalbuckets" :
-		kademlia.Assert(len(strTokens) == 1, "printLocalBuckets requires 0 arguments")//printLocalBuckets
+	case "plb" :
+		kademlia.Assert(len(strTokens) == 1, "printLocalBuckets requires 0 arguments")//plb
 		kInst.flags = 13
-	case "printlocaldata" :
-		kademlia.Assert(len(strTokens) == 1, "printLocalData requires 0 arguments")//printLocalData
+	case "pld" :
+		kademlia.Assert(len(strTokens) == 1, "printLocalData requires 0 arguments")//pld
 		kInst.flags = 14
 	}
 	//log.Printf("Flag: %d\n", kInst.flags);
@@ -301,9 +301,29 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 		}
 		return true
 	case kInst.IsIterativeStore() :
+		var success bool
+		var nodes []kademlia.FoundNode
+		var err error
+
 	    log.Printf("Executing iterativeStore Instruction\n");
-		//TODO:IMPLEMENT
-		return true
+		
+		//NOTE: the third returned value is dropped on the assumption it would always be nil for this call
+		success, nodes, _, err = kademlia.IterativeFind(k, kInst.NodeID, 1) //findType of 1 is FindNode
+		if err != nil {
+			log.Printf("IterativeFind: Error %s\n", err)
+			return false
+		}
+		if success {
+			if nodes != nil {
+				for _, node := range nodes {
+					kademlia.MakeStore(k, node.FoundNodeToContact(), kInst.Key, kInst.Data)
+				}
+				kademlia.PrintArrayOfFoundNodes(&nodes)
+			} else {
+				kademlia.Assert(false, "iterativeFindStore: TODO: This should probably never happen right?")
+			}
+		}
+		return success
 	case kInst.IsIterativeFindNode() :
 		var success bool
 		var nodes []kademlia.FoundNode
@@ -322,14 +342,34 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 			if nodes != nil {
 				kademlia.PrintArrayOfFoundNodes(&nodes)
 			} else {
-				kademlia.Assert(false, "TODO: This should probably never happen right?")
+				kademlia.Assert(false, "iterativeFindNode: TODO: This should probably never happen right?")
 			}
 		}
 		return success
 	case kInst.IsIterativeFindValue() :
+		var success bool
+		var nodes []kademlia.FoundNode
+		var value []byte 
+		var err error
+
 	    log.Printf("Executing iterativeFindValue Instruction\n");
-		//TODO:IMPLEMENT
-		return true
+		
+		success, nodes, value, err = kademlia.IterativeFind(k, kInst.NodeID, 2) //findType of 2 is FindValue
+		if err != nil {
+			log.Printf("IterativeFind: Error %s\n", err)
+			return false
+		}
+		if success {
+			if nodes != nil {
+				fmt.Printf("iterativeFindValue: Value for key %s NOT FOUND\n", kInst.Key.AsString())
+				kademlia.PrintArrayOfFoundNodes(&nodes)
+			} else if value != nil {
+				fmt.Printf("iterativeFindValue: Value for key %s --> %s\n", kInst.Key.AsString(), string(value))
+			} else {
+				kademlia.Assert(false, "iterativeFindValue: TODO: This should probably never happen right?")
+			}
+		}
+		return success
 	case kInst.IsRunTests() :
 		log.Printf("Executing RunTests!\n")
 		kademlia.RunTests(kInst.Data)
