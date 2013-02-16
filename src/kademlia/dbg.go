@@ -42,7 +42,7 @@ func RunTests(numNodes string) {
     PingTests(portrange, rounds)
     StoreValue_RPCTests( portrange)
     FindValue_RPCTests( portrange)
-    IterativeFindNodeTests( portrange, rounds)
+    //IterativeFindNodeTests( portrange, rounds)
     IterativeFindValueTests( portrange)
     IterativeStoreTests( portrange)
     log.Printf("done testing!\n")
