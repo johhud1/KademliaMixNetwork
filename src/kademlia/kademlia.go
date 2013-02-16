@@ -824,7 +824,8 @@ func sendRPCsToFoundNodes(k *Kademlia, findType int, localContact *Contact, sear
 	//log.Printf("sendRPCsToFoundNodes: Start\n")
     resChan := make(chan *FindStarCallResponse, slist.Len())
 	var ret []FoundNode =  make([]FoundNode, slist.Len())
-    var i int = 0
+    var rpcCount int = 0
+	var i int = 0
 
     for e:=slist.Front(); (e!=nil); e=e.Next(){
 		foundNode := e.Value.(*FoundNode)
@@ -832,10 +833,11 @@ func sendRPCsToFoundNodes(k *Kademlia, findType int, localContact *Contact, sear
         if sentMap[foundNode.NodeID] {
 			if liveMap[foundNode.NodeID] {
 				ret[i] = *foundNode
-				i++
 			}
+			i++
             continue
         }
+		rpcCount++
 		if findType ==1 {//FindNode
 			go MakeFindNodeCall(k, remote, searchID, resChan)
 		} else if findType == 2 {//FindValue
@@ -843,8 +845,7 @@ func sendRPCsToFoundNodes(k *Kademlia, findType int, localContact *Contact, sear
 		}
     }
     //pull replies out of the channel
-    //(slist.len() - i) indicates the number of makeFindNodeCalls made
-    for ; i<slist.Len(); i++{
+    for ; rpcCount > 0; rpcCount--{
 		findNodeResult := <-resChan
 		if (findNodeResult.Responded){
 			k.UpdateChannel <- *findNodeResult.Responder.FoundNodeToContact()
@@ -854,6 +855,7 @@ func sendRPCsToFoundNodes(k *Kademlia, findType int, localContact *Contact, sear
 				}
 			}
 			ret[i] = *findNodeResult.Responder
+			i++
 		} else {
 			//node failed to respond, find it in the slist
 			for e:=slist.Front(); e!=nil; e=e.Next(){
