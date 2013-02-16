@@ -193,10 +193,10 @@ func MakePingCall(k *Kademlia, remoteHost net.IP, remotePort uint16) bool {
     client.Close()
 	
 	//log.Printf("About to update with our pong...")
-    //log.Printf("buffer len: %d\n", len(k.UpdateChannel))
+    log.Printf("update buffer len: %d\n", len(k.UpdateChannel))
 	//update the remote node contact information
     k.UpdateChannel <- pong.Sender
-    //log.Printf("buffer len: %d\n", len(k.UpdateChannel))
+    log.Printf("update buffer len: %d\n", len(k.UpdateChannel))
 	//log.Printf("Stuffed out pong in the channel for the sender...")
 
     return true
@@ -707,7 +707,7 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) (bool, []FoundNode, [
     Assert(err == nil, "Kill yourself and fix me")
     Assert(len(kClosestArray) > 0, "I don't know anyone!")
 	
-	//adds len(KClosestArray) nodes to the shortList
+	//adds len(KClosestArray) nodes to the shortList in order
 	for i:=0; (i < KConst) && (i<len(kClosestArray)); i++ {
 		var newNode *FoundNode
 		var newNodeDist int

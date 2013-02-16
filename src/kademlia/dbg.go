@@ -48,6 +48,10 @@ func RunTests(numNodes string) {
     log.Printf("done testing!\n")
 }
 
+func findTrueKClosestNodes([]*Kademlia kadems, searchID ID){
+		//TODO: implement
+}
+
 func StoreValue_RPCTests( portrange int){
     //TODO: implement
 }
@@ -70,6 +74,7 @@ func IterativeFindNodeTests( portrange int, rounds int){
 		    IterativeFind(k, searchID, 1)
 	    }
 	}
+
     log.Printf("done with IterativeFindNodeTests\n")
 }
 
