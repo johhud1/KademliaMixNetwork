@@ -70,7 +70,6 @@ func compareClosestContacts(fn []FoundNode, kadems []*Kademlia, portrange int, s
 					log.Printf("contained in list\n")
 				}
 			}
-			log.Printf(" - \n")
 		 }
 		 e = e.Next()
 	}
