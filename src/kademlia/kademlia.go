@@ -706,16 +706,26 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) (bool, []FoundNode, [
     Assert(len(kClosestArray) > 0, "I don't know anyone!")
 	
 	//adds len(KClosestArray) nodes to the shortList
-    closestNode = kClosestArray[0].NodeID
-    for i:=0; (i < KConst) && (i<len(kClosestArray)); i++ {
+	for i:=0; (i < KConst) && (i<len(kClosestArray)); i++ {
         newNode := &kClosestArray[i]
-        shortList.PushBack(newNode)
-        curClosestDist := searchID.Distance(closestNode)
-        compareDist := searchID.Distance(newNode.NodeID)
-        if compareDist < curClosestDist {
-            closestNode = newNode.NodeID
-        }
+		newNodeDist := newNode.NodeID.Distance(searchID)
+		var e *list.Element = shortList.Front()
+		for ; e != nil; e = e.Next(){
+			dist := e.Value.(*FoundNode).NodeID.Distance(searchID)
+			//if responseNode is closer than node in ShortList, add it
+			if newNodeDist < dist {
+				shortList.InsertBefore(newNode, e)
+				//node inserted! getout
+				break;
+			}
+		}
+		if (e == nil){
+			//node is farthest yet
+			shortList.PushBack(newNode)
+		}
     }
+	//set closestNode to first item from shortlist
+	closestNode = shortList.Front()
 	
     var stillProgress bool = true
 
@@ -820,7 +830,6 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) (bool, []FoundNode, [
 
 func sendRPCsToFoundNodes(k *Kademlia, findType int, localContact *Contact, searchID ID, slist *list.List, sentMap map[ID]bool, liveMap map[ID]bool) ([]FoundNode, []byte){
 	var value []byte
-
 	//log.Printf("sendRPCsToFoundNodes: Start\n")
     resChan := make(chan *FindStarCallResponse, slist.Len())
 	var ret []FoundNode =  make([]FoundNode, slist.Len())
@@ -858,13 +867,16 @@ func sendRPCsToFoundNodes(k *Kademlia, findType int, localContact *Contact, sear
 			i++
 		} else {
 			//node failed to respond, find it in the slist
+			/*
 			for e:=slist.Front(); e!=nil; e=e.Next(){
 				if e.Value.(*FoundNode).NodeID.Equals(findNodeResult.Responder.NodeID) {
 					//remove fail node from slist
 					slist.Remove(e)
 					break
 				}
-			}
+			}*/
+			//above is uneccesarry, we're returning the 'ret' array.
+			i++
 		}
     }
 	return ret, value
