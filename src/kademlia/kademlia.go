@@ -187,7 +187,11 @@ func MakePingCall(k *Kademlia, remoteHost net.IP, remotePort uint16) bool {
     client.Close()
 	
 	//update the remote node contact information
-	k.UpdateChannel <- pong.Sender
+	log.Printf("About to update with our pong...")
+    log.Printf("buffer len: %d\n", len(k.UpdateChannel))
+    k.UpdateChannel <- pong.Sender
+    log.Printf("buffer len: %d\n", len(k.UpdateChannel))
+	log.Printf("Stuffed out pong in the channel for the sender...")
 	
     return true
 }
@@ -384,9 +388,9 @@ func KBucketHandler(k *Kademlia) (chan Contact, chan *FindRequest, chan *SearchR
 	var finds chan *FindRequest
 	var searches chan *SearchRequest
 
-    updates = make(chan Contact)
-    finds = make(chan *FindRequest)
-    searches = make(chan *SearchRequest)
+    updates = make(chan Contact, 6)
+    finds = make(chan *FindRequest, 2)
+    searches = make(chan *SearchRequest, 2)
 	
     go func() {
         for {
@@ -527,8 +531,9 @@ func MakeFindNodeCall(k *Kademlia, remoteContact *Contact, searchKey ID, NodeCha
 		return
     }
 
-    resultSet = new(FindNodeCallResponse)
-    resultSet.ReturnedResult = fnResult
+    resultSet = new(FindStarCallResponse)
+    resultSet.ReturnedFNRes = fnResult
+    resultSet.ReturnedFVRes = nil
     resultSet.Responder = remoteContact.ContactToFoundNode()
     resultSet.Responded = false
 
@@ -614,19 +619,23 @@ func Update(k *Kademlia, triplet Contact) (success bool, err error) {
             k.Buckets[dist].AddToTail(&triplet)
             return true, nil
         } else {
+            log.Printf("A bucket is full! Checking...\n")
             //ping the contant at the head
             ///get head
             lFront := k.Buckets[dist].l.Front()
             var remoteContact *Contact = lFront.Value.(*Contact)
             ///make ping
+            log.Printf("Pinging the guy in the front of the list...\n")
             succ := MakePingCall(k, remoteContact.Host, remoteContact.Port)
             if !succ {
+                log.Printf("He failed! Replacing\n")
                 //drop old
                 k.Buckets[dist].Drop(lFront)
                 //add new to tail
                 k.Buckets[dist].AddToTail(&triplet)
                 return true, nil
             } else {
+                log.Printf("He replied! Just ignore the new one\n")
                 //ignore new
                 //move the old one to the tail
                 k.Buckets[dist].MoveToTail(lFront)
