@@ -92,7 +92,7 @@ func NewKademlia(listenStr string, rpcPath *string) *Kademlia {
 
 	//Create rpc Server and register a Kademlia struct
     s := rpc.NewServer()
-    if(rpcPath != nil){
+    if(RunningTests == true){
 		Assert(kAndPaths != nil, "trying to setup testing kadem without initializing kAndPaths")
 		s.Register(k)
         s.HandleHTTP(*rpcPath, "/debug/"+*rpcPath)
@@ -476,12 +476,6 @@ func MakeFindNodeCall(k *Kademlia, remoteContact *Contact, searchKey ID, NodeCha
     } else {
 		client, err = rpc.DialHTTP("tcp", remoteAddrStr)
 	}
-    resultSet = new(FindNodeCallResponse)
-    resultSet.ReturnedResult = fnResult
-    resultSet.Responder = remoteContact.ContactToFoundNode()
-    resultSet.Responded = false
-
-    client, err = rpc.DialHTTP("tcp", remoteAddrStr)
     if err != nil {
         log.Printf("Error: MakeFindNodeCall, DialHTTP, %s\n", err)
 		resultSet.Responded = false
@@ -489,6 +483,11 @@ func MakeFindNodeCall(k *Kademlia, remoteContact *Contact, searchKey ID, NodeCha
         //return nil, false
 		return
     }
+
+    resultSet = new(FindNodeCallResponse)
+    resultSet.ReturnedResult = fnResult
+    resultSet.Responder = remoteContact.ContactToFoundNode()
+    resultSet.Responded = false
 
     err = client.Call("Kademlia.FindNode", fnRequest, &fnResult)
     if err != nil {
@@ -622,11 +621,11 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) (bool, []FoundNode, [
 	
     closestNode = kClosestArray[0].NodeID
     //select alpha from local closest k and add them to shortList
-    for i:=0; (i < AConst) && (i<len(kClosestArray)); i++ {
+    for i:=0; (i < KConst) && (i<len(kClosestArray)); i++ {
         newNode := &kClosestArray[i]
         shortList.PushBack(newNode)
-        curClosestDist := localContact.NodeID.Distance(closestNode)
-        compareDist := localContact.NodeID.Distance(newNode.NodeID)
+        curClosestDist := searchID.Distance(closestNode)
+        compareDist := searchID.Distance(newNode.NodeID)
         if compareDist < curClosestDist {
             closestNode = newNode.NodeID
         }
