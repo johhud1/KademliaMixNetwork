@@ -705,9 +705,7 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) (bool, []FoundNode, [
     Assert(err == nil, "Kill yourself and fix me")
     Assert(len(kClosestArray) > 0, "I don't know anyone!")
 	
-	//REVIEW
-    //originalComment:select alpha from local closest k and add them to shortList
-	//George: I think this actually adds len(KClosestArray) nodes to the shortList
+	//adds len(KClosestArray) nodes to the shortList
     closestNode = kClosestArray[0].NodeID
     for i:=0; (i < KConst) && (i<len(kClosestArray)); i++ {
         newNode := &kClosestArray[i]
@@ -739,17 +737,9 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) (bool, []FoundNode, [
             if findType == 1 {//FindNode
                 //made MakeFindNodeCall take a channel, where it puts the result
                 log.Printf("makeFindNodeCall to ID=%s\n", foundNodeTriplet.NodeID.AsString())
-				//if kAndPaths != nil 
-				//    kAndPaths
-				//probably need to rearchitect this path bullshit. maybe a const array/map of kadems 
-				//so don't have to pass all this shit around
-
-				//REVIEW: Change for merge of MakeFindNode and MakeFindNodeCall
-                //go MakeFindNodeCall(localContact, foundNodeTriplet.FoundNodeToContact(), NodeChan)
 				go MakeFindNodeCall(k, foundNodeTriplet.FoundNodeToContact(), searchID, NodeChan)
             } else if findType == 2 {//FindValue
                 log.Printf("makeFindValueCall to ID=%s\n", foundNodeTriplet.NodeID.AsString())
-
 				go MakeFindValueCall(k, foundNodeTriplet.FoundNodeToContact(), searchID, NodeChan)				
             } else {
                 Assert(false, "Unknown case")
@@ -774,9 +764,7 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) (bool, []FoundNode, [
                 //Non data trash
 				
                 //Take its data
-				liveMap[foundStarResult.Responder.NodeID]=true
-                //insertInLiveList(foundNodeResult.ResponderID, liveList)
-				
+				liveMap[foundStarResult.Responder.NodeID] = true		
 
 				if findType == 1  {//FindNode
 					Assert(foundStarResult.ReturnedFNRes != nil, "findStarResult Struct error in iterativeFindNode")
@@ -785,6 +773,8 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) (bool, []FoundNode, [
 					Assert(foundStarResult.ReturnedFVRes != nil, "findStarResult Struct error in iterativeFindValue")
 					//log.Printf("got response from %+v findvalue _%s_\n", foundStarResult.ReturnedFVRes, string(foundStarResult.ReturnedFVRes.Value))
 					if foundStarResult.ReturnedFVRes.Value != nil {
+						//TODO
+						//When an iterativeFindValue succeeds, the initiator must store the key/value pair at the closest node seen which did not return the value.
 						return true, nil, foundStarResult.ReturnedFVRes.Value, nil
 					} else {
 						log.Println("ARE YOU FUCKING KIDDING ME DUDE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
@@ -835,6 +825,7 @@ func sendRPCsToFoundNodes(k *Kademlia, findType int, localContact *Contact, sear
     resChan := make(chan *FindStarCallResponse, slist.Len())
 	var ret []FoundNode =  make([]FoundNode, slist.Len())
     var i int = 0
+
     for e:=slist.Front(); (e!=nil); e=e.Next(){
 		foundNode := e.Value.(*FoundNode)
 		remote := foundNode.FoundNodeToContact()
@@ -891,15 +882,15 @@ func setDifference(listA *list.List, sentMap map[ID]bool) (*list.List){
 
 //add Nodes we here about in the reply to the shortList, only if that node is not in the sentList
 func addResponseNodesToSL(fnodes []FoundNode, shortList *list.List, sentMap map[ID]bool, targetID ID) {
-    for i:=0; i < len(fnodes) ; i++{
+    for i:=0; i < len(fnodes) ; i++ {
 		foundNode := &fnodes[i]
-		_,inSentList := sentMap[foundNode.NodeID]
+		_, inSentList := sentMap[foundNode.NodeID]
 		//if the foundNode is already in sentList, dont add it to shortList
 		if inSentList {
 			continue
 		}
-		for e := shortList.Front(); e != nil; e=e.Next(){
-			if e.Value.(*FoundNode).NodeID.Equals(targetID) {
+		for e := shortList.Front(); e != nil; e=e.Next() {
+			if e.Value.(*FoundNode).NodeID.Equals(foundNode.NodeID) {
 				break;
 			}
 			dist := e.Value.(*FoundNode).NodeID.Distance(targetID)
