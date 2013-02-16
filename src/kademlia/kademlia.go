@@ -729,6 +729,12 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) (bool, []FoundNode, [
 			shortList.PushBack(newNode)
 		}
     }
+	var pE *list.Element = shortList.Front()
+	for ; pE != nil; pE = pE.Next(){
+		log.Printf("Sorted? %s %d\n", pE.Value.(*FoundNode).NodeID.AsString(), pE.Value.(*FoundNode).NodeID.Distance(searchID)) 
+	}
+	
+
 	//set closestNode to first item from shortlist
 	closestNode = shortList.Front().Value.(*FoundNode).NodeID
 	
