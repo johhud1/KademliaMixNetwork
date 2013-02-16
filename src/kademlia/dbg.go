@@ -56,23 +56,30 @@ func RunTests(numNodes string) {
 
 func compareClosestContacts(fn []FoundNode, kadems []*Kademlia, portrange int, searchID ID) {
 	var closestList *list.List = findRefKClosestTo(kadems, portrange, searchID, KConst)
+	var pE *list.Element = closestList.Front()
+	for ; pE != nil; pE = pE.Next(){
+		log.Printf("Sorted? %s %d\n", pE.Value.(ID).AsString(), pE.Value.(ID).Distance(searchID)) 
+	}
 	var e *list.Element = closestList.Front()
+	var overlap int = 0
 	log.Printf("searching for:%s\n", searchID.AsString())
-	log.Printf("reference List: \t\t\t\t\t iterativeFound List:\n")
+	//log.Printf("reference List: \t\t\t\t\t iterativeFound List:\n")
 	for i:=0; i<len(fn);i++{
 		 var id ID = e.Value.(ID)
-		 log.Printf("[%d]:%s\t%s :", i, id.AsString(), fn[i].NodeID.AsString())
+		 //log.Printf("[%d]:%s\t%s :", i, id.AsString(), fn[i].NodeID.AsString())
 		 if(id.Equals(fn[i].NodeID)){
 			log.Printf("match!\n")
 		 } else {
 			for k := closestList.Front(); k!= nil; k=k.Next(){
 				if(k.Value.(ID).Equals(fn[i].NodeID)){
 					log.Printf("contained in list\n")
+					overlap++
 				}
 			}
 		 }
 		 e = e.Next()
 	}
+	log.Printf("overlap of %d\n", overlap)
 	//return retContacts
 }
 
