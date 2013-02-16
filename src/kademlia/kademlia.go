@@ -281,21 +281,22 @@ func MakeFindNode(k *Kademlia, remoteContact *Contact, Key ID) (bool, *[]FoundNo
 */
 
 // A struct we can toss in a channel and get the sender ID, results, and status
-type FindValueCallResponse struct {
-    ReturnedResult *FindValueResult
+type FindStarCallResponse struct {
+    ReturnedFVRes *FindValueResult
+    ReturnedFNRes *FindNodeResult
     Responder *FoundNode
     Responded bool
 }
 
 //func MakeFindValue(k *Kademlia, remoteContact *Contact, Key ID, fvChan chan *FindValueCallResponse) (bool, []byte, *[]FoundNode) {
-func MakeFindValue(k *Kademlia, remoteContact *Contact, Key ID, fvChan chan *FindValueCallResponse) {
+func MakeFindValueCall(k *Kademlia, remoteContact *Contact, Key ID, fvChan chan *FindStarCallResponse) {
 	var findValueReq *FindValueRequest
 	var findValueRes *FindValueResult
 	var remoteAddrStr string
 	var remotePortStr string
     var client *rpc.Client
     var localContact *Contact
-	var resultSet *FindValueCallResponse
+	var resultSet *FindStarCallResponse
     var err error
 
     localContact = &(k.ContactInfo)
@@ -309,8 +310,9 @@ func MakeFindValue(k *Kademlia, remoteContact *Contact, Key ID, fvChan chan *Fin
 
     findValueRes  = new(FindValueResult)
 
-    resultSet = new(FindValueCallResponse)
-    resultSet.ReturnedResult = findValueRes
+    resultSet = new(FindStarCallResponse)
+    resultSet.ReturnedFVRes = findValueRes
+	resultSet.ReturnedFNRes = nil
     resultSet.Responder = remoteContact.ContactToFoundNode()
     resultSet.Responded = false
 
@@ -468,24 +470,27 @@ func StoreHandler(k *Kademlia) (chan *PutRequest, chan *GetRequest) {
     return puts, gets
 }
 
+/*
+//REMOVE
 // A struct we can toss in a channel and get the sender ID, results, and status
 type FindNodeCallResponse struct {
     ReturnedResult *FindNodeResult
     Responder *FoundNode
     Responded bool
 }
+*/
 
 //Makes a FindNodeCall on remoteContact. returns list of KClosest nodes on that contact, and the id of the remote node
 //REVIEW
 //George: On the ground that this should be an asynchronous call, I modified the definition of the function
 //func MakeFindNodeCall(localContact *Contact, remoteContact *Contact, NodeChan chan *FindNodeCallResponse) (*FindNodeResult, bool) {
-func MakeFindNodeCall(k *Kademlia, remoteContact *Contact, searchKey ID, NodeChan chan *FindNodeCallResponse) {
+func MakeFindNodeCall(k *Kademlia, remoteContact *Contact, searchKey ID, NodeChan chan *FindStarCallResponse) {
 	var fnRequest *FindNodeRequest
 	var fnResult *FindNodeResult
     var remoteAddrStr string 
 	var remotePortStr string
     var client *rpc.Client
-	var resultSet *FindNodeCallResponse
+	var resultSet *FindStarCallResponse
     var err error
 	var localContact *Contact
 
@@ -500,8 +505,9 @@ func MakeFindNodeCall(k *Kademlia, remoteContact *Contact, searchKey ID, NodeCha
 
     fnResult = new(FindNodeResult)
 
-    resultSet = new(FindNodeCallResponse)
-    resultSet.ReturnedResult = fnResult
+    resultSet = new(FindStarCallResponse)
+    resultSet.ReturnedFNRes = fnResult
+	resultSet.ReturnedFVRes = nil
     resultSet.Responder = remoteContact.ContactToFoundNode()
     resultSet.Responded = false
 
@@ -659,7 +665,7 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) (bool, []FoundNode, [
 	
     var stillProgress bool = true
 
-    NodeChan := make(chan *FindNodeCallResponse, AConst)
+    NodeChan := make(chan *FindStarCallResponse, AConst)
     for ; stillProgress; {
 		var i int
         stillProgress = false
@@ -685,9 +691,10 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) (bool, []FoundNode, [
 				//REVIEW: Change for merge of MakeFindNode and MakeFindNodeCall
                 //go MakeFindNodeCall(localContact, foundNodeTriplet.FoundNodeToContact(), NodeChan)
 				go MakeFindNodeCall(k, foundNodeTriplet.FoundNodeToContact(), searchID, NodeChan)
-            } else if findType == 2 {//
-				//TODO:findValue goes here
-				
+            } else if findType == 2 {//FindValue
+                log.Printf("makeFindNodeCall to ID=%s\n", foundNodeTriplet.NodeID.AsString())
+
+				go MakeFindValueCall(k, foundNodeTriplet.FoundNodeToContact(), searchID, NodeChan)				
             } else {
                 Assert(false, "Unknown case")
             }
@@ -703,22 +710,33 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) (bool, []FoundNode, [
         //wait for reply
 		for i=0; i < numProbs ; i++ {
 			log.Printf("IterativeFind: α loop start\n")	    
-			var foundNodeResult *FindNodeCallResponse
-			foundNodeResult = <-NodeChan
-			log.Printf("IterativeFind: Reading response from: %s\n", foundNodeResult.Responder.NodeID.AsString())
+			var foundStarResult *FindStarCallResponse
+			foundStarResult = <-NodeChan
+			log.Printf("IterativeFind: Reading response from: %s\n", foundStarResult.Responder.NodeID.AsString())
             //TODO: CRASHES IF ALL ALPHA RETURN EMPTY
-            if foundNodeResult.Responded {
+            if foundStarResult.Responded {
                 //Non data trash
 				
                 //Take its data
-				liveMap[foundNodeResult.Responder.NodeID]=true
+				liveMap[foundStarResult.Responder.NodeID]=true
                 //insertInLiveList(foundNodeResult.ResponderID, liveList)
-                addResponseNodesToSL(foundNodeResult.ReturnedResult.Nodes, shortList, sentMap, searchID)
+				
+
+				if findType == 1  {//FindNode
+					Assert(foundStarResult.ReturnedFNRes != nil, "findStarResult Struct error in iterativeFindNode")
+					addResponseNodesToSL(foundStarResult.ReturnedFNRes.Nodes, shortList, sentMap, searchID)
+				} else {//FindValue
+					Assert(foundStarResult.ReturnedFVRes != nil, "findStarResult Struct error in iterativeFindValue")
+					if foundStarResult.ReturnedFVRes.Value != nil {
+						Assert(false, "WE SHOULD BREAK HERE, FIXME")
+					}
+					addResponseNodesToSL(foundStarResult.ReturnedFVRes.Nodes, shortList, sentMap, searchID)
+				}
 				
                 distance := searchID.Distance(shortList.Front().Value.(*FoundNode).NodeID)
                 if distance < searchID.Distance(closestNode){
                     log.Printf("New closest! dist:%d\n", distance)
-                    closestNode = foundNodeResult.Responder.NodeID
+                    closestNode = foundStarResult.Responder.NodeID
                     stillProgress = true
                 } else {
 					//closestNode didn't change, flood RPCs and prep to return
@@ -727,7 +745,7 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) (bool, []FoundNode, [
 			} else {
                 //It failed, remove it from the shortlist
 				for e:=shortList.Front(); e!=nil; e=e.Next(){
-					if e.Value.(*FoundNode).NodeID.Equals(foundNodeResult.Responder.NodeID) {
+					if e.Value.(*FoundNode).NodeID.Equals(foundStarResult.Responder.NodeID) {
 						shortList.Remove(e)
 						break
 					}
@@ -751,14 +769,14 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) (bool, []FoundNode, [
 }
 
 func sendRPCsToFoundNodes(k *Kademlia, findType int, localContact *Contact, searchID ID, slist *list.List, sentMap map[ID]bool) ([]FoundNode){
-    resChan := make(chan *FindNodeCallResponse, slist.Len())
+    resChan := make(chan *FindStarCallResponse, slist.Len())
     for e:=slist.Front(); (e!=nil) && (sentMap[e.Value.(*FoundNode).NodeID]); e=e.Next(){
 		foundNode := e.Value.(*FoundNode)
 		remote := foundNode.FoundNodeToContact()
-		if findType ==1 {
+		if findType == 1 {//FindNode
 			go MakeFindNodeCall(k, remote, searchID, resChan)
-		} else if findType == 2 {
-			//TODO:findValue case goes here
+		} else if findType == 2 {//FindValue
+			go MakeFindValueCall(k, remote, searchID, resChan)
 		}
     }
     //pull replies out of the channel

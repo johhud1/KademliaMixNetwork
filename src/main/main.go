@@ -223,16 +223,17 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 		remoteContact =<- searchRequest.ReturnChan
 		found = (remoteContact != nil)
 		if found {
-			var fnResponseChan chan *kademlia.FindNodeCallResponse
-			var foundNodeResult *kademlia.FindNodeCallResponse
+			var fsResponseChan chan *kademlia.FindStarCallResponse
+			var findStarResult *kademlia.FindStarCallResponse
 
-			fnResponseChan = make(chan *kademlia.FindNodeCallResponse, 1)
-			go kademlia.MakeFindNodeCall(k, remoteContact, kInst.Key, fnResponseChan)
-			foundNodeResult =<- fnResponseChan
+			fsResponseChan = make(chan *kademlia.FindStarCallResponse, 1)
+			go kademlia.MakeFindNodeCall(k, remoteContact, kInst.Key, fsResponseChan)
+			findStarResult =<- fsResponseChan
 
-			success = foundNodeResult.Responded
+			success = findStarResult.Responded
 			if success  {
-				kademlia.PrintArrayOfFoundNodes(&(foundNodeResult.ReturnedResult.Nodes))
+				kademlia.Assert(findStarResult.ReturnedFNRes != nil, "findStarResult Struct error in FindNode")
+				kademlia.PrintArrayOfFoundNodes(&(findStarResult.ReturnedFNRes.Nodes))
 			}
 		} else {
 			log.Printf("Error: FindNode, nodeID %s could not be found\n", kInst.NodeID.AsString())
@@ -249,22 +250,21 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 		remoteContact =<- searchRequest.ReturnChan
 		found = (remoteContact != nil)
 		if found {
-			var fvResponseChan chan *kademlia.FindValueCallResponse
-			var foundValueResult *kademlia.FindValueCallResponse
-			//var value []byte
-			//var nodes *[]kademlia.FoundNode
+			var fsResponseChan chan *kademlia.FindStarCallResponse
+			var findStarResult *kademlia.FindStarCallResponse
 
-			fvResponseChan = make(chan *kademlia.FindValueCallResponse, 1)
-			go kademlia.MakeFindValue(k, remoteContact, kInst.Key, fvResponseChan)
-			foundValueResult =<- fvResponseChan
+			fsResponseChan = make(chan *kademlia.FindStarCallResponse, 1)
+			go kademlia.MakeFindValueCall(k, remoteContact, kInst.Key, fsResponseChan)
+			findStarResult =<- fsResponseChan
 
-			success = foundValueResult.Responded
+			success = findStarResult.Responded
 			if success {
-				if foundValueResult.ReturnedResult.Value != nil {
-					log.Printf("FindValue: found [%s:%s]\n", kInst.Key.AsString(), string(foundValueResult.ReturnedResult.Value))
+				kademlia.Assert(findStarResult.ReturnedFVRes != nil, "findStarResult Struct error in FindValue")
+				if findStarResult.ReturnedFVRes.Value != nil {
+					log.Printf("FindValue: found [%s:%s]\n", kInst.Key.AsString(), string(findStarResult.ReturnedFVRes.Value))
 				} else {
 					log.Printf("FindValue: Could not locate value, printing closest nodes\n")
-					kademlia.PrintArrayOfFoundNodes(&(foundValueResult.ReturnedResult.Nodes))
+					kademlia.PrintArrayOfFoundNodes(&(findStarResult.ReturnedFVRes.Nodes))
 				}	
 			}
 		} else {
