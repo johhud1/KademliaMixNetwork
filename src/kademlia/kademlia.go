@@ -764,24 +764,32 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) (bool, []FoundNode, [
 
     log.Printf("iterativeFind: exiting main iterative loop\n")
     shortArray := sendRPCsToFoundNodes(k, findType, localContact, searchID, shortList, sentMap)
+
     log.Printf("iterativeFind: end\n")
     return true, shortArray, nil, nil
 }
 
 func sendRPCsToFoundNodes(k *Kademlia, findType int, localContact *Contact, searchID ID, slist *list.List, sentMap map[ID]bool) ([]FoundNode){
     resChan := make(chan *FindStarCallResponse, slist.Len())
-    for e:=slist.Front(); (e!=nil) && (sentMap[e.Value.(*FoundNode).NodeID]); e=e.Next(){
+	var ret []FoundNode =  make([]FoundNode, slist.Len())
+    var i int = 0
+    for e:=slist.Front(); (e!=nil); e=e.Next(){
 		foundNode := e.Value.(*FoundNode)
 		remote := foundNode.FoundNodeToContact()
-		if findType == 1 {//FindNode
+        if sentMap[foundNode.NodeID] {
+            ret[i] = *foundNode
+            i++
+            continue
+        }
+		if findType ==1 {//FindNode
 			go MakeFindNodeCall(k, remote, searchID, resChan)
 		} else if findType == 2 {//FindValue
 			go MakeFindValueCall(k, remote, searchID, resChan)
 		}
     }
     //pull replies out of the channel
-	var ret []FoundNode =  make([]FoundNode, KConst)
-    for i :=0; i<slist.Len(); i++{
+    //(slist.len() - i) indicates the number of makeFindNodeCalls made
+    for ; i<slist.Len(); i++{
 		findNodeResult := <-resChan
 		if (findNodeResult.Responded){
 			k.UpdateChannel<-*findNodeResult.Responder.FoundNodeToContact()
