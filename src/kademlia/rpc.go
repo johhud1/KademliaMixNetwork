@@ -93,7 +93,7 @@ type Pong struct {
 }
 
 func (k *Kademlia) Ping(ping Ping, pong *Pong) error {
-	//log.Printf("Ping --> MsgID: %s, Sender: %s, Reciever:%s\n", ping.MsgID.AsString(), ping.Sender.AsString(), k.ContactInfo.AsString())
+	log.Printf("Ping: Sender: %s ---> Reciever:%s\n", ping.Sender.AsString(), k.ContactInfo.AsString())
 
 	//UPDATE BUCKET REGARDING ping.Sender and ping.MsgID
 	//Update(k, ping.Sender)
@@ -212,7 +212,7 @@ func (k *Kademlia) FindNode(req FindNodeRequest, res *FindNodeResult) error {
 	var err error
 	//Update(k, req.Sender)
     k.UpdateChannel<-req.Sender
-	//log.Printf("RPC: FindNode from %s ---> %s\n", req.Sender.NodeID.AsString(), k.ContactInfo.AsString())
+	log.Printf("RPC: FindNode from %s ---> %s\n", req.Sender.NodeID.AsString(), k.ContactInfo.AsString())
 
 	res.Nodes, err = FindKClosest(k, req.NodeID, req.Sender.NodeID)
 

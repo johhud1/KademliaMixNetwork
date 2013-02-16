@@ -42,7 +42,7 @@ func RunTests(numNodes string) {
     PingTests(portrange, rounds)
     StoreValue_RPCTests( portrange)
     FindValue_RPCTests( portrange)
-    //IterativeFindNodeTests( portrange, rounds)
+    IterativeFindNodeTests( portrange, rounds)
     IterativeFindValueTests( portrange)
     IterativeStoreTests( portrange)
     log.Printf("done testing!\n")
@@ -57,19 +57,17 @@ func FindValue_RPCTests( portrange int){
 }
 
 func IterativeFindNodeTests( portrange int, rounds int){
-    //TODO: implement
     log.Printf("running IterativeFindNode tests\n")
-	var kadems []*Kademlia
-	kadems = buildKademArray( portrange)
+	//var kadems []*Kademlia
+	//kadems = buildKademArray( portrange)
 	for count:=0; count< rounds; count++{
 	    for k, _ := range kAndPaths {
 			//pick a random ID from list to search for
-			time.Sleep(1 * time.Millisecond)
-		    remoteK:= getRandomKadem(kadems, portrange)
-		    remoteContact:= remoteK.ContactInfo
-		    log.Printf("iterativeFindNodeTest: NodeID:%s look for NodeID: %s\n", k.ContactInfo.AsString(), remoteContact.AsString())
+			time.Sleep(150 * time.Millisecond)
+			var searchID ID = NewRandomID()
+		    log.Printf("iterativeFindNodeTest: NodeID:%s look for NodeID: %s\n", k.ContactInfo.AsString(), searchID.AsString())
 		    //THIS SHIT IS BROKEN
-		    IterativeFind(k, remoteContact.NodeID, 1)
+		    IterativeFind(k, searchID, 1)
 	    }
 	}
     log.Printf("done with IterativeFindNodeTests\n")
