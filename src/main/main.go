@@ -38,7 +38,7 @@ func NewKademliaInstruction(s string) (kInst *KademliaInstruction) {
 	//split string, separator is the white-space
 	strTokens = strings.Split(s, " ")
 	
-	log.Printf("Parsing command: %s\n", strTokens)
+	//log.Printf("Parsing command: %s\n", strTokens)
 	
 	kInst.flags = 255 //255 means skip cause nothing could be matched, check with IsSkip()
 	kInst.Data = s//store the whole string somewhere so we can print for debugging
@@ -207,10 +207,14 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 	
 	switch  {
 	case kInst.IsExit() :
-	    log.Printf("Executing Exit Instruction\n");
+		if kademlia.RunningTests {
+			log.Printf("Executing Exit Instruction\n");
+		}
 		return true
 	case kInst.IsSkip() :
-	    log.Printf("Executing Skip Instruction: _%s_\n", kInst.Data);
+		if kademlia.RunningTests {
+			log.Printf("Executing Skip Instruction: _%s_\n", kInst.Data);
+		}
 		return true
 	case kInst.IsPing() :
 		var success bool
@@ -239,8 +243,9 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 	case kInst.IsStore() :
 		var searchRequest *kademlia.SearchRequest
 		var success bool
-	    log.Printf("Executing Store Instruction %s %s %s\n", kInst.NodeID.AsString(), kInst.Key.AsString(), kInst.Data);
-		
+		if kademlia.RunningTests {
+			log.Printf("Executing Store Instruction %s %s %s\n", kInst.NodeID.AsString(), kInst.Key.AsString(), kInst.Data);
+		}
 		
 		searchRequest = &kademlia.SearchRequest{kInst.NodeID, make(chan *kademlia.Contact)}
 		k.SearchChannel <- searchRequest
@@ -256,8 +261,9 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 	case kInst.IsFindNode() :
 		var searchRequest *kademlia.SearchRequest
 		var success bool
-		log.Printf("Executing FindNode Instruction %s %s\n", kInst.NodeID.AsString(), kInst.Key.AsString());
-				
+		if kademlia.RunningTests {
+			log.Printf("Executing FindNode Instruction %s %s\n", kInst.NodeID.AsString(), kInst.Key.AsString());
+		}
 		searchRequest = &kademlia.SearchRequest{kInst.NodeID, make(chan *kademlia.Contact)}
 		k.SearchChannel <- searchRequest
 		remoteContact =<- searchRequest.ReturnChan
@@ -283,8 +289,9 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 	case kInst.IsFindValue() :
 		var searchRequest *kademlia.SearchRequest
 		var success bool
-	    log.Printf("Executing FindValue Instruction %s %s\n", kInst.NodeID.AsString(), kInst.Key.AsString());
-			
+		if kademlia.RunningTests {
+			log.Printf("Executing FindValue Instruction %s %s\n", kInst.NodeID.AsString(), kInst.Key.AsString());
+		}
 		searchRequest = &kademlia.SearchRequest{kInst.NodeID, make(chan *kademlia.Contact)}
 		k.SearchChannel <- searchRequest
 		remoteContact =<- searchRequest.ReturnChan
@@ -321,7 +328,9 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 		}
 		return true
 	case kInst.IsLocalFindValue() :
-		log.Printf("Executing LocalFindValue Instruction\n");
+		if kademlia.RunningTests {
+			log.Printf("Executing LocalFindValue Instruction\n");
+		}
         localvalue, found := k.ValueStore.Get(kInst.Key)
 		if found {
 			if(kademlia.RunningTests){
@@ -427,21 +436,19 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 			return false
 		}
 		if success {
-			if nodes != nil {
-				if(kademlia.RunningTests){
-					fmt.Printf("iterativeFindValue: Value for key %s NOT FOUND\n", kInst.Key.AsString())
-					kademlia.PrintArrayOfFoundNodes(&nodes)
-				}else{
-					fmt.Printf("ERR")
-				}
-			} else if value != nil {
+			if value != nil {
 				if(kademlia.RunningTests){
 					fmt.Printf("iterativeFindValue: Value for key %s --> %s\n", kInst.Key.AsString(), string(value))
 				} else {
 					fmt.Printf("%v %v\n", nodes[0].NodeID, value)
 				}
 			} else {
-				kademlia.Assert(false, "iterativeFindValue: TODO: This should probably never happen right?")
+				if(kademlia.RunningTests) {
+					fmt.Printf("iterativeFindValue: Value for key %s NOT FOUND\n", kInst.Key.AsString())
+					kademlia.PrintArrayOfFoundNodes(&nodes)
+				} else {
+					fmt.Printf("ERR")
+				}
 			}
 		}
 		return success
@@ -528,7 +535,7 @@ func main() {
 	var instStr string
 	var inst *KademliaInstruction
 	for ;; {
-		fmt.Printf("δώσε %d:", kadem.FirstKBucketStore)//Print prompt
+		fmt.Printf("δώσε:")//Print prompt
 
     	//read new instruction
 		//ret, err := fmt.Scanln(&instStr)

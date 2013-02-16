@@ -115,8 +115,9 @@ func NewKademlia(listenStr string, rpcPath *string) *Kademlia {
     // Serve forever.
     go http.Serve(l, nil)
 
-
-    log.Printf("kademlia starting up! local nodeID is %s", k.ContactInfo.AsString())//kademliaInstance.AsString()
+	if RunningTests {
+		log.Printf("kademlia starting up! local nodeID is %s", k.ContactInfo.AsString())//kademliaInstance.AsString()
+	}
     return k
 }
 
@@ -213,7 +214,9 @@ func MakeStore(k *Kademlia, remoteContact *Contact, Key ID, Value string) bool {
 
     localContact = &(k.ContactInfo)
     remoteAddrStr = remoteContact.Host.String() + ":" + strconv.Itoa(int(remoteContact.Port))
-    log.Printf("MakeStore: From %s --> To %s\n", localContact.AsString(), remoteContact.AsString())
+	if RunningTests {
+		log.Printf("MakeStore: From %s --> To %s\n", localContact.AsString(), remoteContact.AsString())
+	}
 
     storeReq = new(StoreRequest)
     storeReq.MsgID = NewRandomID()
@@ -228,7 +231,9 @@ func MakeStore(k *Kademlia, remoteContact *Contact, Key ID, Value string) bool {
     if RunningTests == true {
 		//if we're running tests, need to DialHTTPPath
 		var portstr string = rpcPath + remotePortStr
-		log.Printf("test FindNodeValue to rpcPath:%s\n", portstr)
+		if RunningTests {
+			log.Printf("test FindNodeValue to rpcPath:%s\n", portstr)
+		}
 		client, err = rpc.DialHTTPPath("tcp", remoteAddrStr, portstr)
     } else {
 		client, err = rpc.DialHTTP("tcp", remoteAddrStr)
@@ -666,7 +671,9 @@ func DoJoin(k *Kademlia) (bool) {
 	var secToWait time.Duration = 1
 	
 	k.DoJoinFlag = false
-	log.Printf("doJoin in %d sec\n");
+	if RunningTests {
+		log.Printf("doJoin in %d sec\n");
+	}
 	time.Sleep(secToWait)
 
 	//NOTE: the third returned value is dropped on the assumption it would always be nil for this call
@@ -677,7 +684,9 @@ func DoJoin(k *Kademlia) (bool) {
 	}
 	if success {
 		if nodes != nil {
-			PrintArrayOfFoundNodes(&nodes)
+			if RunningTests {
+				PrintArrayOfFoundNodes(&nodes)
+			}
 		} else {
 			Assert(false, "doJoin: TODO: This should probably never happen right?")
 		}
@@ -729,9 +738,11 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) (bool, []FoundNode, [
 			shortList.PushBack(newNode)
 		}
     }
-	var pE *list.Element = shortList.Front()
-	for ; pE != nil; pE = pE.Next(){
-		log.Printf("Sorted? %s %d\n", pE.Value.(*FoundNode).NodeID.AsString(), pE.Value.(*FoundNode).NodeID.Distance(searchID)) 
+	if RunningTests {
+		var pE *list.Element = shortList.Front()
+		for ; pE != nil; pE = pE.Next(){
+			log.Printf("Sorted? %s %d\n", pE.Value.(*FoundNode).NodeID.AsString(), pE.Value.(*FoundNode).NodeID.Distance(searchID)) 
+		}
 	}
 	
 
@@ -757,10 +768,14 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) (bool, []FoundNode, [
             //send rpc
             if findType == 1 {//FindNode
                 //made MakeFindNodeCall take a channel, where it puts the result
-                log.Printf("makeFindNodeCall to ID=%s\n", foundNodeTriplet.NodeID.AsString())
+				if RunningTests {
+					log.Printf("makeFindNodeCall to ID=%s\n", foundNodeTriplet.NodeID.AsString())
+				}
 				go MakeFindNodeCall(k, foundNodeTriplet.FoundNodeToContact(), searchID, NodeChan)
             } else if findType == 2 {//FindValue
-                log.Printf("makeFindValueCall to ID=%s\n", foundNodeTriplet.NodeID.AsString())
+				if RunningTests {
+					log.Printf("makeFindValueCall to ID=%s\n", foundNodeTriplet.NodeID.AsString())
+				}
 				go MakeFindValueCall(k, foundNodeTriplet.FoundNodeToContact(), searchID, NodeChan)				
             } else {
                 Assert(false, "Unknown case")
@@ -779,7 +794,9 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) (bool, []FoundNode, [
 			//log.Printf("IterativeFind: α loop start\n")	    
 			var foundStarResult *FindStarCallResponse
 			foundStarResult = <-NodeChan
-			log.Printf("IterativeFind: Reading response from: %s\n", foundStarResult.Responder.NodeID.AsString())
+			if RunningTests {
+				log.Printf("IterativeFind: Reading response from: %s\n", foundStarResult.Responder.NodeID.AsString())
+			}
             //TODO: CRASHES IF ALL ALPHA RETURN EMPTY
             if foundStarResult.Responded {
                 //Non data trash
@@ -799,7 +816,9 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) (bool, []FoundNode, [
 						//When an iterativeFindValue succeeds, the initiator must store the key/value pair at the closest node seen which did not return the value.
 						return true, nArray, foundStarResult.ReturnedFVRes.Value, nil
 					} else {
-						log.Println("ARE YOU FUCKING KIDDING ME DUDE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+						if RunningTests {
+							log.Println("Could not found value in this node")
+						}
 					}
 					addResponseNodesToSL(foundStarResult.ReturnedFVRes.Nodes, shortList, sentMap, searchID)
 				}

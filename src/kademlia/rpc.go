@@ -53,8 +53,9 @@ func NewContact(AddrStr string) (Contact) {
 	if err != nil {
      		//FIXME
 	}
-
-    log.Printf("Creating new contact %s %s\n", nodeID.AsString(), AddrStr)
+	if RunningTests {
+		log.Printf("Creating new contact %s %s\n", nodeID.AsString(), AddrStr)
+	}
 	return Contact{nodeID, host, port}
 }
 
@@ -200,7 +201,7 @@ func PrintArrayOfFoundNodes(array *[]FoundNode) {
 		if RunningTests {
 			fmt.Printf("[%d] --> %s %s %d\n", i, v.NodeID.AsString(), v.IPAddr, v.Port)
 		} else {
-			fmt.Printf("%s\n", i, v.NodeID.AsString())
+			fmt.Printf("%d, %s\n", i, v.NodeID.AsString())
 		}
 	}
     return
@@ -218,7 +219,9 @@ func (k *Kademlia) FindNode(req FindNodeRequest, res *FindNodeResult) error {
 	var err error
 	//Update(k, req.Sender)
     k.UpdateChannel<-req.Sender
-	log.Printf("RPC: FindNode from %s ---> %s\n", req.Sender.NodeID.AsString(), k.ContactInfo.AsString())
+	if RunningTests {
+		log.Printf("RPC: FindNode from %s ---> %s\n", req.Sender.NodeID.AsString(), k.ContactInfo.AsString())
+	}
 
 	res.Nodes, err = FindKClosest(k, req.NodeID, req.Sender.NodeID)
 
@@ -336,7 +339,9 @@ func (k *Kademlia) FindValue(req FindValueRequest, res *FindValueResult) error {
 	res.Value, found = k.ValueStore.Get(req.Key)
 
     if found {
-		log.Printf("RPC:FindValue, found value [%s:%s]\n", req.Key.AsString(), string(res.Value))
+		if RunningTests {
+			log.Printf("RPC:FindValue, found value [%s:%s]\n", req.Key.AsString(), string(res.Value))
+		}
 	} else {
 		res.Nodes, err = FindKClosest(k, req.Key, req.Sender.NodeID)
 	}
