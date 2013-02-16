@@ -812,13 +812,13 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) (bool, []FoundNode, [
     //sendToList := setDifference(shortList, sentMap)
 
     //log.Printf("iterativeFind: exiting main iterative loop\n")
-    shortArray, value := sendRPCsToFoundNodes(k, findType, localContact, searchID, shortList, sentMap)
+    shortArray, value := sendRPCsToFoundNodes(k, findType, localContact, searchID, shortList, sentMap, liveMap)
 
     //log.Printf("iterativeFind: end\n")
     return true, shortArray, value, nil
 }
 
-func sendRPCsToFoundNodes(k *Kademlia, findType int, localContact *Contact, searchID ID, slist *list.List, sentMap map[ID]bool) ([]FoundNode, []byte){
+func sendRPCsToFoundNodes(k *Kademlia, findType int, localContact *Contact, searchID ID, slist *list.List, sentMap map[ID]bool, liveMap map[ID]bool) ([]FoundNode, []byte){
 	var value []byte
 
 	//log.Printf("sendRPCsToFoundNodes: Start\n")
@@ -830,8 +830,10 @@ func sendRPCsToFoundNodes(k *Kademlia, findType int, localContact *Contact, sear
 		foundNode := e.Value.(*FoundNode)
 		remote := foundNode.FoundNodeToContact()
         if sentMap[foundNode.NodeID] {
-            ret[i] = *foundNode
-            i++
+			if liveMap[foundNode.NodeID] {
+				ret[i] = *foundNode
+				i++
+			}
             continue
         }
 		if findType ==1 {//FindNode
