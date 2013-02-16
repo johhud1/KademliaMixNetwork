@@ -745,7 +745,7 @@ func sendRPCsToFoundNodes(k *Kademlia, findType int, localContact *Contact, sear
     }
     //pull replies out of the channel
     //(slist.len() - i) indicates the number of makeFindNodeCalls made
-    for i; i<slist.Len(); i++{
+    for ; i<slist.Len(); i++{
 		findNodeResult := <-resChan
 		if (findNodeResult.Responded){
 			k.UpdateChannel<-*findNodeResult.Responder.FoundNodeToContact()
