@@ -330,9 +330,9 @@ func (k *Kademlia) FindValue(req FindValueRequest, res *FindValueResult) error {
 	res.Value, found = k.ValueStore.Get(req.Key)
 
     if found {
-		res.Nodes, err = FindKClosest(k, req.Key, req.Sender.NodeID)
-	} else {
 		log.Printf("RPC:FindValue, found value [%s:%s]\n", req.Key.AsString(), string(res.Value))
+	} else {
+		res.Nodes, err = FindKClosest(k, req.Key, req.Sender.NodeID)
 	}
 	
 	res.MsgID = CopyID(req.MsgID)
