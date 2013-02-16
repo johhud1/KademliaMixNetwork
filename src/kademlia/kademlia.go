@@ -11,6 +11,7 @@ import (
     "net/http"
     "os"
 	"fmt"
+    "time"
 )
 
 
@@ -25,6 +26,7 @@ type Kademlia struct {
     UpdateChannel chan Contact
     FindChannel chan *FindRequest
     SearchChannel chan *SearchRequest
+    RandomChannel chan *RandomRequest
     ValueStore *Store
 }
 
@@ -88,7 +90,7 @@ func NewKademlia(listenStr string, rpcPath *string) *Kademlia {
     k.ContactInfo = NewContact(listenStr)
 
     //instantiate kbucket handler here
-    k.UpdateChannel, k.FindChannel, k.SearchChannel = KBucketHandler(k)
+    k.UpdateChannel, k.FindChannel, k.SearchChannel, k.RandomChannel = KBucketHandler(k)
 
 	//Create rpc Server and register a Kademlia struct
     s := rpc.NewServer()
@@ -108,6 +110,8 @@ func NewKademlia(listenStr string, rpcPath *string) *Kademlia {
 	
     // Serve forever.
     go http.Serve(l, nil)
+
+    go RefreshTimer(k)
 
 
     log.Printf("kademlia starting up! local nodeID is %s", k.ContactInfo.AsString())//kademliaInstance.AsString()
@@ -369,6 +373,11 @@ type FindResponse struct {
     err error
 }
 
+type RandomRequest struct {
+    dist int
+    ReturnChan chan *ID
+}
+
 
 //REVIEW
 //how about we change that so we only include the nodeID and the return channel that would instead return a *Contact
@@ -379,47 +388,53 @@ type SearchRequest struct {
     ReturnChan chan *Contact
 }
 
-func KBucketHandler(k *Kademlia) (chan Contact, chan *FindRequest, chan *SearchRequest) {
+func KBucketHandler(k *Kademlia) (chan Contact, chan *FindRequest, chan *SearchRequest, chan *RandomRequest) {
 	var updates chan Contact
 	var finds chan *FindRequest
 	var searches chan *SearchRequest
+    var randoms chan *RandomRequest
 
     updates = make(chan Contact)
     finds = make(chan *FindRequest)
     searches = make(chan *SearchRequest)
-	
+    randoms = make(chan *RandomRequest)
+
     go func() {
         for {
 			var c Contact
 			var f *FindRequest
 			var s *SearchRequest
-			
-            select {
-            case c =<- updates:
-                log.Printf("In update handler. Updating contact: %s\n", c.AsString())
-                Update(k, c)
-            case f =<- finds:
-				var n []FoundNode
-				var err error
+            var r *RandomRequest
 
-				log.Printf("In update handler. FindKClosest to contact: %s\n", f.remoteID.AsString())
-                n, err = FindKClosest_mutex(k, f.remoteID, f.excludeID)
-                f.ReturnChan <- &FindResponse{n, err}
-            case s =<- searches:
-				var contact *Contact
-                log.Printf("In update handler. Searching contact: %s\n", s.NodeID.AsString())
-				//REVIEW
-				//George: I changed
-                //'_, elem = k.Buckets[s.dist].Search(s.NodeID)'
-				//with the following line, please read comment in the SearchRequest struct
-				contact = Search(k, s.NodeID)
-                s.ReturnChan <- contact
+            select {
+                case c =<-updates:
+                    log.Printf("In update handler. Updating contact: %s\n", c.AsString())
+                    Update(k, c)
+                case f =<-finds:
+                    var n []FoundNode
+                    var err error
+
+                    log.Printf("In update handler. FindKClosest to contact: %s\n", f.remoteID.AsString())
+                    n, err = FindKClosest_mutex(k, f.remoteID, f.excludeID)
+                    f.ReturnChan <- &FindResponse{n, err}
+                case s =<-searches:
+                    var contact *Contact
+                    log.Printf("In update handler. Searching contact: %s\n", s.NodeID.AsString())
+                    //REVIEW
+                    //George: I changed
+                    //'_, elem = k.Buckets[s.dist].Search(s.NodeID)'
+                    //with the following line, please read comment in the SearchRequest struct
+                    contact = Search(k, s.NodeID)
+                    s.ReturnChan <- contact
+                case r =<-randoms:
+                    log.Printf("In handler for random kbucket node. Used for refresh\n");
+                    r.ReturnChan<-k.Buckets[r.dist].GetRefreshID()
             }
 			log.Println("KBucketHandler loop end\n")
         }
     }()
 	
-    return updates, finds, searches
+    return updates, finds, searches, randoms
 }
 
 //Handler for Store
@@ -451,23 +466,65 @@ func StoreHandler(k *Kademlia) (chan *PutRequest, chan *GetRequest) {
 			var g *GetRequest
 
             select {
-            case p = <-puts:
-                //put
-                log.Printf("In put handler for Store. key->%s value->%s", p.key.AsString(), p.value)
-                k.ValueStore.HashMap[p.key] = p.value
-            case g = <-gets:
-                //get
-				var val []byte
-				var found bool
-                log.Printf("In get handler for Store. key->%s", g.key.AsString())
-                val, found = k.ValueStore.HashMap[g.key]
-                g.ReturnChan<- &GetResponse{val, found}
+                case p = <-puts:
+                    //put
+                    log.Printf("In put handler for Store. key->%s value->%s", p.key.AsString(), p.value)
+                    k.ValueStore.HashMap[p.key] = p.value
+                case g = <-gets:
+                    //get
+                    var val []byte
+                    var found bool
+                    log.Printf("In get handler for Store. key->%s", g.key.AsString())
+                    val, found = k.ValueStore.HashMap[g.key]
+                    g.ReturnChan<- &GetResponse{val, found}
             }
 			log.Println("StoreHandler loop end\n")
         }
     }()
 	
     return puts, gets
+}
+
+func RefreshKBucket(k *Kademlia, dist int) {
+    //Call iterative find node for a random node in kbucket
+    var rr *RandomRequest
+    var destID *ID
+
+    rr = &RandomRequest{dist, make(chan *ID)}
+    k.RandomChannel<-rr
+    destID =<-rr.ReturnChan
+    
+    if destID == nil {
+        return
+    }
+
+    IterativeFind(k, *destID, 1)
+}
+
+func RefreshTimers(k *Kademlia) {
+    //refresh timer
+    go func() {
+        for {
+            //time.Sleep(3600000)
+            time.Sleep(time.Duration(60)*time.Minute)
+            for i := 0; i < 160;  i++ {
+                log.Printf("Refreshing KBucket %d\n", i)
+                RefreshKBucket(k, i)
+            }
+        }
+    }()
+
+    //republish timer
+    go func() {
+        for {
+            time.Sleep(time.Duration(60)*time.Minute)
+            //republish
+            for key := range k.ValueStore.HashMap {
+                //republish key
+
+            }
+        }
+    }()
 }
 
 /*
