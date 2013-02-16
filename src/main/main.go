@@ -318,12 +318,19 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 		return true
 	case kInst.IsLocalFindValue() :
 		log.Printf("Executing LocalFindValue Instruction\n");
-		
         localvalue, found := k.ValueStore.Get(kInst.Key)
 		if found {
-			fmt.Printf("Value for key %s --> %s\n", kInst.Key.AsString(), string(localvalue))
+			if(kademlia.RunningTests){
+				fmt.Printf("Value for key %s --> %s\n", kInst.Key.AsString(), string(localvalue))
+			} else {
+				fmt.Printf("%s\n", string(localvalue))
+			}
 		} else {
-			fmt.Printf("Value for Key %s NOT found\n", kInst.Key.AsString())
+			if(kademlia.RunningTests){
+				fmt.Printf("Value for Key %s NOT found\n", kInst.Key.AsString())
+			}else{
+				fmt.Printf("ERR\n")
+			}
 		}
 		return true
 	case kInst.IsGetContact() :
@@ -345,7 +352,9 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 		var nodes []kademlia.FoundNode
 		var err error
 
-	    log.Printf("Executing iterativeStore Instruction %s %s\n", kInst.Key.AsString(), kInst.Data);
+		if(kademlia.RunningTests){
+			log.Printf("Executing iterativeStore Instruction %s %s\n", kInst.Key.AsString(), kInst.Data);
+		}
 		
 		//NOTE: the third returned value is dropped on the assumption it would always be nil for this call
 		success, nodes, _, err = kademlia.IterativeFind(k, kInst.Key, 1) //findType of 1 is FindNode
@@ -392,7 +401,9 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 		var value []byte 
 		var err error
 
-	    log.Printf("Executing iterativeFindValue Instruction %s\n", kInst.Key.AsString());
+		if(kademlia.RunningTests){
+			log.Printf("Executing iterativeFindValue Instruction %s\n", kInst.Key.AsString());
+		}
 		
 		success, nodes, value, err = kademlia.IterativeFind(k, kInst.Key, 2) //findType of 2 is FindValue
 		if err != nil {
@@ -401,10 +412,18 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 		}
 		if success {
 			if nodes != nil {
-				fmt.Printf("iterativeFindValue: Value for key %s NOT FOUND\n", kInst.Key.AsString())
-				kademlia.PrintArrayOfFoundNodes(&nodes)
+				if(kademlia.RunningTests){
+					fmt.Printf("iterativeFindValue: Value for key %s NOT FOUND\n", kInst.Key.AsString())
+					kademlia.PrintArrayOfFoundNodes(&nodes)
+				}else{
+					fmt.Printf("ERR")
+				}
 			} else if value != nil {
-				fmt.Printf("iterativeFindValue: Value for key %s --> %s\n", kInst.Key.AsString(), string(value))
+				if(kademlia.RunningTests){
+					fmt.Printf("iterativeFindValue: Value for key %s --> %s\n", kInst.Key.AsString(), string(value))
+				} else {
+					fmt.Printf("%v %v\n", nodes[0].NodeID, value)
+				}
 			} else {
 				kademlia.Assert(false, "iterativeFindValue: TODO: This should probably never happen right?")
 			}
