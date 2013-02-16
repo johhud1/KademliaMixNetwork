@@ -313,8 +313,12 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 		}
 		return success
 	case kInst.IsWhoami() :
-		log.Printf("Executing Whoami Instruction\n");
-		fmt.Printf("Local Node ID: %s\n", k.ContactInfo.NodeID.AsString())
+		if  kademlia.RunningTests {
+			log.Printf("Executing Whoami Instruction\n");
+			fmt.Printf("Local Node ID: %s\n", k.ContactInfo.NodeID.AsString())
+		} else {
+			fmt.Printf("%s\n", k.ContactInfo.NodeID.AsString())
+		}
 		return true
 	case kInst.IsLocalFindValue() :
 		log.Printf("Executing LocalFindValue Instruction\n");
@@ -335,16 +339,26 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 		return true
 	case kInst.IsGetContact() :
 		var searchRequest *kademlia.SearchRequest
-	    log.Printf("Executing GetContact Instruction %s\n", kInst.NodeID.AsString());
+		if kademlia.RunningTests {
+			log.Printf("Executing GetContact Instruction %s\n", kInst.NodeID.AsString());
+		}
 		
 		searchRequest = &kademlia.SearchRequest{kInst.NodeID, make(chan *kademlia.Contact)}
 		k.SearchChannel <- searchRequest
 		remoteContact =<- searchRequest.ReturnChan
 		found = (remoteContact != nil)
 		if found {
-			log.Printf("GetContact: Addr:%v, Port: %v\n", remoteContact.Host, remoteContact.Port)
+			if kademlia.RunningTests {
+				log.Printf("GetContact: Addr:%v, Port: %v\n", remoteContact.Host, remoteContact.Port)
+			} else {
+				fmt.Printf("%v %v\n", remoteContact.Host, remoteContact.Port)
+			}
 		} else {
-			log.Printf("GetContact: Could not locate in local buckets nodeID %s\n", kInst.NodeID)
+			if kademlia.RunningTests {
+				log.Printf("GetContact: Could not locate in local buckets nodeID %s\n", kInst.NodeID.AsString())
+			} else {
+				fmt.Printf("ERR\n")
+			}
 		}
 		return true
 	case kInst.IsIterativeStore() :
@@ -378,8 +392,10 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 		var nodes []kademlia.FoundNode
 		//var value []byte //This is probably not needed as iterativeFindNode should never return a value
 		var err error
-
-		log.Printf("Executing iterativeFindNode Instruction %s\n", kInst.NodeID.AsString());
+		
+		if kademlia.RunningTests {
+			log.Printf("Executing iterativeFindNode Instruction %s\n", kInst.NodeID.AsString());
+		}
 		
 		//NOTE: the third returned value is dropped on the assumption it would always be nil for this call
 		success, nodes, _, err = kademlia.IterativeFind(k, kInst.NodeID, 1) //findType of 1 is FindNode

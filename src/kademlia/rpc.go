@@ -193,9 +193,15 @@ type FoundNode struct {
 }
 
 func PrintArrayOfFoundNodes(array *[]FoundNode) {
-	fmt.Printf("Print Returned Found Nodes\n")
+	if RunningTests {
+		fmt.Printf("Print Returned Found Nodes\n")
+	}
 	for i, v := range *array {
-		fmt.Printf("[%d] --> %s %s %d\n", i, v.NodeID.AsString(), v.IPAddr, v.Port)
+		if RunningTests {
+			fmt.Printf("[%d] --> %s %s %d\n", i, v.NodeID.AsString(), v.IPAddr, v.Port)
+		} else {
+			fmt.Printf("%s\n", i, v.NodeID.AsString())
+		}
 	}
     return
 }

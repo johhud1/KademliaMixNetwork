@@ -794,9 +794,10 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) (bool, []FoundNode, [
 					Assert(foundStarResult.ReturnedFVRes != nil, "findStarResult Struct error in iterativeFindValue")
 					//log.Printf("got response from %+v findvalue _%s_\n", foundStarResult.ReturnedFVRes, string(foundStarResult.ReturnedFVRes.Value))
 					if foundStarResult.ReturnedFVRes.Value != nil {
+						var nArray []FoundNode  = []FoundNode{*(foundStarResult.Responder)}
 						//TODO
 						//When an iterativeFindValue succeeds, the initiator must store the key/value pair at the closest node seen which did not return the value.
-						return true, nil, foundStarResult.ReturnedFVRes.Value, nil
+						return true, nArray, foundStarResult.ReturnedFVRes.Value, nil
 					} else {
 						log.Println("ARE YOU FUCKING KIDDING ME DUDE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 					}
@@ -840,7 +841,7 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) (bool, []FoundNode, [
 }
 
 func sendRPCsToFoundNodes(k *Kademlia, findType int, localContact *Contact, searchID ID, slist *list.List, sentMap map[ID]bool, liveMap map[ID]bool) ([]FoundNode, []byte){
-	var value []byte
+	//var value []byte
 	//log.Printf("sendRPCsToFoundNodes: Start\n")
     resChan := make(chan *FindStarCallResponse, slist.Len())
 	var ret []FoundNode =  make([]FoundNode, slist.Len())
@@ -871,7 +872,8 @@ func sendRPCsToFoundNodes(k *Kademlia, findType int, localContact *Contact, sear
 			k.UpdateChannel <- *findNodeResult.Responder.FoundNodeToContact()
 			if 2 == findType {
 				if findNodeResult.ReturnedFVRes.Value != nil {
-					return nil, findNodeResult.ReturnedFVRes.Value
+					var nArray []FoundNode = []FoundNode{*(findNodeResult.Responder)}
+					return nArray, findNodeResult.ReturnedFVRes.Value
 				}
 			}
 			ret[i] = *findNodeResult.Responder
@@ -890,7 +892,7 @@ func sendRPCsToFoundNodes(k *Kademlia, findType int, localContact *Contact, sear
 			i++
 		}
     }
-	return ret, value
+	return ret, nil
 }
 
 /*
