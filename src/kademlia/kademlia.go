@@ -527,11 +527,6 @@ func MakeFindNodeCall(k *Kademlia, remoteContact *Contact, searchKey ID, NodeCha
 		return
     }
 
-    resultSet = new(FindNodeCallResponse)
-    resultSet.ReturnedResult = fnResult
-    resultSet.Responder = remoteContact.ContactToFoundNode()
-    resultSet.Responded = false
-
     err = client.Call("Kademlia.FindNode", fnRequest, &fnResult)
     if err != nil {
         log.Printf("Error: MakeFindNodeCall, Call, %s\n", err)
