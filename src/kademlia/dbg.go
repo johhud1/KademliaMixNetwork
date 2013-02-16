@@ -45,7 +45,7 @@ func RunTests(numNodes string) {
 
     }
 	rounds := 2 //number of times each kadem should perform the operation to be tested PingTests(portrange, rounds)
-	PingTests(TestKademlias, rounds, portrange)
+	PingTests(TestKademlias, portrange, rounds)
     StoreValue_RPCTests( portrange)
     FindValue_RPCTests( portrange)
     //IterativeFindNodeTests(TestKademlias, portrange, rounds)

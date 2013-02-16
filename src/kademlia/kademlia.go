@@ -193,10 +193,10 @@ func MakePingCall(k *Kademlia, remoteHost net.IP, remotePort uint16) bool {
     client.Close()
 	
 	//log.Printf("About to update with our pong...")
-    log.Printf("update buffer len: %d\n", len(k.UpdateChannel))
+    //log.Printf("update buffer len: %d\n", len(k.UpdateChannel))
 	//update the remote node contact information
     k.UpdateChannel <- pong.Sender
-    log.Printf("update buffer len: %d\n", len(k.UpdateChannel))
+    //log.Printf("update buffer len: %d\n", len(k.UpdateChannel))
 	//log.Printf("Stuffed out pong in the channel for the sender...")
 
     return true
