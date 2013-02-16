@@ -2,7 +2,7 @@ package kademlia
 
 import (
 	"container/list"
-	"log"
+	//"log"
 	"fmt"
 )
 
@@ -33,7 +33,7 @@ func (kb *K_Bucket) IsFull() bool {
  else returns false and nil
  */
 func (kb *K_Bucket) Search(NodeID ID) (bool, *list.Element) {
-	log.Printf("Search, %s\n", NodeID.AsString())
+	//log.Printf("Search, %s\n", NodeID.AsString())
 	
 	Assert(kb.l != nil, "Search: Assert list == nil")
 	

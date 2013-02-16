@@ -93,12 +93,12 @@ type Pong struct {
 }
 
 func (k *Kademlia) Ping(ping Ping, pong *Pong) error {
-	log.Printf("Ping --> MsgID: %s, Sender: %s, Reciever:%s\n", ping.MsgID.AsString(), ping.Sender.AsString(), k.ContactInfo.AsString())
+	//log.Printf("Ping --> MsgID: %s, Sender: %s, Reciever:%s\n", ping.MsgID.AsString(), ping.Sender.AsString(), k.ContactInfo.AsString())
 
 	//UPDATE BUCKET REGARDING ping.Sender and ping.MsgID
 	//Update(k, ping.Sender)
     //Testing new update channel
-    log.Printf("Sending to Update Channel -> %s", ping.Sender.AsString())
+    //log.Printf("Sending to Update Channel -> %s", ping.Sender.AsString())
     k.UpdateChannel<-ping.Sender
 
 
@@ -211,8 +211,8 @@ type FindNodeResult struct {
 func (k *Kademlia) FindNode(req FindNodeRequest, res *FindNodeResult) error {
 	var err error
 	//Update(k, req.Sender)
-        k.UpdateChannel<-req.Sender
-	log.Printf("RPC: FindNode from %s ---> %s\n", req.Sender.NodeID.AsString(), k.ContactInfo.AsString())
+    k.UpdateChannel<-req.Sender
+	//log.Printf("RPC: FindNode from %s ---> %s\n", req.Sender.NodeID.AsString(), k.ContactInfo.AsString())
 
 	res.Nodes, err = FindKClosest(k, req.NodeID, req.Sender.NodeID)
 
@@ -228,16 +228,16 @@ func FindKClosest(k *Kademlia, remoteID ID, excludeID ID) ([]FoundNode, error){
 
     findRequest := &FindRequest{remoteID, excludeID, make(chan *FindResponse)}
 
-    log.Printf("Sending to FindChannel -> %s\n", remoteID.AsString())
+    //log.Printf("Sending to FindChannel -> %s\n", remoteID.AsString())
     k.FindChannel<-findRequest
 
-    log.Printf("Waitng for return channel -> %s\n", remoteID.AsString())
+    //log.Printf("Waitng for return channel -> %s\n", remoteID.AsString())
     resp :=<- findRequest.ReturnChan
 
 
     kClosestArray := resp.nodes
     err := resp.err
-    log.Printf("Got kClosestArray -> length -> %d\n", len(kClosestArray))
+    //log.Printf("Got kClosestArray -> length -> %d\n", len(kClosestArray))
 
     return kClosestArray, err
 
@@ -253,7 +253,7 @@ func FindKClosest_mutex(k *Kademlia, remoteID ID, excludeID ID) ([]FoundNode, er
 	}
 
 	var curBucket int = initBucket
-	log.Printf("FindKClosest: excludeID=%s remoteID=%s curBucket calculated as %d\n", excludeID.AsString(), remoteID.AsString(), curBucket)
+	//log.Printf("FindKClosest: excludeID=%s remoteID=%s curBucket calculated as %d\n", excludeID.AsString(), remoteID.AsString(), curBucket)
 	var nodesFoundSoFar *list.List
 
 	nodesFoundSoFar = list.New()
@@ -266,7 +266,7 @@ func FindKClosest_mutex(k *Kademlia, remoteID ID, excludeID ID) ([]FoundNode, er
 				break
 			}
 			if 0 != e.Value.(*Contact).NodeID.Compare(excludeID) {
-				log.Printf("adding node to return list\n")
+				//log.Printf("adding node to return list\n")
 				nodesFoundSoFar.PushBack(e.Value.(*Contact).ContactToFoundNode())
 			}
 		}
@@ -282,7 +282,7 @@ func FindKClosest_mutex(k *Kademlia, remoteID ID, excludeID ID) ([]FoundNode, er
 				break
 			}
 			if 0 != e.Value.(*Contact).NodeID.Compare(excludeID) {
-				log.Printf("adding node to return list\n")
+				//log.Printf("adding node to return list\n")
 				nodesFoundSoFar.PushBack(e.Value.(*Contact).ContactToFoundNode())
 			}
 		}
@@ -319,7 +319,7 @@ func (k *Kademlia) FindValue(req FindValueRequest, res *FindValueResult) error {
 	var err error
     var found bool
 
-	log.Printf("RPC:FindValue, from %s\n", req.Sender.NodeID.AsString())
+	//log.Printf("RPC:FindValue, from %s\n", req.Sender.NodeID.AsString())
 	// TODO: Implement.	
 	//search for the value
 	//res.Value = data[req.Key]

@@ -47,7 +47,10 @@ func NewKademliaInstruction(s string) (kInst *KademliaInstruction) {
 	case "exit" :
 	    kInst.flags = 1;
     case "ping" :
-	    kademlia.Assert(len(strTokens) == 2, "Ping requires 1 argument")//ping nodeID, ping host:port
+	    //kademlia.Assert(len(strTokens) == 2, "Ping requires 1 argument")//ping nodeID, ping host:port
+		if len(strTokens) != 2 {
+			return kInst
+		}
 	    kInst.flags = 2;
 		if strings.Contains(strTokens[1], ":") {
 			kInst.Addr = strTokens[1]
@@ -56,54 +59,90 @@ func NewKademliaInstruction(s string) (kInst *KademliaInstruction) {
 			kInst.NodeID, err = kademlia.FromString(strTokens[1])
 		}
 	case "store" :
-	    kademlia.Assert(len(strTokens) == 4, "Store requires 3 argument")//store nodeID key value
+	    //kademlia.Assert(len(strTokens) == 4, "Store requires 3 argument")//store nodeID key value
+		if len(strTokens) != 4 {
+			return kInst
+		}
 	    kInst.flags = 3;
 		kInst.NodeID, err = kademlia.FromString(strTokens[1])
 		kInst.Key, err = kademlia.FromString(strTokens[2])
 		kInst.Data = strTokens[3]
 	case "find_node" :
-	    kademlia.Assert(len(strTokens) == 3, "FindNode requires 2 argument")//find_node nodeID key
+	    //kademlia.Assert(len(strTokens) == 3, "FindNode requires 2 argument")//find_node nodeID key
+		if len(strTokens) != 3 {
+			return kInst
+		}
 	    kInst.flags = 4;
 		kInst.NodeID, err = kademlia.FromString(strTokens[1])
 		kInst.Key, err = kademlia.FromString(strTokens[2])
 	case "find_value" :
-	    kademlia.Assert(len(strTokens) == 3, "FindValue requires 2 argument")//find_value nodeID key
+	    //kademlia.Assert(len(strTokens) == 3, "FindValue requires 2 argument")//find_value nodeID key
+		if len(strTokens) != 3 {
+			return kInst
+		}
 	    kInst.flags = 5;
 		kInst.NodeID, err = kademlia.FromString(strTokens[1])
 		kInst.Key, err = kademlia.FromString(strTokens[2])
 	case "whoami" :
-	    kademlia.Assert(len(strTokens) == 1, "GetNodeId requires 0 argument")//whoami
+	    //kademlia.Assert(len(strTokens) == 1, "GetNodeId requires 0 argument")//whoami
+		if len(strTokens) != 1 {
+			return kInst
+		}
 	    kInst.flags = 6;
 	case "local_find_value" :
-	    kademlia.Assert(len(strTokens) == 2, "LocalFindValue requires 1 argument")//local_find_value key
+	    //kademlia.Assert(len(strTokens) == 2, "LocalFindValue requires 1 argument")//local_find_value key
+		if len(strTokens) != 2 {
+			return kInst
+		}
 	    kInst.flags = 7;
 		kInst.Key, err = kademlia.FromString(strTokens[1])
 	case "get_contact" :
-	    kademlia.Assert(len(strTokens) == 2, "GetContact requires 1 argument")//get_contact nodeID
+	    //kademlia.Assert(len(strTokens) == 2, "GetContact requires 1 argument")//get_contact nodeID
+		if len(strTokens) != 2 {
+			return kInst
+		}
 		kInst.flags = 8;
 		kInst.NodeID, err = kademlia.FromString(strTokens[1])
 	case "iterativestore" :
-		kademlia.Assert(len(strTokens) == 3, "IterativeStore requires 2 argument")//iterativeStore key value
+		//kademlia.Assert(len(strTokens) == 3, "IterativeStore requires 2 argument")//iterativeStore key value
+		if len(strTokens) != 3 {
+			return kInst
+		}
 		kInst.flags = 9;
 		kInst.Key, err = kademlia.FromString(strTokens[1])
 		kInst.Data = strTokens[2]
 	case "iterativefindnode" :
-		kademlia.Assert(len(strTokens) == 2, "IterativeFindNode requires 1 argument")//iterativeFindNode nodeID
+		//kademlia.Assert(len(strTokens) == 2, "IterativeFindNode requires 1 argument")//iterativeFindNode nodeID
+		if len(strTokens) != 2 {
+			return kInst
+		}
 		kInst.flags = 10;
 		kInst.NodeID, err = kademlia.FromString(strTokens[1])
 	case "iterativefindvalue" :
-		kademlia.Assert(len(strTokens) == 2, "IterativeFindValue requires 1 argument")//iterativeFindValue key
+		//kademlia.Assert(len(strTokens) == 2, "IterativeFindValue requires 1 argument")//iterativeFindValue key
+		if len(strTokens) != 2 {
+			return kInst
+		}
 		kInst.flags = 11;
 		kInst.Key, err = kademlia.FromString(strTokens[1])		
 	case "runtests" :
-		kademlia.Assert(len(strTokens) == 2, "runtests requires 1 arguments")//runtests number of kademlia instances to start
+		//kademlia.Assert(len(strTokens) == 2, "runtests requires 1 arguments")//runtests number of kademlia instances to start
+		if len(strTokens) != 2 {
+			return kInst
+		}
 		kInst.flags = 12;
 		kInst.Data = strTokens[1]
 	case "plb" :
-		kademlia.Assert(len(strTokens) == 1, "printLocalBuckets requires 0 arguments")//plb
+		//kademlia.Assert(len(strTokens) == 1, "printLocalBuckets requires 0 arguments")//plb
+		if len(strTokens) != 1 {
+			return kInst
+		}
 		kInst.flags = 13
 	case "pld" :
-		kademlia.Assert(len(strTokens) == 1, "printLocalData requires 0 arguments")//pld
+		//kademlia.Assert(len(strTokens) == 1, "printLocalData requires 0 arguments")//pld
+		if len(strTokens) != 1 {
+			return kInst
+		}
 		kInst.flags = 14
 	}
 	//log.Printf("Flag: %d\n", kInst.flags);
@@ -354,7 +393,7 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 
 	    log.Printf("Executing iterativeFindValue Instruction\n");
 		
-		success, nodes, value, err = kademlia.IterativeFind(k, kInst.NodeID, 2) //findType of 2 is FindValue
+		success, nodes, value, err = kademlia.IterativeFind(k, kInst.Key, 2) //findType of 2 is FindValue
 		if err != nil {
 			log.Printf("IterativeFind: Error %s\n", err)
 			return false

@@ -156,7 +156,7 @@ func MakePingCall(k *Kademlia, remoteHost net.IP, remotePort uint16) bool {
     localContact = &(k.ContactInfo)
     remoteAddrStr = remoteHost.String() + ":" + strconv.FormatUint(uint64(remotePort), 10)
 
-    log.Printf("MakePingCall: From %s --> To %s:%d\n", localContact.AsString(), remoteHost.String(), remotePort)
+    //log.Printf("MakePingCall: From %s --> To %s:%d\n", localContact.AsString(), remoteHost.String(), remotePort)
 
     ping := new(Ping)
     ping.MsgID = NewRandomID()
@@ -167,7 +167,7 @@ func MakePingCall(k *Kademlia, remoteHost net.IP, remotePort uint16) bool {
 	//Dial the server
     if RunningTests == true {
 		var portstr string = rpcPath + strconv.FormatInt(int64(remotePort), 10)
-		log.Printf("test ping to rpcPath:%s\n", portstr)
+		//log.Printf("test ping to rpcPath:%s\n", portstr)
 		client, err = rpc.DialHTTPPath("tcp", remoteAddrStr, portstr)
     } else {
 		client, err = rpc.DialHTTP("tcp", remoteAddrStr)
@@ -186,12 +186,12 @@ func MakePingCall(k *Kademlia, remoteHost net.IP, remotePort uint16) bool {
 	
     client.Close()
 	
+	//log.Printf("About to update with our pong...")
+    //log.Printf("buffer len: %d\n", len(k.UpdateChannel))
 	//update the remote node contact information
-	log.Printf("About to update with our pong...")
-    log.Printf("buffer len: %d\n", len(k.UpdateChannel))
     k.UpdateChannel <- pong.Sender
-    log.Printf("buffer len: %d\n", len(k.UpdateChannel))
-	log.Printf("Stuffed out pong in the channel for the sender...")
+    //log.Printf("buffer len: %d\n", len(k.UpdateChannel))
+	//log.Printf("Stuffed out pong in the channel for the sender...")
 	
     return true
 }
@@ -313,7 +313,7 @@ func MakeFindValueCall(k *Kademlia, remoteContact *Contact, Key ID, fvChan chan 
 
     localContact = &(k.ContactInfo)
     remoteAddrStr = remoteContact.Host.String() + ":" + strconv.Itoa(int(remoteContact.Port))
-    log.Printf("MakeFindValue: From %s --> To %s\n", localContact.AsString(), remoteContact.AsString())
+    log.Printf("MakeFindValue[%s]: From %s --> To %s\n", Key.AsString(), localContact.AsString(), remoteContact.AsString())
 
     findValueReq = new(FindValueRequest)
     findValueReq.MsgID = NewRandomID()
@@ -408,26 +408,22 @@ func KBucketHandler(k *Kademlia) (chan Contact, chan *FindRequest, chan *SearchR
 			
             select {
             case c =<- updates:
-                log.Printf("In update handler. Updating contact: %s\n", c.AsString())
+                //log.Printf("In update handler. Updating contact: %s\n", c.AsString())
                 Update(k, c)
             case f =<- finds:
 				var n []FoundNode
 				var err error
 
-				log.Printf("In update handler. FindKClosest to contact: %s\n", f.remoteID.AsString())
+				//log.Printf("In update handler. FindKClosest to contact: %s\n", f.remoteID.AsString())
                 n, err = FindKClosest_mutex(k, f.remoteID, f.excludeID)
                 f.ReturnChan <- &FindResponse{n, err}
             case s =<- searches:
 				var contact *Contact
-                log.Printf("In update handler. Searching contact: %s\n", s.NodeID.AsString())
-				//REVIEW
-				//George: I changed
-                //'_, elem = k.Buckets[s.dist].Search(s.NodeID)'
-				//with the following line, please read comment in the SearchRequest struct
+                //log.Printf("In update handler. Searching contact: %s\n", s.NodeID.AsString())
 				contact = Search(k, s.NodeID)
                 s.ReturnChan <- contact
             }
-			log.Println("KBucketHandler loop end\n")
+			//log.Println("KBucketHandler loop end\n")
         }
     }()
 	
@@ -465,17 +461,17 @@ func StoreHandler(k *Kademlia) (chan *PutRequest, chan *GetRequest) {
             select {
             case p = <-puts:
                 //put
-                log.Printf("In put handler for Store. key->%s value->%s", p.key.AsString(), p.value)
+                //log.Printf("In put handler for Store. key->%s value->%s", p.key.AsString(), p.value)
                 k.ValueStore.HashMap[p.key] = p.value
             case g = <-gets:
                 //get
 				var val []byte
 				var found bool
-                log.Printf("In get handler for Store. key->%s", g.key.AsString())
+                //log.Printf("In get handler for Store. key->%s", g.key.AsString())
                 val, found = k.ValueStore.HashMap[g.key]
                 g.ReturnChan<- &GetResponse{val, found}
             }
-			log.Println("StoreHandler loop end\n")
+			//log.Println("StoreHandler loop end\n")
         }
     }()
 	
@@ -600,7 +596,7 @@ func Update(k *Kademlia, triplet Contact) (success bool, err error) {
     var exists bool
     var tripletP *list.Element
 
-    log.Printf("Update()\n")
+    //log.Printf("Update()\n")
 
     //find distance
     dist = k.ContactInfo.NodeID.Distance(triplet.NodeID)
@@ -621,23 +617,23 @@ func Update(k *Kademlia, triplet Contact) (success bool, err error) {
             k.Buckets[dist].AddToTail(&triplet)
             return true, nil
         } else {
-            log.Printf("A bucket is full! Checking...\n")
+            //log.Printf("A bucket is full! Checking...\n")
             //ping the contant at the head
             ///get head
             lFront := k.Buckets[dist].l.Front()
             var remoteContact *Contact = lFront.Value.(*Contact)
             ///make ping
-            log.Printf("Pinging the guy in the front of the list...\n")
+            //log.Printf("Pinging the guy in the front of the list...\n")
             succ := MakePingCall(k, remoteContact.Host, remoteContact.Port)
             if !succ {
-                log.Printf("He failed! Replacing\n")
+                //log.Printf("He failed! Replacing\n")
                 //drop old
                 k.Buckets[dist].Drop(lFront)
                 //add new to tail
                 k.Buckets[dist].AddToTail(&triplet)
                 return true, nil
             } else {
-                log.Printf("He replied! Just ignore the new one\n")
+                //log.Printf("He replied! Just ignore the new one\n")
                 //ignore new
                 //move the old one to the tail
                 k.Buckets[dist].MoveToTail(lFront)
@@ -650,6 +646,7 @@ func Update(k *Kademlia, triplet Contact) (success bool, err error) {
 }
 
 func IterativeFind(k *Kademlia, searchID ID, findType int) (bool, []FoundNode, []byte, error) {
+	var value []byte
     var shortList *list.List //shortlist is the list we are going to return
     var closestNode ID
     var localContact *Contact = &(k.ContactInfo)
@@ -708,7 +705,7 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) (bool, []FoundNode, [
                 //go MakeFindNodeCall(localContact, foundNodeTriplet.FoundNodeToContact(), NodeChan)
 				go MakeFindNodeCall(k, foundNodeTriplet.FoundNodeToContact(), searchID, NodeChan)
             } else if findType == 2 {//FindValue
-                log.Printf("makeFindNodeCall to ID=%s\n", foundNodeTriplet.NodeID.AsString())
+                log.Printf("makeFindValueCall to ID=%s\n", foundNodeTriplet.NodeID.AsString())
 
 				go MakeFindValueCall(k, foundNodeTriplet.FoundNodeToContact(), searchID, NodeChan)				
             } else {
@@ -743,8 +740,9 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) (bool, []FoundNode, [
 					addResponseNodesToSL(foundStarResult.ReturnedFNRes.Nodes, shortList, sentMap, searchID)
 				} else {//FindValue
 					Assert(foundStarResult.ReturnedFVRes != nil, "findStarResult Struct error in iterativeFindValue")
+					log.Printf("got response from %+v findvalue _%s_\n", foundStarResult.ReturnedFVRes, string(foundStarResult.ReturnedFVRes.Value))
 					if foundStarResult.ReturnedFVRes.Value != nil {
-						Assert(false, "WE SHOULD BREAK HERE, FIXME")
+						return true, nil, foundStarResult.ReturnedFVRes.Value, nil
 					} else {
 						log.Println("ARE YOU FUCKING KIDDING ME DUDE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 					}
@@ -781,13 +779,15 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) (bool, []FoundNode, [
     //sendToList := setDifference(shortList, sentMap)
 
     log.Printf("iterativeFind: exiting main iterative loop\n")
-    shortArray := sendRPCsToFoundNodes(k, findType, localContact, searchID, shortList, sentMap)
+    shortArray, value := sendRPCsToFoundNodes(k, findType, localContact, searchID, shortList, sentMap)
 
     log.Printf("iterativeFind: end\n")
-    return true, shortArray, nil, nil
+    return true, shortArray, value, nil
 }
 
-func sendRPCsToFoundNodes(k *Kademlia, findType int, localContact *Contact, searchID ID, slist *list.List, sentMap map[ID]bool) ([]FoundNode){
+func sendRPCsToFoundNodes(k *Kademlia, findType int, localContact *Contact, searchID ID, slist *list.List, sentMap map[ID]bool) ([]FoundNode, []byte){
+	var value []byte
+
     resChan := make(chan *FindStarCallResponse, slist.Len())
 	var ret []FoundNode =  make([]FoundNode, slist.Len())
     var i int = 0
@@ -810,7 +810,12 @@ func sendRPCsToFoundNodes(k *Kademlia, findType int, localContact *Contact, sear
     for ; i<slist.Len(); i++{
 		findNodeResult := <-resChan
 		if (findNodeResult.Responded){
-			k.UpdateChannel<-*findNodeResult.Responder.FoundNodeToContact()
+			k.UpdateChannel <- *findNodeResult.Responder.FoundNodeToContact()
+			if 2 == findType {
+				if findNodeResult.ReturnedFVRes.Value != nil {
+					return nil, findNodeResult.ReturnedFVRes.Value
+				}
+			}
 			ret[i] = *findNodeResult.Responder
 		} else {
 			//node failed to respond, find it in the slist
@@ -823,7 +828,7 @@ func sendRPCsToFoundNodes(k *Kademlia, findType int, localContact *Contact, sear
 			}
 		}
     }
-	return ret
+	return ret, value
 }
 
 /*
@@ -850,6 +855,9 @@ func addResponseNodesToSL(fnodes []FoundNode, shortList *list.List, sentMap map[
 			continue
 		}
 		for e := shortList.Front(); e != nil; e=e.Next(){
+			if e.Value.(*FoundNode).NodeID.Equals(targetID) {
+				break;
+			}
 			dist := e.Value.(*FoundNode).NodeID.Distance(targetID)
 			foundNodeDist := foundNode.NodeID.Distance(targetID)
 			//if responseNode is closer than node in ShortList, add it
