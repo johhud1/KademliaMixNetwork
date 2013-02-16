@@ -693,25 +693,30 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) (bool, []FoundNode, [
     var localContact *Contact = &(k.ContactInfo)
     var sentMap map[ID]bool //map of nodes we've sent rpcs to 
     var liveMap map[ID]bool //map of nodes we've gotten responses from
-
+	var KClosestArray []FoundNode
+	var err error
+	
     //log.Printf("IterativeFind: searchID=%s findType:%d\n", searchID.AsString(), findType)
 
     shortList = list.New() //list of kConst nodes we're considering 
     sentMap = make(map[ID]bool)
     liveMap = make(map[ID]bool)
 	
-    kClosestArray, err := FindKClosest(k, searchID, localContact.NodeID)
+    kClosestArray, err = FindKClosest(k, searchID, localContact.NodeID)
 	
     Assert(err == nil, "Kill yourself and fix me")
     Assert(len(kClosestArray) > 0, "I don't know anyone!")
 	
 	//adds len(KClosestArray) nodes to the shortList
 	for i:=0; (i < KConst) && (i<len(kClosestArray)); i++ {
-        newNode := &kClosestArray[i]
-		newNodeDist := newNode.NodeID.Distance(searchID)
+		var newNode *FoundNode
+		var newNodeDist int
+        newNode = &kClosestArray[i]
+		newNodeDist = newNode.NodeID.Distance(searchID)
 		var e *list.Element = shortList.Front()
 		for ; e != nil; e = e.Next(){
-			dist := e.Value.(*FoundNode).NodeID.Distance(searchID)
+			var dist int
+			dist = e.Value.(*FoundNode).NodeID.Distance(searchID)
 			//if responseNode is closer than node in ShortList, add it
 			if newNodeDist < dist {
 				shortList.InsertBefore(newNode, e)
@@ -725,7 +730,7 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) (bool, []FoundNode, [
 		}
     }
 	//set closestNode to first item from shortlist
-	closestNode = shortList.Front()
+	closestNode = shortList.Front().Value.(*FoundNode)
 	
     var stillProgress bool = true
 
