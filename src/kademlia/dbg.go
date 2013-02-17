@@ -49,7 +49,7 @@ func RunTests(numNodes string) {
     StoreValue_RPCTests( portrange)
     FindValue_RPCTests( portrange)
     IterativeFindNodeTests(TestKademlias, portrange, rounds)
-	IterativeFindAndStoreTests(TestKademlia, portrange, rounds)
+	IterativeFindAndStoreTests(TestKademlias, portrange, rounds)
     log.Printf("done testing!\n")
 }
 
@@ -78,7 +78,10 @@ func compareClosestContacts(fn []FoundNode, kadems []*Kademlia, portrange int, s
 		 }
 		 e = e.Next()
 	}
-	log.Printf("overlap of %d. Out of %d total nodes\n", overlap, portrange)
+	if(overlap < 5){
+		log.Printf("overlap of %d. Out of %d total nodes\n", overlap, portrange)
+		os.Exit(1)
+	}
 	//return retContacts
 }
 
@@ -134,7 +137,7 @@ func IterativeFindNodeTests(kadems []*Kademlia, portrange int, rounds int){
 			if (success && (err == nil)){
 				compareClosestContacts(foundNodes, kadems, portrange, searchID)
 			}
-			time.Sleep(400 * time.Millisecond)
+			time.Sleep(10 * time.Millisecond)
 	    }
 	}
 
@@ -145,14 +148,47 @@ func IterativeFindWithCompare(kadems []*Kademlia, k Kademlia, searchID ID){
 
 }
 func IterativeFindAndStoreTests(kadems []*Kademlia, portrange int, rounds int){
-/*
-	key ID = NewRandomID()
+	var key ID
+	var data string
+	for i, k := range kadems {
+		key = NewRandomID()
+		data = "deadbeef"+strconv.FormatInt(int64(i), 10)
+		log.Printf("storing %s at key %s\n", data, key.AsString())
+		MakeIterativeStore(k, key, data)
+		var success bool
+		var err error
+		var returnedData []byte
+		success, _, returnedData, err = IterativeFind(k, key, 2) //findType of 1 is FindNode, 2 is FindValue
+		Assert(err == nil, "IterativeFindValue returned an error\n")
+		Assert(len(data) == len(returnedData), "stored and returned Data lengths do not match\n")
+		Assert(success, "IterativeFindValue failed\n")
+		for counter, b := range returnedData {
+			if(data[counter]!=b){
+				log.Printf("byte %d of the datas do not match. we stored %c and got back %c\n", counter, data[counter], b)
+				os.Exit(1)
+			}
+		}
+	}
+}
+
+func MakeIterativeStore(k *Kademlia, key ID, data string) {
 	var success bool
-	var foundNodes []FoundNode
+	var nodes []FoundNode
 	//var data []byte
 	var err error
-	*/
-
+	success, nodes, _, err = IterativeFind(k, key, 1) //findType of 1 is FindNode
+	Assert(err == nil, "IterativeStoreTest: IterativeFind: Error\n")
+	Assert(success, "IterativeStoreTest: success returned false\n")
+	if success {
+		if nodes != nil {
+			for _, node := range nodes {
+				MakeStore(k, node.FoundNodeToContact(), key, data)
+			}
+			PrintArrayOfFoundNodes(&nodes)
+		} else {
+			Assert(false, "iterativeFindStore: TODO: This should probably never happen right?")
+		}
+	}
 }
 
 func IterativeFindValueTests( portrange int){
