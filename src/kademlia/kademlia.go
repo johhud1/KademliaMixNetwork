@@ -231,9 +231,6 @@ func MakeStore(k *Kademlia, remoteContact *Contact, Key ID, Value string) bool {
     if RunningTests == true {
 		//if we're running tests, need to DialHTTPPath
 		var portstr string = rpcPath + remotePortStr
-		if RunningTests {
-			log.Printf("test FindNodeValue to rpcPath:%s\n", portstr)
-		}
 		client, err = rpc.DialHTTPPath("tcp", remoteAddrStr, portstr)
     } else {
 		client, err = rpc.DialHTTP("tcp", remoteAddrStr)
