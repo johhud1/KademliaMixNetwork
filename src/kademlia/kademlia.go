@@ -235,9 +235,6 @@ func MakeStore(k *Kademlia, remoteContact *Contact, Key ID, Value string) bool {
     if RunningTests == true {
 		//if we're running tests, need to DialHTTPPath
 		var portstr string = rpcPath + remotePortStr
-		if RunningTests {
-			log.Printf("test FindNodeValue to rpcPath:%s\n", portstr)
-		}
 		client, err = rpc.DialHTTPPath("tcp", remoteAddrStr, portstr)
     } else {
 		client, err = rpc.DialHTTP("tcp", remoteAddrStr)
@@ -368,9 +365,11 @@ func MakeFindValueCall(k *Kademlia, remoteContact *Contact, Key ID, fvChan chan 
     }
 	
 	//if you get any nodes update you kbuckets with them
+	//REVIEW: same thing here as in MakeFindNodeCall
+	/*
 	for _, node := range findValueRes.Nodes {
 		k.UpdateChannel <- *(node.FoundNodeToContact())
-	}
+	}*/
 
 	//Mark the result as being good
 	resultSet.Responded = true
@@ -631,9 +630,13 @@ func MakeFindNodeCall(k *Kademlia, remoteContact *Contact, searchKey ID, NodeCha
     }
 	
 	//if you get any nodes update you kbuckets with them
+	//Jack: REVIEW: I'm not sure if we do want to update on only 
+	//'heard of' nodes. Only when we make direct contact no?
+	//Also look at similar block in MakeFindValueCall 
+	/*
 	for _, node := range fnResult.Nodes {
 		k.UpdateChannel <- *(node.FoundNodeToContact())
-	}
+	}*/
 
     // Mark the result as being good
     resultSet.Responded = true
@@ -815,12 +818,14 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) (bool, []FoundNode, [
 			shortList.PushBack(newNode)
 		}
     }
+	/*
 	if RunningTests {
 		var pE *list.Element = shortList.Front()
 		for ; pE != nil; pE = pE.Next(){
 			log.Printf("Sorted? %s %d\n", pE.Value.(*FoundNode).NodeID.AsString(), pE.Value.(*FoundNode).NodeID.Distance(searchID)) 
 		}
 	}
+	*/
 	
 
 	//set closestNode to first item from shortlist

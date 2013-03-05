@@ -220,7 +220,7 @@ func (k *Kademlia) FindNode(req FindNodeRequest, res *FindNodeResult) error {
 	//Update(k, req.Sender)
     k.UpdateChannel<-req.Sender
 	if RunningTests {
-		log.Printf("RPC: FindNode from %s ---> %s\n", req.Sender.NodeID.AsString(), k.ContactInfo.AsString())
+		//log.Printf("RPC: FindNode from %s ---> %s\n", req.Sender.NodeID.AsString(), k.ContactInfo.AsString())
 	}
 
 	res.Nodes, err = FindKClosest(k, req.NodeID, req.Sender.NodeID)
