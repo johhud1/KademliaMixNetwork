@@ -38,7 +38,7 @@ func NewKademliaInstruction(s string) (kInst *KademliaInstruction) {
 	//split string, separator is the white-space
 	strTokens = strings.Split(s, " ")
 	
-	log.Printf("Parsing command: %s\n", strTokens)
+	//log.Printf("Parsing command: %s\n", strTokens)
 	
 	kInst.flags = 255 //255 means skip cause nothing could be matched, check with IsSkip()
 	kInst.Data = s//store the whole string somewhere so we can print for debugging
@@ -47,7 +47,10 @@ func NewKademliaInstruction(s string) (kInst *KademliaInstruction) {
 	case "exit" :
 	    kInst.flags = 1;
     case "ping" :
-	    kademlia.Assert(len(strTokens) == 2, "Ping requires 1 argument")//ping nodeID, ping host:port
+	    //kademlia.Assert(len(strTokens) == 2, "Ping requires 1 argument")//ping nodeID, ping host:port
+		if len(strTokens) != 2 {
+			return kInst
+		}
 	    kInst.flags = 2;
 		if strings.Contains(strTokens[1], ":") {
 			kInst.Addr = strTokens[1]
@@ -56,54 +59,90 @@ func NewKademliaInstruction(s string) (kInst *KademliaInstruction) {
 			kInst.NodeID, err = kademlia.FromString(strTokens[1])
 		}
 	case "store" :
-	    kademlia.Assert(len(strTokens) == 4, "Store requires 3 argument")//store nodeID key value
+	    //kademlia.Assert(len(strTokens) == 4, "Store requires 3 argument")//store nodeID key value
+		if len(strTokens) != 4 {
+			return kInst
+		}
 	    kInst.flags = 3;
 		kInst.NodeID, err = kademlia.FromString(strTokens[1])
 		kInst.Key, err = kademlia.FromString(strTokens[2])
 		kInst.Data = strTokens[3]
 	case "find_node" :
-	    kademlia.Assert(len(strTokens) == 3, "FindNode requires 2 argument")//find_node nodeID key
+	    //kademlia.Assert(len(strTokens) == 3, "FindNode requires 2 argument")//find_node nodeID key
+		if len(strTokens) != 3 {
+			return kInst
+		}
 	    kInst.flags = 4;
 		kInst.NodeID, err = kademlia.FromString(strTokens[1])
 		kInst.Key, err = kademlia.FromString(strTokens[2])
 	case "find_value" :
-	    kademlia.Assert(len(strTokens) == 3, "FindValue requires 2 argument")//find_value nodeID key
+	    //kademlia.Assert(len(strTokens) == 3, "FindValue requires 2 argument")//find_value nodeID key
+		if len(strTokens) != 3 {
+			return kInst
+		}
 	    kInst.flags = 5;
 		kInst.NodeID, err = kademlia.FromString(strTokens[1])
 		kInst.Key, err = kademlia.FromString(strTokens[2])
 	case "whoami" :
-	    kademlia.Assert(len(strTokens) == 1, "GetNodeId requires 0 argument")//whoami
+	    //kademlia.Assert(len(strTokens) == 1, "GetNodeId requires 0 argument")//whoami
+		if len(strTokens) != 1 {
+			return kInst
+		}
 	    kInst.flags = 6;
 	case "local_find_value" :
-	    kademlia.Assert(len(strTokens) == 2, "LocalFindValue requires 1 argument")//local_find_value key
+	    //kademlia.Assert(len(strTokens) == 2, "LocalFindValue requires 1 argument")//local_find_value key
+		if len(strTokens) != 2 {
+			return kInst
+		}
 	    kInst.flags = 7;
 		kInst.Key, err = kademlia.FromString(strTokens[1])
 	case "get_contact" :
-	    kademlia.Assert(len(strTokens) == 2, "GetContact requires 1 argument")//get_contact nodeID
+	    //kademlia.Assert(len(strTokens) == 2, "GetContact requires 1 argument")//get_contact nodeID
+		if len(strTokens) != 2 {
+			return kInst
+		}
 		kInst.flags = 8;
 		kInst.NodeID, err = kademlia.FromString(strTokens[1])
 	case "iterativestore" :
-		kademlia.Assert(len(strTokens) == 3, "IterativeStore requires 2 argument")//iterativeStore key value
+		//kademlia.Assert(len(strTokens) == 3, "IterativeStore requires 2 argument")//iterativeStore key value
+		if len(strTokens) != 3 {
+			return kInst
+		}
 		kInst.flags = 9;
 		kInst.Key, err = kademlia.FromString(strTokens[1])
 		kInst.Data = strTokens[2]
 	case "iterativefindnode" :
-		kademlia.Assert(len(strTokens) == 2, "IterativeFindNode requires 1 argument")//iterativeFindNode nodeID
+		//kademlia.Assert(len(strTokens) == 2, "IterativeFindNode requires 1 argument")//iterativeFindNode nodeID
+		if len(strTokens) != 2 {
+			return kInst
+		}
 		kInst.flags = 10;
 		kInst.NodeID, err = kademlia.FromString(strTokens[1])
 	case "iterativefindvalue" :
-		kademlia.Assert(len(strTokens) == 2, "IterativeFindValue requires 1 argument")//iterativeFindValue key
+		//kademlia.Assert(len(strTokens) == 2, "IterativeFindValue requires 1 argument")//iterativeFindValue key
+		if len(strTokens) != 2 {
+			return kInst
+		}
 		kInst.flags = 11;
 		kInst.Key, err = kademlia.FromString(strTokens[1])		
 	case "runtests" :
-		kademlia.Assert(len(strTokens) == 2, "runtests requires 1 arguments")//runtests number of kademlia instances to start
+		//kademlia.Assert(len(strTokens) == 2, "runtests requires 1 arguments")//runtests number of kademlia instances to start
+		if len(strTokens) != 2 {
+			return kInst
+		}
 		kInst.flags = 12;
 		kInst.Data = strTokens[1]
-	case "printlocalbuckets" :
-		kademlia.Assert(len(strTokens) == 1, "printLocalBuckets requires 0 arguments")//printLocalBuckets
+	case "plb" :
+		//kademlia.Assert(len(strTokens) == 1, "printLocalBuckets requires 0 arguments")//plb
+		if len(strTokens) != 1 {
+			return kInst
+		}
 		kInst.flags = 13
-	case "printlocaldata" :
-		kademlia.Assert(len(strTokens) == 1, "printLocalData requires 0 arguments")//printLocalData
+	case "pld" :
+		//kademlia.Assert(len(strTokens) == 1, "printLocalData requires 0 arguments")//pld
+		if len(strTokens) != 1 {
+			return kInst
+		}
 		kInst.flags = 14
 	}
 	//log.Printf("Flag: %d\n", kInst.flags);
@@ -168,20 +207,25 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 	
 	switch  {
 	case kInst.IsExit() :
-	    log.Printf("Executing Exit Instruction\n");
+		if kademlia.RunningTests {
+			log.Printf("Executing Exit Instruction\n");
+		}
 		return true
 	case kInst.IsSkip() :
-	    log.Printf("Executing Skip Instruction: _%s_\n", kInst.Data);
+		if kademlia.RunningTests {
+			log.Printf("Executing Skip Instruction: _%s_\n", kInst.Data);
+		}
 		return true
 	case kInst.IsPing() :
 		var success bool
-	    log.Printf("Executing Ping Instruction\n");
 
 		if kInst.Addr != "" {//ping host:port
+			log.Printf("Executing Ping Instruction 'ping Addr:%s\n", kInst.Addr);
 			remoteHost, remotePort, err := kademlia.AddrStrToHostPort(kInst.Addr)
 			kademlia.Assert(err == nil, "Error converting AddrToHostPort")
 			success = kademlia.MakePingCall(k, remoteHost, remotePort)
 		} else {//ping nodeID
+			log.Printf("Executing Ping Instruction 'ping nodeID:%s\n", kInst.NodeID.AsString());
 			var searchRequest *kademlia.SearchRequest
 
 			searchRequest = &kademlia.SearchRequest{kInst.NodeID, make(chan *kademlia.Contact)}
@@ -199,8 +243,9 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 	case kInst.IsStore() :
 		var searchRequest *kademlia.SearchRequest
 		var success bool
-	    log.Printf("Executing Store Instruction\n");
-		
+		if kademlia.RunningTests {
+			log.Printf("Executing Store Instruction %s %s %s\n", kInst.NodeID.AsString(), kInst.Key.AsString(), kInst.Data);
+		}
 		
 		searchRequest = &kademlia.SearchRequest{kInst.NodeID, make(chan *kademlia.Contact)}
 		k.SearchChannel <- searchRequest
@@ -216,8 +261,9 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 	case kInst.IsFindNode() :
 		var searchRequest *kademlia.SearchRequest
 		var success bool
-		log.Printf("Executing FindNode Instruction\n");
-				
+		if kademlia.RunningTests {
+			log.Printf("Executing FindNode Instruction %s %s\n", kInst.NodeID.AsString(), kInst.Key.AsString());
+		}
 		searchRequest = &kademlia.SearchRequest{kInst.NodeID, make(chan *kademlia.Contact)}
 		k.SearchChannel <- searchRequest
 		remoteContact =<- searchRequest.ReturnChan
@@ -243,8 +289,9 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 	case kInst.IsFindValue() :
 		var searchRequest *kademlia.SearchRequest
 		var success bool
-	    log.Printf("Executing FindValue Instruction\n");
-			
+		if kademlia.RunningTests {
+			log.Printf("Executing FindValue Instruction %s %s\n", kInst.NodeID.AsString(), kInst.Key.AsString());
+		}
 		searchRequest = &kademlia.SearchRequest{kInst.NodeID, make(chan *kademlia.Contact)}
 		k.SearchChannel <- searchRequest
 		remoteContact =<- searchRequest.ReturnChan
@@ -273,44 +320,91 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 		}
 		return success
 	case kInst.IsWhoami() :
-		log.Printf("Executing Whoami Instruction\n");
-		fmt.Printf("Local Node ID: %s\n", k.ContactInfo.NodeID.AsString())
+		if  kademlia.RunningTests {
+			log.Printf("Executing Whoami Instruction\n");
+			fmt.Printf("Local Node ID: %s\n", k.ContactInfo.NodeID.AsString())
+		} else {
+			fmt.Printf("%s\n", k.ContactInfo.NodeID.AsString())
+		}
 		return true
 	case kInst.IsLocalFindValue() :
-		log.Printf("Executing LocalFindValue Instruction\n");
-		
+		if kademlia.RunningTests {
+			log.Printf("Executing LocalFindValue Instruction\n");
+		}
         localvalue, found := k.ValueStore.Get(kInst.Key)
 		if found {
-			fmt.Printf("Value for key %s --> %s\n", kInst.Key.AsString(), string(localvalue))
+			if(kademlia.RunningTests){
+				fmt.Printf("Value for key %s --> %s\n", kInst.Key.AsString(), string(localvalue))
+			} else {
+				fmt.Printf("%s\n", string(localvalue))
+			}
 		} else {
-			fmt.Printf("Value for Key %s NOT found\n", kInst.Key.AsString())
+			if(kademlia.RunningTests){
+				fmt.Printf("Value for Key %s NOT found\n", kInst.Key.AsString())
+			}else{
+				fmt.Printf("ERR\n")
+			}
 		}
 		return true
 	case kInst.IsGetContact() :
 		var searchRequest *kademlia.SearchRequest
-	    log.Printf("Executing GetContact Instruction\n");
+		if kademlia.RunningTests {
+			log.Printf("Executing GetContact Instruction %s\n", kInst.NodeID.AsString());
+		}
 		
 		searchRequest = &kademlia.SearchRequest{kInst.NodeID, make(chan *kademlia.Contact)}
 		k.SearchChannel <- searchRequest
 		remoteContact =<- searchRequest.ReturnChan
 		found = (remoteContact != nil)
 		if found {
-			log.Printf("GetContact: Addr:%v, Port: %v\n", remoteContact.Host, remoteContact.Port)
+			if kademlia.RunningTests {
+				log.Printf("GetContact: Addr:%v, Port: %v\n", remoteContact.Host, remoteContact.Port)
+			} else {
+				fmt.Printf("%v %v\n", remoteContact.Host, remoteContact.Port)
+			}
 		} else {
-			log.Printf("GetContact: Could not locate in local buckets nodeID %s\n", kInst.NodeID)
+			if kademlia.RunningTests {
+				log.Printf("GetContact: Could not locate in local buckets nodeID %s\n", kInst.NodeID.AsString())
+			} else {
+				fmt.Printf("ERR\n")
+			}
 		}
 		return true
 	case kInst.IsIterativeStore() :
-	    log.Printf("Executing iterativeStore Instruction\n");
-		//TODO:IMPLEMENT
-		return true
+		var success bool
+		var nodes []kademlia.FoundNode
+		var err error
+
+		if(kademlia.RunningTests){
+			log.Printf("Executing iterativeStore Instruction %s %s\n", kInst.Key.AsString(), kInst.Data);
+		}
+		
+		//NOTE: the third returned value is dropped on the assumption it would always be nil for this call
+		success, nodes, _, err = kademlia.IterativeFind(k, kInst.Key, 1) //findType of 1 is FindNode
+		if err != nil {
+			log.Printf("IterativeFind: Error %s\n", err)
+			return false
+		}
+		if success {
+			if nodes != nil {
+				for _, node := range nodes {
+					kademlia.MakeStore(k, node.FoundNodeToContact(), kInst.Key, kInst.Data)
+				}
+				kademlia.PrintArrayOfFoundNodes(&nodes)
+			} else {
+				kademlia.Assert(false, "iterativeFindStore: TODO: This should probably never happen right?")
+			}
+		}
+		return success
 	case kInst.IsIterativeFindNode() :
 		var success bool
 		var nodes []kademlia.FoundNode
 		//var value []byte //This is probably not needed as iterativeFindNode should never return a value
 		var err error
-
-		log.Printf("Executing iterativeFindNode Instruction\n");
+		
+		if kademlia.RunningTests {
+			log.Printf("Executing iterativeFindNode Instruction %s\n", kInst.NodeID.AsString());
+		}
 		
 		//NOTE: the third returned value is dropped on the assumption it would always be nil for this call
 		success, nodes, _, err = kademlia.IterativeFind(k, kInst.NodeID, 1) //findType of 1 is FindNode
@@ -322,14 +416,42 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 			if nodes != nil {
 				kademlia.PrintArrayOfFoundNodes(&nodes)
 			} else {
-				kademlia.Assert(false, "TODO: This should probably never happen right?")
+				kademlia.Assert(false, "iterativeFindNode: TODO: This should probably never happen right?")
 			}
 		}
 		return success
 	case kInst.IsIterativeFindValue() :
-	    log.Printf("Executing iterativeFindValue Instruction\n");
-		//TODO:IMPLEMENT
-		return true
+		var success bool
+		var nodes []kademlia.FoundNode
+		var value []byte 
+		var err error
+
+		if(kademlia.RunningTests){
+			log.Printf("Executing iterativeFindValue Instruction %s\n", kInst.Key.AsString());
+		}
+		
+		success, nodes, value, err = kademlia.IterativeFind(k, kInst.Key, 2) //findType of 2 is FindValue
+		if err != nil {
+			log.Printf("IterativeFind: Error %s\n", err)
+			return false
+		}
+		if success {
+			if value != nil {
+				if(kademlia.RunningTests){
+					fmt.Printf("iterativeFindValue: Value for key %s --> %s\n", kInst.Key.AsString(), string(value))
+				} else {
+					fmt.Printf("%v %v\n", nodes[0].NodeID, value)
+				}
+			} else {
+				if(kademlia.RunningTests) {
+					fmt.Printf("iterativeFindValue: Value for key %s NOT FOUND\n", kInst.Key.AsString())
+					kademlia.PrintArrayOfFoundNodes(&nodes)
+				} else {
+					fmt.Printf("ERR")
+				}
+			}
+		}
+		return success
 	case kInst.IsRunTests() :
 		log.Printf("Executing RunTests!\n")
 		kademlia.RunTests(kInst.Data)
@@ -433,6 +555,10 @@ func main() {
 		
 		//execute new instruction
 		inst.Execute(kadem)
+
+		if (kadem.DoJoinFlag) {
+			go kademlia.DoJoin(kadem)
+		}
 	}
 	
 	//finalizer()
