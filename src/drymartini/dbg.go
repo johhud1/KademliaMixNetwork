@@ -34,7 +34,7 @@ func RunTests(numMartinis string){
 		newDryMartStr := "localhost:"+istr
 		myRpcPath := rpcPath+istr
 		log.Printf("creating newDryMartini with AddrString:%s and rpcPath:%s\n", newDryMartStr, rpcPath)
-		var dm *DryMartini = NewDryMartini(newDryMartStr, &myRpcPath)
+		var dm *DryMartini = NewDryMartini(newDryMartStr, &myRpcPath, )
 		TestMartinis[i] = dm
     }
 

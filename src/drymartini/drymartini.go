@@ -47,7 +47,7 @@ type MartiniContact struct {
 }
 
 // Create a new DryMartini object with its own kademlia and RPC server
-func NewDryMartini(listenStr string, keylen int, listenKadem string, kademRPCPath string) *DryMartini {
+func NewDryMartini(listenStr string, keylen int, listenKadem string, rpcStr string, kademRPCPath string) *DryMartini {
     var err error
     var m *DryMartini
     m = new(DryMartini)
