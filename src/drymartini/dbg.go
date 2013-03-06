@@ -7,7 +7,7 @@ import (
 )
 
 var kAndPaths map[*DryMartinis]string
-var TestMartinis []*DryMartinis
+var TestMartinis []*DryMartini
 var rpcPath string = "/dryMartiniRPCPath" //the rpc path of a kadem rpc handler must always be this string concatenated with the port its on
 var kademRpcPath string = "/kademRPCPath"
 
