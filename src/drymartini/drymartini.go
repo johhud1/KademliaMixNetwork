@@ -43,7 +43,7 @@ type MartiniContact struct {
     notPort uint16
 }
 
-func NewDryMartini(listenStr string, keylen int, listenKadem string) *DryMartini {
+func NewDryMartini(listenStr string, keylen int, listenKadem string, kademRPCPath string) *DryMartini {
     var err error
     var m *DryMartini
     m = new(DryMartini)
@@ -59,7 +59,7 @@ func NewDryMartini(listenStr string, keylen int, listenKadem string) *DryMartini
     m.pickMap = make(map[UUID]martiniPick)
 
     //Initialize our Kademlia
-    m.kademliaInst = kademlia.NewKademlia(listenKadem, nil)
+    m.kademliaInst = kademlia.NewKademlia(listenKadem, &kademRPCPath)
 
     return m
 }
