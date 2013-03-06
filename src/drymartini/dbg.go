@@ -4,9 +4,6 @@ import (
 	"log"
 	"os"
 	"strconv"
-	"math/rand"
-	"time"
-	"container/list"
 )
 
 var kAndPaths map[*DryMartinis]string
@@ -33,8 +30,9 @@ func RunTests(numMartinis string){
 		istr := strconv.FormatInt(int64(7900+i), 10)
 		newDryMartStr := "localhost:"+istr
 		myRpcPath := rpcPath+istr
+		kRpcPath := "/myRpc"+istr
 		log.Printf("creating newDryMartini with AddrString:%s and rpcPath:%s\n", newDryMartStr, rpcPath)
-		var dm *DryMartini = NewDryMartini(newDryMartStr, &myRpcPath, )
+		var dm *DryMartini = NewDryMartini(newDryMartStr, 2048, newDryMartStr, myRpcPath, kRpcPath)
 		TestMartinis[i] = dm
     }
 

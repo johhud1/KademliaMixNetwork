@@ -9,7 +9,7 @@ import (
 	"container/list"
 )
 //REVIEW: probably can trash this map struct. Since all the Make* 
-//calls now construct the path themselves with rpcPath+port#
+//calls now construct the path themselves with RpcPath+port#
 var kAndPaths map[*Kademlia]string
 var TestKademlias []*Kademlia
 
