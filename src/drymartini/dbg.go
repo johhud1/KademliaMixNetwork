@@ -6,8 +6,8 @@ import (
 	"strconv"
 )
 
-var kAndPaths map[*DryMartinis]string
-var TestMartinis []*DryMartinis
+var kAndPaths map[*DryMartini]string
+var TestMartinis []*DryMartini
 var rpcPath string = "/dryMartiniRPCPath" //the rpc path of a kadem rpc handler must always be this string concatenated with the port its on
 
 func Assert(cond bool, msg string) {
@@ -22,7 +22,7 @@ func RunTests(numMartinis string){
 		var err error
 		portrange, err = strconv.Atoi(numMartinis)
 		if(err != nil){
-			log.Printf("Error RunTest: arg parse failed. Got:%s\n", numNodes)
+			log.Printf("Error RunTest: arg parse failed. Got:%s\n", numMartinis)
 		}
 		TestMartinis = make([]*DryMartini, portrange)
 

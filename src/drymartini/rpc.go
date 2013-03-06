@@ -5,10 +5,14 @@ package drymartini
 import (
     "log"
     "net"
+    "net/rpc"
+    "strconv"
 )
 
-func (m *DryMartini) Ping(ping string) error {
-    log.printf("Was pinged with: %s", ping)
+func (m *DryMartini) Ping(ping string, response *string) error {
+    log.Printf("Was pinged with: %s", ping)
+ 
+    response = nil
 
     return nil
 }
@@ -30,7 +34,11 @@ func MakeMartiniPing(m *DryMartini, remoteHost net.IP, remotePort uint16) bool {
     }
 
 	//make rpc
-    err = client.Call("DryMartini.Ping", ping)
+    var message string
+    message = "Hey dummy"
+    var response *string
+
+    err = client.Call("DryMartini.Ping", message, response)
     if err != nil {
         log.Printf("Error: MakePingCall, Call, %s\n", err)
         return false

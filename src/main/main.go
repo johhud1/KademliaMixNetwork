@@ -2,11 +2,17 @@ package main
 
 import (
     // General stuff
+    "os"
     "log"
     "fmt"
     "flag"
+    "bufio"
+    "strings"
+    "kademlia"
     "drymartini"
 )
+
+const Verbose bool = true
 
 type DryMartiniInstruction struct {
 	flags uint8
@@ -19,15 +25,15 @@ func NewKademliaInstruction(s string) (dmInst *DryMartiniInstruction) {
 	var strTokens []string;
 
 	dmInst = new(DryMartiniInstruction)
-	
+
 	//remove the newline character
 	s = strings.TrimRight(s, "\n")
 
 	//split string, separator is the white-space
 	strTokens = strings.Split(s, " ")
-	
+
 	//log.Printf("Parsing command: %s\n", strTokens)
-	
+
 	dmInst.flags = 255 //255 means skip cause nothing could be matched, check with IsSkip()
 	dmInst.CmdStr = s//store the whole string somewhere so we can print for debugging
 
@@ -39,15 +45,15 @@ func NewKademliaInstruction(s string) (dmInst *DryMartiniInstruction) {
 		if (len(strTokens) != 2) || !(strings.Contains(strTokens[1], ":")) {
 			return dmInst
 		}
-		
+
 		dmInst.flags = 2;
 		dmInst.Addr = strTokens[1]
 	}
-	
+
 	if err != nil {
 		//?
 	}
-	
+
 	return dmInst
 }
 
@@ -62,19 +68,19 @@ func (dmInst *DryMartiniInstruction) IsSkip() bool {
 }
 
 func (dmInst *DryMartiniInstruction) Execute(dm *drymartini.DryMartini) (status bool) {
-	
+
 	switch  {
 	case dmInst.IsExit() :
 		if Verbose {
 			log.Printf("Executing Exit Instruction\n");
 		}
 		return true
-	case kInst.IsSkip() :
+	case dmInst.IsSkip() :
 		if Verbose {
 			log.Printf("Executing Skip Instruction: _%s_\n", dmInst.CmdStr);
 		}
 		return true
-	case kInst.IsPing() :
+	case dmInst.IsPing() :
 		var success bool
 
 		if Verbose {
@@ -85,11 +91,11 @@ func (dmInst *DryMartiniInstruction) Execute(dm *drymartini.DryMartini) (status 
 			log.Printf("Error converting AddrToHostPort, %s", err)
 			os.Exit(1)
 		}
-		success = kademlia.MakePingCall(k, remoteHost, remotePort)
-		
+        success = drymartini.MakeMartiniPing(dm, remoteHost, remotePort)
+
 		return success
 	}
-	
+
 	return false
 }
 
@@ -99,7 +105,8 @@ func main() {
 	var args []string
 	var listenStr string
 	var listenKadem string
-	
+    var stdInReader *bufio.Reader
+
 	// Get the bind and connect connection strings from command-line arguments.
 	flag.Parse()
 	args = flag.Args()
@@ -112,7 +119,7 @@ func main() {
 
     //instantiate
     var drymart *drymartini.DryMartini
-    drymart = drymartini.NewDryMartini(listenStr, 2048, listenKadem)
+    drymart = drymartini.NewDryMartini(listenStr, 2048, listenKadem, nil, KademRpcPath)
 
     fmt.Printf("%s", drymart.KeyPair)
 

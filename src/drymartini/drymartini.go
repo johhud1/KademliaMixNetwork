@@ -9,6 +9,7 @@ import (
     "os"
     "crypto/rsa"
     "crypto/rand"
+    "math/big"
 )
 
 
@@ -26,8 +27,8 @@ type DryMartini struct {
 type martiniPick struct {
     nextNodeIP net.IP
     nextNodePort uint16
-    srcNodeIP net.IP
-    nextNodePort uint16
+    prevNodeIP net.IP
+    prevNodePort uint16
 }
 
 type olive struct {
@@ -42,7 +43,7 @@ type olive struct {
 
 type MartiniContact struct {
     pubKey rsa.PublicKey
-    nodeIP net.ip
+    nodeIP net.IP
     notPort uint16
 }
 
@@ -53,7 +54,7 @@ func NewDryMartini(listenStr string, keylen int, listenKadem string, rpcStr stri
     m = new(DryMartini)
 
     //Initialize key pair
-    m.KeyPair, err = crypto.rsa.GenerateKey(crypto.rand.Reader, keylen)
+    m.KeyPair, err = rsa.GenerateKey(rand.Reader, keylen)
     if err != nil {
         log.Printf("Failed to generate key! %s", err)
         os.Exit(1)
@@ -69,9 +70,9 @@ func NewDryMartini(listenStr string, keylen int, listenKadem string, rpcStr stri
     var s *rpc.Server
     s = rpc.NewServer()
     s.Register(m)
-    s.HandleHttp(rpcStr, "/debug/" + rpcStr)
+    s.HandleHTTP(rpcStr, "/debug/" + rpcStr)
     // Setup the listener
-    l, err := net.Listen("tcp" listenStr)
+    l, err := net.Listen("tcp", listenStr)
     if err != nil {
         log.Fatal("Listen: ", err)
     }
@@ -81,12 +82,18 @@ func NewDryMartini(listenStr string, keylen int, listenKadem string, rpcStr stri
     return m
 }
 
-const UUIDBYTES = 16
-type UUID [UUIDBYTES]byte
+const UUIDBytes = 16
+type UUID [UUIDBytes]byte
 
 func NewUUID() (ret UUID) {
+    var hold *big.Int
+    var err error
 	for i := 0; i < UUIDBytes; i++ {
-		ret[i] = uint8(rand.Int(256))
+        hold, err = rand.Int(rand.Reader, big.NewInt(256))
+		if err != nil {
+            log.Printf("Kegen problems son")
+        }
+        ret[i] = uint8((*hold).Int64())
 	}
 	return
 }
