@@ -3,6 +3,8 @@ package drymartini
 import (
     "kademlia"
     "net"
+    "net/rpc"
+    "net/http"
     "log"
     "os"
     "crypto/rsa"
@@ -17,7 +19,7 @@ type DryMartini struct {
     KeyPair *rsa.PrivateKey
 
     //Flow state
-    pickMap map[UUID]martiniPick
+    bartender map[UUID]martiniPick
 }
 
 // The flow structure, it remembers olives
@@ -26,6 +28,7 @@ type martiniPick struct {
     nextNodePort uint16
     srcNodeIP net.IP
     nextNodePort uint16
+}
 
 type olive struct {
     // NOTE: This should change for each node, we might be risking path
@@ -43,7 +46,8 @@ type MartiniContact struct {
     notPort uint16
 }
 
-func NewDryMartini(listenStr string, keylen int, listenKadem string) *DryMartini {
+// Create a new DryMartini object with its own kademlia and RPC server
+func NewDryMartini(listenStr string, keylen int, listenKadem string, rpcStr string) *DryMartini {
     var err error
     var m *DryMartini
     m = new(DryMartini)
@@ -56,10 +60,23 @@ func NewDryMartini(listenStr string, keylen int, listenKadem string) *DryMartini
     }
 
     //Initialize flow struct
-    m.pickMap = make(map[UUID]martiniPick)
+    m.bartender = make(map[UUID]martiniPick)
 
     //Initialize our Kademlia
     m.kademliaInst = kademlia.NewKademlia(listenKadem, nil)
+
+    // Setup our RPC
+    var s *rpc.Server
+    s = rpc.NewServer()
+    s.Register(m)
+    s.HandleHttp(rpcStr, "/debug/" + rpcStr)
+    // Setup the listener
+    l, err := net.Listen("tcp" listenStr)
+    if err != nil {
+        log.Fatal("Listen: ", err)
+    }
+
+    go http.Serve(l, nil)
 
     return m
 }
