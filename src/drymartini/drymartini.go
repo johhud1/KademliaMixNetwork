@@ -4,7 +4,7 @@ import (
     "kademlia"
     "net"
     "net/rpc"
-    "net/http"
+    //"net/http"
     "log"
     "os"
     "crypto/rsa"
@@ -50,42 +50,28 @@ type MartiniContact struct {
 // Create a new DryMartini object with its own kademlia and RPC server
 func NewDryMartini(listenStr string, keylen int, rpcPath *string) *DryMartini {
     var err error
-    var m *DryMartini
-    m = new(DryMartini)
+    var s *rpc.Server
+    var dm *DryMartini
+
+    dm = new(DryMartini)
 
     //Initialize key pair
-    m.KeyPair, err = rsa.GenerateKey(rand.Reader, keylen)
+    dm.KeyPair, err = rsa.GenerateKey(rand.Reader, keylen)
     if err != nil {
         log.Printf("Failed to generate key! %s", err)
         os.Exit(1)
     }
 
     //Initialize flow struct
-    m.bartender = make(map[UUID]martiniPick)
-
-    // Setup our RPC
-    var s *rpc.Server
-    s = rpc.NewServer()
-    s.Register(m)
+    dm.bartender = make(map[UUID]martiniPick)
 
 	//Initialize our Kademlia
+	dm.kademliaInst, s = kademlia.NewKademlia(listenStr, rpcPath)
 
-	m.kademliaInst = kademlia.NewKademlia(listenKadem, &rpcStr, rpcPath)
-	if(rpcPath == nil){
-		s.HandleHTTP()
-	} else {
-		s.HandleHTTP(*rpcStr, "/debug/" + *rpcStr)
-	}
+	//register
+	s.Register(dm)
 
-    // Setup the listener
-    l, err := net.Listen("tcp", listenStr)
-    if err != nil {
-        log.Fatal("Listen: ", err)
-    }
-
-    go http.Serve(l, nil)
-
-    return m
+    return dm
 }
 
 const UUIDBytes = 16

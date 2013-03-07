@@ -105,7 +105,7 @@ func main() {
     var err error
 	var args []string
 	var listenStr string
-	var listenKadem string
+	//var listenKadem string
     var stdInReader *bufio.Reader
 
 	// Get the bind and connect connection strings from command-line arguments.
@@ -115,7 +115,7 @@ func main() {
 		log.Fatal("Must be invoked with exactly two arguments!\n")
 	}
     listenStr = args[0]
-    listenKadem = args[1]
+    //listenKadem = args[1]
 
 
     //instantiate

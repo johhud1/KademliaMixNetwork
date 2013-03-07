@@ -31,10 +31,10 @@ func RunTests(numMartinis string){
 
     for i:=0; i<portrange; i++ {
 		myPortStr := strconv.FormatInt(int64(7900+i), 10)
-		kPortStr := strconv.FormatInt(int64(1900+i), 10)
+		//kPortStr := strconv.FormatInt(int64(1900+i), 10)
 		newDryMartStr := "localhost:"+myPortStr
-		myRpcPath := RpcPath+myPortStr
-		kRpcPath := KademRpcPath+kPortStr
+		//myRpcPath := RpcPath+myPortStr
+		//kRpcPath := KademRpcPath+kPortStr
 		log.Printf("creating newDryMartini with AddrString:%s and RpcPath:%s\n", newDryMartStr, RpcPath)
 		var dm *DryMartini = NewDryMartini(newDryMartStr, 2048, &newDryMartStr)
 		TestMartinis[i] = dm

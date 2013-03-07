@@ -39,7 +39,8 @@ func RunTests(numNodes string) {
 		newkademstr := "localhost:"+istr
 		myRpcPath := rpcPath+istr
 		log.Printf("creating newKademlia with AddrString:%s and rpcPath:%s\n", newkademstr, rpcPath)
-		var k *Kademlia = NewKademlia(newkademstr, &myRpcPath, nil)
+		var k *Kademlia
+		k, _ = NewKademlia(newkademstr, &myRpcPath)
 		kAndPaths[k] = rpcPath
 		TestKademlias[i] = k
 
