@@ -20,7 +20,7 @@ type DryMartiniInstruction struct {
 	Addr string
 }
 
-func NewKademliaInstruction(s string) (dmInst *DryMartiniInstruction) {
+func NewDryMartiniInstruction(s string) (dmInst *DryMartiniInstruction) {
 	var err error;
 	var strTokens []string;
 
@@ -102,6 +102,7 @@ func (dmInst *DryMartiniInstruction) Execute(dm *drymartini.DryMartini) (status 
 
 
 func main() {
+    var err error
 	var args []string
 	var listenStr string
 	var listenKadem string
@@ -119,7 +120,7 @@ func main() {
 
     //instantiate
     var drymart *drymartini.DryMartini
-    drymart = drymartini.NewDryMartini(listenStr, 2048, listenKadem, nil, KademRpcPath)
+    drymart = drymartini.NewDryMartini(listenStr, 2048, listenKadem, drymartini.RpcPath, drymartini.KademRpcPath)
 
     fmt.Printf("%s", drymart.KeyPair)
 
@@ -129,7 +130,7 @@ func main() {
 	for ;; {
 		fmt.Printf("δώσε:")//Print prompt
 
-    	//read new instruction
+        //read new instruction
 		//ret, err := fmt.Scanln(&instStr)
 		instStr, err = stdInReader.ReadString('\n')
 		if err != nil {
@@ -139,18 +140,18 @@ func main() {
 
 		//parse line input and create command struct
 		inst = NewDryMartiniInstruction(instStr)
-		
+
 		if inst.IsExit() {
 			log.Printf("DryMartini exiting.\n\n\nOne for the road, maybe?");
 			break;
 		}
-		
+
 		//execute new instruction
 		inst.Execute(drymart)
 
-		if (drymart.KademliaInst.DoJoinFlag) {
-			go drymartini.DoJoin(drymart)
-		}
+		//if (drymart.KademliaInst.DoJoinFlag) {
+		//	go drymartini.DoJoin(drymart)
+		//}
 	}
 
 
