@@ -72,7 +72,7 @@ func (s *Store) Get(key ID) ([]byte, bool) {
 }
 //TODO: can get rid of rpcPath argument. use RunningTests global 
 //to check if testing, and, use global+portnum to generate path. 
-func NewKademlia(listenStr string, rpcPath *string) *Kademlia {
+func NewKademlia(listenStr string, rpcPath *string, s *rpc.Server) *Kademlia {
     var k *Kademlia
     k = new(Kademlia)
 
@@ -98,14 +98,19 @@ func NewKademlia(listenStr string, rpcPath *string) *Kademlia {
     k.UpdateChannel, k.FindChannel, k.SearchChannel, k.RandomChannel = KBucketHandler(k)
 
 	//Create rpc Server and register a Kademlia struct
-    s := rpc.NewServer()
-    if(RunningTests == true){
-		Assert(kAndPaths != nil, "trying to setup testing kadem without initializing kAndPaths")
+	if(s == nil){
+		s := rpc.NewServer()
 		s.Register(k)
-        s.HandleHTTP(*rpcPath, "/debug/"+*rpcPath)
+		if(RunningTests == true){
+			Assert(kAndPaths != nil, "trying to setup testing kadem without initializing kAndPaths")
+			rpc.Register(k)
+			s.HandleHTTP(*rpcPath, "/debug/"+*rpcPath)
+		} else {
+			rpc.Register(k)
+			rpc.HandleHTTP()
+		}
 	} else {
 		rpc.Register(k)
-		rpc.HandleHTTP()
 	}
 
     l, err := net.Listen("tcp", listenStr)

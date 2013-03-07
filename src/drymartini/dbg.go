@@ -10,6 +10,7 @@ var kAndPaths map[*DryMartini]string
 var TestMartinis []*DryMartini
 var RpcPath string = "/dryMartiniRPCPath" //the rpc path of a kadem rpc handler must always be this string concatenated with the port its on
 var KademRpcPath string = "/kademRPCPath"
+var RunningTests bool = false
 
 func Assert(cond bool, msg string) {
 	if !cond {
@@ -26,6 +27,7 @@ func RunTests(numMartinis string){
 			log.Printf("Error RunTest: arg parse failed. Got:%s\n", numMartinis)
 		}
 		TestMartinis = make([]*DryMartini, portrange)
+		RunningTests = true
 
     for i:=0; i<portrange; i++ {
 		myPortStr := strconv.FormatInt(int64(7900+i), 10)
@@ -34,7 +36,7 @@ func RunTests(numMartinis string){
 		myRpcPath := RpcPath+myPortStr
 		kRpcPath := KademRpcPath+kPortStr
 		log.Printf("creating newDryMartini with AddrString:%s and RpcPath:%s\n", newDryMartStr, RpcPath)
-		var dm *DryMartini = NewDryMartini(newDryMartStr, 2048, newDryMartStr, myRpcPath, kRpcPath)
+		var dm *DryMartini = NewDryMartini(newDryMartStr, 2048, &newDryMartStr)
 		TestMartinis[i] = dm
     }
 

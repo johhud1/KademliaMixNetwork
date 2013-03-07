@@ -25,8 +25,13 @@ func MakeMartiniPing(m *DryMartini, remoteHost net.IP, remotePort uint16) bool {
     remoteAddrStr = remoteHost.String() + ":" + strconv.FormatUint(uint64(remotePort), 10)
 
 	//Dial the server
-	var portstr string = RpcPath //+ strconv.FormatInt(int64(remotePort), 10)
-	client, err = rpc.DialHTTPPath("tcp", remoteAddrStr, portstr)
+    if RunningTests == true {
+		var portstr string = RpcPath + strconv.FormatInt(int64(remotePort), 10)
+		//log.Printf("test ping to rpcPath:%s\n", portstr)
+		client, err = rpc.DialHTTPPath("tcp", remoteAddrStr, portstr)
+    } else {
+		client, err = rpc.DialHTTP("tcp", remoteAddrStr)
+	}
 
     if err != nil {
         log.Printf("Error: MakePingCall, DialHTTP, %s\n", err)

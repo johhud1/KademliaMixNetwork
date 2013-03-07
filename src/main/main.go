@@ -120,7 +120,7 @@ func main() {
 
     //instantiate
     var drymart *drymartini.DryMartini
-    drymart = drymartini.NewDryMartini(listenStr, 2048, listenKadem, drymartini.RpcPath, drymartini.KademRpcPath)
+    drymart = drymartini.NewDryMartini(listenStr, 2048, nil)
 
     fmt.Printf("%s", drymart.KeyPair)
 

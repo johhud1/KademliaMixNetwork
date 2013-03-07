@@ -48,7 +48,7 @@ type MartiniContact struct {
 }
 
 // Create a new DryMartini object with its own kademlia and RPC server
-func NewDryMartini(listenStr string, keylen int, listenKadem string, rpcStr string, kademRPCPath string) *DryMartini {
+func NewDryMartini(listenStr string, keylen int, rpcPath *string) *DryMartini {
     var err error
     var m *DryMartini
     m = new(DryMartini)
@@ -63,14 +63,20 @@ func NewDryMartini(listenStr string, keylen int, listenKadem string, rpcStr stri
     //Initialize flow struct
     m.bartender = make(map[UUID]martiniPick)
 
-    //Initialize our Kademlia
-    m.kademliaInst = kademlia.NewKademlia(listenKadem, &kademRPCPath)
-
     // Setup our RPC
     var s *rpc.Server
     s = rpc.NewServer()
     s.Register(m)
-    s.HandleHTTP(rpcStr, "/debug/" + rpcStr)
+
+	//Initialize our Kademlia
+
+	m.kademliaInst = kademlia.NewKademlia(listenKadem, &rpcStr, rpcPath)
+	if(rpcPath == nil){
+		s.HandleHTTP()
+	} else {
+		s.HandleHTTP(*rpcStr, "/debug/" + *rpcStr)
+	}
+
     // Setup the listener
     l, err := net.Listen("tcp", listenStr)
     if err != nil {
