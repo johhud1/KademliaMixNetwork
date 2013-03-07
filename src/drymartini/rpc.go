@@ -9,10 +9,18 @@ import (
     "strconv"
 )
 
-func (m *DryMartini) Ping(ping string, response *string) error {
-    log.Printf("Was pinged with: %s", ping)
+type PingRequest struct {
+	Msg string
+}
+
+type PingResponse struct {
+	Msg string
+}
+
+func (m *DryMartini) Ping(req PingRequest, res *PingResponse) error {
+    log.Printf("Was pinged with: %s", req.Msg)
  
-    response = nil
+    res.Msg = "Responce"
 
     return nil
 }
@@ -34,11 +42,11 @@ func MakeMartiniPing(m *DryMartini, remoteHost net.IP, remotePort uint16) bool {
     }
 
 	//make rpc
-    var message string
-    message = "Hey dummy"
-    var response *string
+    var pingReq *PingRequest = new(PingRequest)
+    pingReq.Msg = "Hey dummy"
+    var pingRes *PingResponse = new(PingResponse)
 
-    err = client.Call("DryMartini.Ping", message, response)
+    err = client.Call("DryMartini.Ping", pingReq, pingRes)
     if err != nil {
         log.Printf("Error: MakeMartiniPing, Call, %s\n", err)
         return false
