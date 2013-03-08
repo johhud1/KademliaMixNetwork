@@ -111,8 +111,8 @@ func main() {
 	// Get the bind and connect connection strings from command-line arguments.
 	flag.Parse()
 	args = flag.Args()
-	if len(args) != 2 {
-		log.Fatal("Must be invoked with exactly two arguments!\n")
+	if len(args) != 1 {
+		log.Fatal("Must be invoked with exactly one arguments!\n")
 	}
     listenStr = args[0]
     //listenKadem = args[1]

@@ -56,8 +56,19 @@ func MakeMartiniPing(m *DryMartini, remoteHost net.IP, remotePort uint16) bool {
         log.Printf("Error: MakeMartiniPing, Call, %s\n", err)
         return false
     }
+	log.Printf("got ping response: %s\n", pingRes.Msg);
 
     client.Close()
 
     return true
+}
+
+//'join' the martini network (speakeasy?) by placing MartiniContact in the DHT
+//potentially need to connect to the Kademlia DHT for the first time here as well
+func (m  *DryMartini) EnterSpeakeasy(remoteC *MartiniContact){
+	//do ping to initalize our Kademlia's kbucket
+	kademlia.MakePingCall(m.kademliaInst, remoteC.nodeIP, remoteC.notPort)
+	//do the join operation
+	kademlia.DoJoin(m.kademliaInst)
+
 }

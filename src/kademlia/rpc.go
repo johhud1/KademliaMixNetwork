@@ -2,7 +2,7 @@ package kademlia
 // Contains definitions mirroring the Kademlia spec. You will need to stick
 // strictly to these to be compatible with the reference implementation and
 // other groups' code.
-	
+
 import (
 	"log"
 	"net"
