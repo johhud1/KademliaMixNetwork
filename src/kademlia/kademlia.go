@@ -208,7 +208,7 @@ func MakePingCall(k *Kademlia, remoteHost net.IP, remotePort uint16) bool {
     return true
 }
 
-func MakeIterativeStore(k *Kademlia, key ID, data string) {
+func MakeIterativeStore(k *Kademlia, key ID, data []byte) {
 	var success bool
 	var nodes []FoundNode
 	//var data []byte
@@ -228,7 +228,7 @@ func MakeIterativeStore(k *Kademlia, key ID, data string) {
 	}
 }
 
-func MakeStore(k *Kademlia, remoteContact *Contact, Key ID, Value string) bool {
+func MakeStore(k *Kademlia, remoteContact *Contact, Key ID, Value []byte) bool {
     var client *rpc.Client
     var localContact *Contact
 	var storeReq *StoreRequest
@@ -247,7 +247,7 @@ func MakeStore(k *Kademlia, remoteContact *Contact, Key ID, Value string) bool {
     storeReq.MsgID = NewRandomID()
     storeReq.Sender = CopyContact(localContact)
     storeReq.Key = CopyID(Key)
-    storeReq.Value = []byte(Value)
+    storeReq.Value = Value
 
     storeRes = new(StoreResult)
 
@@ -573,7 +573,7 @@ func RefreshTimers(k *Kademlia) {
                         for _, node := range nodes {
                             var value []byte
                             value, _ = k.ValueStore.Get(key)
-                            MakeStore(k, node.FoundNodeToContact(), key, string(value))
+                            MakeStore(k, node.FoundNodeToContact(), key, value)
                         }
                         //kademlia.PrintArrayOfFoundNodes(&nodes)
                     } else {

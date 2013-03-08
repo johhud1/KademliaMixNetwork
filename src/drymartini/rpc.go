@@ -72,17 +72,17 @@ func MakeMartiniPing(m *DryMartini, remoteHost net.IP, remotePort uint16) bool {
 //potentially need to connect to the Kademlia DHT for the first time here as well
 func MakeJoin(m  *DryMartini, remoteHost net.IP, remotePort uint16){
 	//do ping to initalize our Kademlia's kbucket
-	kademlia.MakePingCall(m.kademliaInst, remoteHost, remotePort)
+	kademlia.MakePingCall(m.KademliaInst, remoteHost, remotePort)
 	//do the join operation
-	kademlia.DoJoin(m.kademliaInst)
+	kademlia.DoJoin(m.KademliaInst)
 
 	var h hash.Hash =  sha1.New()
-	var kIDStr string = (m.kademliaInst.ContactInfo.NodeID.AsString())
+	var kIDStr string = (m.KademliaInst.ContactInfo.NodeID.AsString())
 	io.WriteString(h, kIDStr)
 
 
 	//store my MartiniContact at the SHA1 hash of my UUID?
 	fmt.Printf("storing martiniContact:%+v at ID: %x", m.myMartiniContact, h)
-	//kademlia.MakeIterativeStore(m.kademliaInst, h.Sum(nil), m.
+	//kademlia.MakeIterativeStore(m.KademliaInst, h.Sum(nil), m.
 
 }

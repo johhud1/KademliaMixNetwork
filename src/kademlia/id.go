@@ -5,6 +5,8 @@ import (
 	"encoding/hex"
 	"math/rand"
 	"log"
+	"crypto/sha1"
+	"hash"
 )
 
 
@@ -15,6 +17,10 @@ type ID [IDBytes]byte
 
 func (id ID) AsString() string {
 	return hex.EncodeToString(id[0:])
+}
+
+func (id ID) AsBytes() []byte {
+	return id[0:]
 }
 
 func (id ID) Xor(other ID) (ret ID) {
@@ -102,15 +108,17 @@ func FromString(idstr string) (ret ID, err error) {
 	return
 }
 
+func FromBytes(idBytes []byte) (ret ID) {
+	for i := 0; i < IDBytes; i++ {
+		ret[i] = idBytes[i]
+	}
+	return
+}
 
-func (id ID) SHA1Hash() (ret []byte) {
+func (id ID) SHA1Hash() (ret ID) {
 	var h hash.Hash
-	
 	h = sha1.New()
-	h.Write(u)
-	ret = h.Sum(nil)
-	
+	h.Write(id.AsBytes())
+	ret = FromBytes(h.Sum(nil))
 	return ret
-
-
 }

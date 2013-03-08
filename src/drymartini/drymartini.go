@@ -7,18 +7,19 @@ import (
     //"net/http"
     "log"
     "os"
+	"fmt"
     "crypto/rsa"
-	"crypto/md5"
     "crypto/rand"
     "math/big"
     "time"
-	"hash"
+	//"hash"
+	"encoding/json"
 )
 
 
 
 type DryMartini struct {
-    kademliaInst *kademlia.Kademlia
+    KademliaInst *kademlia.Kademlia
     //Key for onioning
     KeyPair *rsa.PrivateKey
 	DoJoinFlag bool
@@ -53,6 +54,15 @@ type MartiniContact struct {
     notPort uint16
 }
 
+/*
+func (mc MartiniContact) ToBytes() (b byte[]){
+	return json.Marshal(mc)
+	var sizeOfSerialMC int = sizeof(net.IP)+sizeof(uint16)+(sizeof(big.Int)+(sizeof(Int))
+	serialMC byte[] = sizeof(net.IP) + 
+	pubKeyStr string = (*mc.pubKey.N)
+}
+*/
+
 // Create a new DryMartini object with its own kademlia and RPC server
 func NewDryMartini(listenStr string, keylen int, rpcPath *string) *DryMartini {
     var err error
@@ -72,7 +82,7 @@ func NewDryMartini(listenStr string, keylen int, rpcPath *string) *DryMartini {
     dm.bartender = make(map[UUID]martiniPick)
 
 	//Initialize our Kademlia
-	dm.kademliaInst, s = kademlia.NewKademlia(listenStr, rpcPath)
+	dm.KademliaInst, s = kademlia.NewKademlia(listenStr, rpcPath)
 
 	//register
 	s.Register(dm)
@@ -100,14 +110,20 @@ func NewUUID() (ret UUID) {
 
 
 
-
-func DoJoin(dm *DryMartini, doPing bool) (bool) {
+//more arguments for a later time
+//remoteAddr net.IP, remotePort uint16, doPing bool
+func DoJoin(dm *DryMartini, ) (bool) {
 	var success bool
 	var err error
 	var secToWait time.Duration = 1
-	
 
-	success = kademlia.DoJoin(dm.kademliaInst)
+/*
+	if (doPing){
+		kademlia.MakePingCall(dm.KademliaInst, remoteAddr, remotePort)
+	}
+	*/
+
+	success = kademlia.DoJoin(dm.KademliaInst)
 	if !success {
 		return false;
 	}
@@ -117,10 +133,17 @@ func DoJoin(dm *DryMartini, doPing bool) (bool) {
 		log.Printf("doJoin in %d sec\n", secToWait);
 	}
 	time.Sleep(secToWait)
-	
+
 	//Store our contact information
 	//TODO
-	var hashed []byte = dm.kademliaInst.ContactInfo.NodeID.SHA1Hash()
-	
-	
+	var mcBytes []byte
+	var key kademlia.ID = dm.KademliaInst.ContactInfo.NodeID.SHA1Hash()
+	mcBytes, err = json.Marshal(dm.myMartiniContact)
+	if (err != nil){
+		log.Printf("error marshaling MartiniContact: %s\n", err)
+	}
+
+	log.Printf("storing martiniContact:%+v at ID: %x", dm.myMartiniContact, key)
+	kademlia.MakeIterativeStore(dm.KademliaInst, key, mcBytes)
+	return true
 }

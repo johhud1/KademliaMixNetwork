@@ -155,7 +155,7 @@ func IterativeFindAndStoreTests(kadems []*Kademlia, portrange int, rounds int){
 		key = NewRandomID()
 		data = "deadbeef"+strconv.FormatInt(int64(i), 10)
 		log.Printf("storing %s at key %s\n", data, key.AsString())
-		MakeIterativeStore(k, key, data)
+		MakeIterativeStore(k, key, []byte(data))
 		var success bool
 		var err error
 		var returnedData []byte
