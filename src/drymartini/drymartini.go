@@ -8,8 +8,11 @@ import (
     "log"
     "os"
     "crypto/rsa"
+	"crypto/md5"
     "crypto/rand"
     "math/big"
+    "time"
+	"hash"
 )
 
 
@@ -18,7 +21,7 @@ type DryMartini struct {
     kademliaInst *kademlia.Kademlia
     //Key for onioning
     KeyPair *rsa.PrivateKey
-
+	DoJoinFlag bool
     //Flow state
     bartender map[UUID]martiniPick
 }
@@ -90,3 +93,37 @@ func NewUUID() (ret UUID) {
 	return
 }
 
+
+func UUIDHash(u UUID) (ret []byte) {
+	//We use MD5 cause it has the same length as UUID (16 Bytes)
+	var h hash.Hash
+
+	h = md5.New()
+	h.Write(u)
+	ret = h.Sum(nil)
+
+	return ret
+}
+
+
+
+func DoJoin(dm *DryMartini) (bool) {
+	var success bool
+	var err error
+	var secToWait time.Duration = 1
+	
+
+	success = kademlia.DoJoin(dm.kademliaInst)
+	if !success {
+		return false;
+	}
+
+	dm.DoJoinFlag = false
+	if Verbose {
+		log.Printf("doJoin in %d sec\n", secToWait);
+	}
+	time.Sleep(secToWait)
+	
+	//Store our contact information
+	//TODO
+}
