@@ -101,3 +101,16 @@ func FromString(idstr string) (ret ID, err error) {
 	}
 	return
 }
+
+
+func (id ID) SHA1Hash() (ret []byte) {
+	var h hash.Hash
+	
+	h = sha1.New()
+	h.Write(u)
+	ret = h.Sum(nil)
+	
+	return ret
+
+
+}

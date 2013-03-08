@@ -168,9 +168,9 @@ func main() {
 		//execute new instruction
 		inst.Execute(drymart)
 
-		//if (drymart.KademliaInst.DoJoinFlag) {
-		//	go drymartini.DoJoin(drymart)
-		//}
+		if (drymart.KademliaInst.DoJoinFlag) {
+			go drymartini.DoJoin(drymart)
+		}
 	}
 
 

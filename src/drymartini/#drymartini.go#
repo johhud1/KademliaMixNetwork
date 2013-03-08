@@ -120,7 +120,8 @@ func DoJoin(dm *DryMartini, doPing bool) (bool) {
 	
 	//Store our contact information
 	//TODO
+
 	var hashed []byte = dm.kademliaInst.ContactInfo.NodeID.SHA1Hash()
-	
-	
+
+
 }

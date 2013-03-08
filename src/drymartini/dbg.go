@@ -6,6 +6,8 @@ import (
 	"strconv"
 )
 
+var Verbose bool = true
+
 var kAndPaths map[*DryMartini]string
 var TestMartinis []*DryMartini
 var RpcPath string = "/dryMartiniRPCPath" //the rpc path of a kadem rpc handler must always be this string concatenated with the port its on
