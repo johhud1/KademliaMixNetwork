@@ -21,6 +21,9 @@ type DryMartini struct {
 
     //Flow state
     bartender map[UUID]martiniPick
+
+	//My ContactInfo
+	myMartiniContact MartiniContact
 }
 
 // The flow structure, it remembers olives
