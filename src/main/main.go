@@ -48,6 +48,12 @@ func NewDryMartiniInstruction(s string) (dmInst *DryMartiniInstruction) {
 
 		dmInst.flags = 2;
 		dmInst.Addr = strTokens[1]
+	case "join" :
+		if (len(strTokens) != 2) || !(strings.Contains(strTokens[1], ":")){
+			return dmInst
+		}
+		dmInst.flags = 3;
+		dmInst.Addr = strTokens[1]
 	}
 
 	if err != nil {
@@ -62,6 +68,9 @@ func (dmInst *DryMartiniInstruction) IsExit() bool {
 }
 func (dmInst *DryMartiniInstruction) IsPing() bool {
 	return dmInst.flags == 2
+}
+func (dmInst *DryMartiniInstruction) IsJoin() bool {
+	return dmInst.flags == 3
 }
 func (dmInst *DryMartiniInstruction) IsSkip() bool {
 	return dmInst.flags == 255
@@ -94,8 +103,18 @@ func (dmInst *DryMartiniInstruction) Execute(dm *drymartini.DryMartini) (status 
         success = drymartini.MakeMartiniPing(dm, remoteHost, remotePort)
 
 		return success
+	case dmInst.IsJoin() :
+		if Verbose {
+			log.Printf("Executing MartiniJoin Instruction\n")
+		}
+		remoteHost, remotePort, err := kademlia.AddrStrToHostPort(dmInst.Addr)
+		drymartini.MakeJoin(dm, remoteHost, remotePort)
+		if err != nil {
+			log.Printf("Error converting AddrToHostPort, %s", err)
+			os.Exit(1)
+		}
+		return true
 	}
-
 	return false
 }
 

@@ -24,6 +24,9 @@ type DryMartini struct {
 	DoJoinFlag bool
     //Flow state
     bartender map[UUID]martiniPick
+
+	//My ContactInfo
+	myMartiniContact MartiniContact
 }
 
 // The flow structure, it remembers olives

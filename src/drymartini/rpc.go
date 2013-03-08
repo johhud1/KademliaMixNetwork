@@ -4,9 +4,14 @@ package drymartini
 
 import (
     "log"
+	"fmt"
     "net"
+	"io"
+	"hash"
+	"kademlia"
     "net/rpc"
     "strconv"
+	"crypto/sha1"
 )
 
 type PingRequest struct {
@@ -65,10 +70,19 @@ func MakeMartiniPing(m *DryMartini, remoteHost net.IP, remotePort uint16) bool {
 
 //'join' the martini network (speakeasy?) by placing MartiniContact in the DHT
 //potentially need to connect to the Kademlia DHT for the first time here as well
-func (m  *DryMartini) EnterSpeakeasy(remoteC *MartiniContact){
+func MakeJoin(m  *DryMartini, remoteHost net.IP, remotePort uint16){
 	//do ping to initalize our Kademlia's kbucket
-	kademlia.MakePingCall(m.kademliaInst, remoteC.nodeIP, remoteC.notPort)
+	kademlia.MakePingCall(m.kademliaInst, remoteHost, remotePort)
 	//do the join operation
 	kademlia.DoJoin(m.kademliaInst)
+
+	var h hash.Hash =  sha1.New()
+	var kIDStr string = (m.kademliaInst.ContactInfo.NodeID.AsString())
+	io.WriteString(h, kIDStr)
+
+
+	//store my MartiniContact at the SHA1 hash of my UUID?
+	fmt.Printf("storing martiniContact:%+v at ID: %x", m.myMartiniContact, h)
+	//kademlia.MakeIterativeStore(m.kademliaInst, h.Sum(nil), m.
 
 }
