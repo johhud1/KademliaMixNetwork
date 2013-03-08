@@ -491,7 +491,7 @@ func main() {
 	//firstPeerStr = args[1]
 	//log.Printf("First Peer: %s\n", firstPeerStr);
 	
-	kadem = kademlia.NewKademlia(listenStr, nil)
+	kadem, _ = kademlia.NewKademlia(listenStr, nil)
 
 	stdInReader = bufio.NewReader(os.Stdin)
 	//input, _ := reader.ReadString('\n')

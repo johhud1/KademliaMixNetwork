@@ -172,26 +172,6 @@ func IterativeFindAndStoreTests(kadems []*Kademlia, portrange int, rounds int){
 	}
 }
 
-func MakeIterativeStore(k *Kademlia, key ID, data string) {
-	var success bool
-	var nodes []FoundNode
-	//var data []byte
-	var err error
-	success, nodes, _, err = IterativeFind(k, key, 1) //findType of 1 is FindNode
-	Assert(err == nil, "IterativeStoreTest: IterativeFind: Error\n")
-	Assert(success, "IterativeStoreTest: success returned false\n")
-	if success {
-		if nodes != nil {
-			for _, node := range nodes {
-				MakeStore(k, node.FoundNodeToContact(), key, data)
-			}
-			PrintArrayOfFoundNodes(&nodes)
-		} else {
-			Assert(false, "iterativeFindStore: TODO: This should probably never happen right?")
-		}
-	}
-}
-
 func IterativeFindValueTests( portrange int){
     //TODO: implement
 }
