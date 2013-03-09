@@ -53,7 +53,7 @@ func NewContact(AddrStr string) (Contact) {
 	if err != nil {
      		//FIXME
 	}
-	if RunningTests {
+	if Verbose {
 		log.Printf("Creating new contact %s %s\n", nodeID.AsString(), AddrStr)
 	}
 	return Contact{nodeID, host, port}
@@ -196,11 +196,11 @@ type FoundNode struct {
 }
 
 func PrintArrayOfFoundNodes(array *[]FoundNode) {
-	if RunningTests {
+	if Verbose {
 		fmt.Printf("Print Returned Found Nodes\n")
 	}
 	for i, v := range *array {
-		if RunningTests {
+		if Verbose {
 			fmt.Printf("[%d] --> %s %s %d\n", i, v.NodeID.AsString(), v.IPAddr, v.Port)
 		} else {
 			fmt.Printf("%d, %s\n", i, v.NodeID.AsString())
@@ -221,7 +221,7 @@ func (k *Kademlia) FindNode(req FindNodeRequest, res *FindNodeResult) error {
 	var err error
 	//Update(k, req.Sender)
     k.UpdateChannel<-req.Sender
-	if RunningTests {
+	if Verbose {
 		//log.Printf("RPC: FindNode from %s ---> %s\n", req.Sender.NodeID.AsString(), k.ContactInfo.AsString())
 	}
 
@@ -341,7 +341,7 @@ func (k *Kademlia) FindValue(req FindValueRequest, res *FindValueResult) error {
 	res.Value, found = k.ValueStore.Get(req.Key)
 
     if found {
-		if RunningTests {
+		if Verbose {
 			log.Printf("RPC:FindValue, found value [%s:%s]\n", req.Key.AsString(), string(res.Value))
 		}
 	} else {

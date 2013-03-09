@@ -4,6 +4,8 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"encoding/json"
+	"fmt"
 )
 
 const Verbose bool = true
@@ -46,3 +48,17 @@ func RunTests(numMartinis string){
 }
 
 
+func PrintLocalData(dm *DryMartini) {
+	var m MartiniContact
+	var err error
+
+	for key, value := range dm.KademliaInst.ValueStore.HashMap {
+		err = json.Unmarshal(value, &m)
+		if err != nil {
+			log.Printf("drymartini.PrintLocalData %s\n", err)
+		}
+		//fmt.Printf("Print HashMap[%s]=%s\n", key.AsString(), string(value))
+		fmt.Printf("Print HashMap[%s]=%+v\n", key.AsString(), m)
+	}
+
+}

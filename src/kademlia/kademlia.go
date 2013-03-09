@@ -20,7 +20,6 @@ const AConst = 3
 
 // Core Kademlia type. You can put whatever state you want in this.
 type Kademlia struct {
-	InstID int
     Buckets [160]*K_Bucket
     //HashMap map[ID][]byte
     ContactInfo Contact
@@ -76,7 +75,6 @@ func (s *Store) Get(key ID) ([]byte, bool) {
 func NewKademlia(listenStr string, rpcPath *string) (k *Kademlia, s *rpc.Server) {
     k = new(Kademlia)
 
-	k.InstID = -1
 	k.DoJoinFlag = false
 	k.FirstKBucketStore = true
 
@@ -712,11 +710,6 @@ func Update(k *Kademlia, triplet Contact) (success bool, err error) {
     var exists bool
     var tripletP *list.Element
 
-	if Verbose {
-		log.Printf("Update(%d)\n", k.InstID)
-	}
-
-	k.InstID = 1984
     //find distance
     dist = k.ContactInfo.NodeID.Distance(triplet.NodeID)
     if -1 == dist {
@@ -764,9 +757,6 @@ func Update(k *Kademlia, triplet Contact) (success bool, err error) {
         }
     }
 	if (k.FirstKBucketStore && success ) {
-		if Verbose {
-			log.Printf("Enable DoJoinFlag\n")
-		}
 		k.DoJoinFlag = true
 		k.FirstKBucketStore = false
 	}

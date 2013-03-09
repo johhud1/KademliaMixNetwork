@@ -62,6 +62,18 @@ func NewDryMartiniInstruction(s string) (dmInst *DryMartiniInstruction) {
 			return dmInst
 		}
 	    dmInst.flags = 4;
+	case "plb" :
+		//kademlia.Assert(len(strTokens) == 1, "printLocalBuckets requires 0 arguments")//plb
+		if len(strTokens) != 1 {
+			return dmInst
+		}
+		dmInst.flags = 5
+	case "pld" :
+		//kademlia.Assert(len(strTokens) == 1, "printLocalData requires 0 arguments")//pld
+		if len(strTokens) != 1 {
+			return dmInst
+		}
+		dmInst.flags = 6
 	}
 
 	if err != nil {
@@ -82,6 +94,12 @@ func (dmInst *DryMartiniInstruction) IsJoin() bool {
 }
 func (dmInst *DryMartiniInstruction) IsWhoami() bool {
 	return dmInst.flags == 4
+}
+func (dmInst *DryMartiniInstruction) IsPrintLocalBuckets() bool{
+	return dmInst.flags == 5
+}
+func (dmInst *DryMartiniInstruction) IsPrintLocalData() bool{
+	return dmInst.flags == 6
 }
 func (dmInst *DryMartiniInstruction) IsSkip() bool {
 	return dmInst.flags == 255
@@ -133,6 +151,15 @@ func (dmInst *DryMartiniInstruction) Execute(dm *drymartini.DryMartini) (status 
 			fmt.Printf("%s\n", dm.KademliaInst.ContactInfo.NodeID.AsString())
 		}
 		return true
+	case dmInst.IsPrintLocalBuckets() :
+		log.Printf("Print Local Buckets!\n")
+		kademlia.PrintLocalBuckets(dm.KademliaInst)
+		return true
+	case dmInst.IsPrintLocalData() :
+		log.Printf("Print Local Data!\n")
+		//kademlia.PrintLocalData(dm.KademliaInst)
+		drymartini.PrintLocalData(dm)
+		return true
 	}
 	return false
 }
@@ -167,7 +194,7 @@ func main() {
 	var instStr string
 	var inst *DryMartiniInstruction
 	for ;; {
-		fmt.Printf("δώσε %s -- %d:", drymart.KademliaInst.DoJoinFlag, drymart.KademliaInst.InstID)//Print prompt
+		fmt.Printf("δώσε:")//Print prompt
 
         //read new instruction
 		//ret, err := fmt.Scanln(&instStr)
@@ -189,7 +216,6 @@ func main() {
 		inst.Execute(drymart)
 
 		if (drymart.KademliaInst.DoJoinFlag) {
-			log.Printf("Drymartini DoJoin(%d)\n", drymart.KademliaInst.InstID);
 			go drymartini.DoJoin(drymart)
 		}
 	}
