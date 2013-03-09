@@ -10,6 +10,8 @@ import (
     "strings"
     "kademlia"
     "drymartini"
+	"math/rand"
+	"time"
 )
 
 const Verbose bool = true
@@ -54,6 +56,12 @@ func NewDryMartiniInstruction(s string) (dmInst *DryMartiniInstruction) {
 		}
 		dmInst.flags = 3;
 		dmInst.Addr = strTokens[1]
+	case "whoami" :
+	    //kademlia.Assert(len(strTokens) == 1, "GetNodeId requires 0 argument")//whoami
+		if len(strTokens) != 1 {
+			return dmInst
+		}
+	    dmInst.flags = 4;
 	}
 
 	if err != nil {
@@ -71,6 +79,9 @@ func (dmInst *DryMartiniInstruction) IsPing() bool {
 }
 func (dmInst *DryMartiniInstruction) IsJoin() bool {
 	return dmInst.flags == 3
+}
+func (dmInst *DryMartiniInstruction) IsWhoami() bool {
+	return dmInst.flags == 4
 }
 func (dmInst *DryMartiniInstruction) IsSkip() bool {
 	return dmInst.flags == 255
@@ -107,11 +118,19 @@ func (dmInst *DryMartiniInstruction) Execute(dm *drymartini.DryMartini) (status 
 		if Verbose {
 			log.Printf("Executing MartiniJoin Instruction\n")
 		}
-		remoteHost, remotePort, err := kademlia.AddrStrToHostPort(dmInst.Addr)
-		drymartini.MakeJoin(dm, remoteHost, remotePort)
-		if err != nil {
-			log.Printf("Error converting AddrToHostPort, %s", err)
-			os.Exit(1)
+		//remoteHost, remotePort, err := kademlia.AddrStrToHostPort(dmInst.Addr)
+		//drymartini.MakeJoin(dm, remoteHost, remotePort)
+		//if err != nil {
+		//	log.Printf("Error converting AddrToHostPort, %s", err)
+		//	os.Exit(1)
+		//}
+		return true
+	case dmInst.IsWhoami() :
+		if  Verbose {
+			log.Printf("Executing Whoami Instruction\n");
+			fmt.Printf("Local Node ID: %s\n", dm.KademliaInst.ContactInfo.NodeID.AsString())
+		} else {
+			fmt.Printf("%s\n", dm.KademliaInst.ContactInfo.NodeID.AsString())
 		}
 		return true
 	}
@@ -136,6 +155,7 @@ func main() {
     listenStr = args[0]
     //listenKadem = args[1]
 
+	rand.Seed(time.Now().UnixNano())
 
     //instantiate
     var drymart *drymartini.DryMartini

@@ -4,14 +4,14 @@ package drymartini
 
 import (
     "log"
-	"fmt"
+	//"fmt"
     "net"
-	"io"
-	"hash"
+	//"io"
+	//"hash"
 	"kademlia"
     //"net/rpc"
     //"strconv"
-	"crypto/sha1"
+	//"crypto/sha1"
 )
 
 type PingRequest struct {
@@ -34,7 +34,7 @@ func (m *DryMartini) Ping(req PingRequest, res *PingResponse) error {
 func MakeMartiniPing(dm *DryMartini, remoteHost net.IP, remotePort uint16) bool {
 	
 	if Verbose {
-		log.Printf("MakeMartiniPing\n")
+		log.Printf("MakeMartiniPing %s %d\n", remoteHost, remotePort)
 	}
 
 	return kademlia.MakePingCall(dm.KademliaInst, remoteHost, remotePort);
@@ -79,6 +79,7 @@ func MakeMartiniPing(dm *DryMartini, remoteHost net.IP, remotePort uint16) bool 
 
 //'join' the martini network (speakeasy?) by placing MartiniContact in the DHT
 //potentially need to connect to the Kademlia DHT for the first time here as well
+/*
 func MakeJoin(m  *DryMartini, remoteHost net.IP, remotePort uint16){
 	//do ping to initalize our Kademlia's kbucket
 	kademlia.MakePingCall(m.KademliaInst, remoteHost, remotePort)
@@ -95,3 +96,4 @@ func MakeJoin(m  *DryMartini, remoteHost net.IP, remotePort uint16){
 	//kademlia.MakeIterativeStore(m.KademliaInst, h.Sum(nil), m.
 
 }
+*/

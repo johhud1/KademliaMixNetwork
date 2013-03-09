@@ -49,9 +49,9 @@ type olive struct {
 }
 
 type MartiniContact struct {
-    pubKey rsa.PublicKey
-    nodeIP net.IP
-    notPort uint16
+    PubKey rsa.PublicKey
+    NodeIP net.IP
+    NodePort uint16
 }
 
 /*
@@ -84,6 +84,15 @@ func NewDryMartini(listenStr string, keylen int, rpcPath *string) *DryMartini {
 	//Initialize our Kademlia
 	//dm.KademliaInst, s = kademlia.NewKademlia(listenStr, rpcPath)
 	dm.KademliaInst, _ = kademlia.NewKademlia(listenStr, rpcPath)
+
+	var host net.IP
+	var port uint16
+	host, port, err = kademlia.AddrStrToHostPort(listenStr)
+
+	//myMartiniContact <- ip, port, public key
+	dm.myMartiniContact.NodeIP = host
+	dm.myMartiniContact.NodePort = port
+	dm.myMartiniContact.PubKey = dm.KeyPair.PublicKey
 	/*
 	//register
 	err = s.Register(dm)
@@ -148,7 +157,7 @@ func DoJoin(dm *DryMartini, ) (bool) {
 		log.Printf("error marshaling MartiniContact: %s\n", err)
 	}
 
-	log.Printf("storing martiniContact:%+v at ID: %x", dm.myMartiniContact, key)
+	log.Printf("storing martiniContact:%+v %+v at ID: %x", dm.myMartiniContact, mcBytes, key)
 	kademlia.MakeIterativeStore(dm.KademliaInst, key, mcBytes)
 	return true
 }
