@@ -8,6 +8,8 @@ import (
 	"time"
 	"container/list"
 )
+
+var Verbose bool = true
 //REVIEW: probably can trash this map struct. Since all the Make* 
 //calls now construct the path themselves with RpcPath+port#
 var kAndPaths map[*Kademlia]string

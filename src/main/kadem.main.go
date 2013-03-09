@@ -252,7 +252,7 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 		remoteContact =<- searchRequest.ReturnChan
 		found = (remoteContact != nil)
 		if found {
-			success = kademlia.MakeStore(k, remoteContact, kInst.Key, kInst.Data)
+			success = kademlia.MakeStore(k, remoteContact, kInst.Key, []byte(kInst.Data))
 		} else {
 			log.Printf("Error: Store, nodeID %s could not be found\n", kInst.NodeID.AsString())
 			return false
@@ -388,7 +388,7 @@ func (kInst *KademliaInstruction) Execute(k *kademlia.Kademlia) (status bool) {
 		if success {
 			if nodes != nil {
 				for _, node := range nodes {
-					kademlia.MakeStore(k, node.FoundNodeToContact(), kInst.Key, kInst.Data)
+					kademlia.MakeStore(k, node.FoundNodeToContact(), kInst.Key, []byte(kInst.Data))
 				}
 				kademlia.PrintArrayOfFoundNodes(&nodes)
 			} else {

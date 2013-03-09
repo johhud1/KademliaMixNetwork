@@ -141,13 +141,13 @@ func main() {
     var drymart *drymartini.DryMartini
     drymart = drymartini.NewDryMartini(listenStr, 2048, nil)
 
-    fmt.Printf("%s", drymart.KeyPair)
+    //fmt.Printf("%s", drymart.KeyPair)
 
 	stdInReader = bufio.NewReader(os.Stdin)
 	var instStr string
 	var inst *DryMartiniInstruction
 	for ;; {
-		fmt.Printf("δώσε:")//Print prompt
+		fmt.Printf("δώσε %s -- %d:", drymart.KademliaInst.DoJoinFlag, drymart.KademliaInst.InstID)//Print prompt
 
         //read new instruction
 		//ret, err := fmt.Scanln(&instStr)
@@ -169,6 +169,7 @@ func main() {
 		inst.Execute(drymart)
 
 		if (drymart.KademliaInst.DoJoinFlag) {
+			log.Printf("Drymartini DoJoin(%d)\n", drymart.KademliaInst.InstID);
 			go drymartini.DoJoin(drymart)
 		}
 	}

@@ -3,11 +3,11 @@ package drymartini
 import (
     "kademlia"
     "net"
-    "net/rpc"
+    //"net/rpc"
     //"net/http"
     "log"
     "os"
-	"fmt"
+	//"fmt"
     "crypto/rsa"
     "crypto/rand"
     "math/big"
@@ -66,7 +66,7 @@ func (mc MartiniContact) ToBytes() (b byte[]){
 // Create a new DryMartini object with its own kademlia and RPC server
 func NewDryMartini(listenStr string, keylen int, rpcPath *string) *DryMartini {
     var err error
-    var s *rpc.Server
+    //var s *rpc.Server
     var dm *DryMartini
 
     dm = new(DryMartini)
@@ -82,11 +82,16 @@ func NewDryMartini(listenStr string, keylen int, rpcPath *string) *DryMartini {
     dm.bartender = make(map[UUID]martiniPick)
 
 	//Initialize our Kademlia
-	dm.KademliaInst, s = kademlia.NewKademlia(listenStr, rpcPath)
-
+	//dm.KademliaInst, s = kademlia.NewKademlia(listenStr, rpcPath)
+	dm.KademliaInst, _ = kademlia.NewKademlia(listenStr, rpcPath)
+	/*
 	//register
-	s.Register(dm)
-
+	err = s.Register(dm)
+	if err != nil {
+        log.Printf("Failed to register Drymartini! %s", err)
+        os.Exit(1)
+	}
+	 */
     return dm
 }
 

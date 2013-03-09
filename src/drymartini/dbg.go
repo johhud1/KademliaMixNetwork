@@ -6,7 +6,7 @@ import (
 	"strconv"
 )
 
-var Verbose bool = true
+const Verbose bool = true
 
 var kAndPaths map[*DryMartini]string
 var TestMartinis []*DryMartini

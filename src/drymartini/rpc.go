@@ -9,8 +9,8 @@ import (
 	"io"
 	"hash"
 	"kademlia"
-    "net/rpc"
-    "strconv"
+    //"net/rpc"
+    //"strconv"
 	"crypto/sha1"
 )
 
@@ -25,16 +25,25 @@ type PingResponse struct {
 func (m *DryMartini) Ping(req PingRequest, res *PingResponse) error {
     log.Printf("Was pinged with: %s", req.Msg)
  
-    res.Msg = "Responce"
+    res.Msg = "Response"
 
     return nil
 }
 
-func MakeMartiniPing(m *DryMartini, remoteHost net.IP, remotePort uint16) bool {
+
+func MakeMartiniPing(dm *DryMartini, remoteHost net.IP, remotePort uint16) bool {
+	
+	if Verbose {
+		log.Printf("MakeMartiniPing\n")
+	}
+
+	return kademlia.MakePingCall(dm.KademliaInst, remoteHost, remotePort);
+
+/*
     var client *rpc.Client
 	var remoteAddrStr string
     var err error
-
+	
     remoteAddrStr = remoteHost.String() + ":" + strconv.FormatUint(uint64(remotePort), 10)
 
 	//Dial the server
@@ -64,8 +73,8 @@ func MakeMartiniPing(m *DryMartini, remoteHost net.IP, remotePort uint16) bool {
 	log.Printf("got ping response: %s\n", pingRes.Msg);
 
     client.Close()
-
     return true
+ */
 }
 
 //'join' the martini network (speakeasy?) by placing MartiniContact in the DHT
