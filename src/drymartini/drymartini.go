@@ -35,9 +35,9 @@ type DryMartini struct {
 
 // The flow structure, it remembers olives
 type martiniPick struct {
-    nextNodeIP net.IP
+    nextNodeIP string
     nextNodePort uint16
-    prevNodeIP net.IP
+    prevNodeIP string
     prevNodePort uint16
 }
 
@@ -181,4 +181,54 @@ func DoJoin(dm *DryMartini) (bool) {
 	log.Printf("storing martiniContact:%+v %+v at ID: %x\n", dm.myMartiniContact, mcBytes, key)
 	kademlia.MakeIterativeStore(dm.KademliaInst, key, mcBytes)
 	return true
+}
+
+func NewMartiniPick(from *MartiniContact, to *MartiniContact) (pick *martiniPick){
+	//TODO: implement
+	pick.prevNodeIP = from.NodeIP
+	pick.prevNodePort = from.NodePort
+	if (to != nil){
+		pick.nextNodeIP = to.NodeIP
+		pick.nextNodePort = to.NodePort
+	}
+	return
+}
+
+//choosing []bytes for data was pretty arbitrary, could probably be something else
+//o is the outermost olive
+func WrapOlivesForPath(dm *DryMartini, mcPath []*MartiniContact, data []byte, symmKey UUID)  (o *olive){
+	var flowID UUID
+	var err error
+	pathLength := len(mcPath)
+	flowID = NewUUID()
+
+	//if only 1 MartiniContact exists in path, then we only construct 1 olive.. but that should probably never happen
+	var innerOlive olive
+	innerOlive.flowID = flowID
+	innerOlive.data = data
+	//innerOlive.route = NewMartiniPick(mcPath[pathLength-1], nil)
+	innerOlive.symmKey = symmKey
+
+	var theData []byte
+	theData, err = json.Marshal(innerOlive)
+	if (err != nil){
+		log.Printf("error marshalling inner olive:%+v\n", innerOlive)
+		os.Exit(1)
+	}
+
+	var tempOlive olive
+	for i := pathLength-1; i >= 0; i-- {
+		route := NewMartiniPick(mcPath[i-1], mcPath[i])
+		tempOlive.route = *route
+		tempOlive.data = theData
+		tempOlive.flowID = flowID
+		theData, err = json.Marshal(innerOlive)
+		if (err != nil){
+				log.Printf("error marshalling olive:%+v\n", tempOlive)
+				os.Exit(1)
+		}
+	}
+
+	o.flowID = flowID
+	return o
 }
