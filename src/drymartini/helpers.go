@@ -4,7 +4,6 @@ import (
     "crypto/rsa"
     "math/big"
     "net"
-    "log"
 )
 
 type MartiniContactReady struct {
@@ -26,6 +25,7 @@ func (mc *MartiniContact) GetReadyContact() *MartiniContactReady {
 
     return mcr
 }
+
 
 
 

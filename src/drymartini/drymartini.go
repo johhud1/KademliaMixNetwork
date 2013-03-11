@@ -239,3 +239,39 @@ func WrapOlivesForPath(dm *DryMartini, mcPath []*MartiniContact, data []byte, sy
 	o.flowID = flowID
 	return o
 }
+
+func (dm *DryMartini) GeneratePath(min, max int) (mcPath []*MartiniContact){
+	var err error
+	var threshold int
+	var myRand *big.Int
+	var randId kademlia.ID
+	minBig := big.NewInt(int64(min))
+	myRand, err = rand.Int(rand.Reader, big.NewInt(int64(max-min)))
+	threshold = int((minBig.Int64() + myRand.Int64()))
+	for i := 0; i< threshold; i++{
+		var foundNodes []kademlia.FoundNode
+		var success bool
+		randId = kademlia.NewRandomID()
+		success, foundNodes, _, err = kademlia.IterativeFind(dm.KademliaInst, randId, 1)
+		if(err != nil){
+			log.Printf("error finding nodeID:%s, success:%s msg:%s\n", randId, success, err);
+			os.Exit(1)
+		}
+		fuckthis, fuckyou := rand.Int(rand.Reader, big.NewInt(int64(len(foundNodes))))
+		if(fuckyou!=nil){
+			log.Printf("error making rand:%s\n", fuckyou)
+		}
+		index := int(fuckthis.Int64())
+		var hashedID kademlia.ID =foundNodes[index].NodeID.SHA1Hash()
+		var mcBytes []byte
+		success, _, mcBytes, err = kademlia.IterativeFind(dm.KademliaInst, hashedID, 2)
+		if(err != nil){
+			log.Printf("error finding MartiniContact with key:%s. err:%s\n", hashedID, err)
+		}
+		err = json.Unmarshal(mcBytes, mcPath[i])
+		if(err != nil){
+			log.Printf("error finding MartiniContact with key:%s. err:%s\n", hashedID, err)
+		}
+	}
+	return
+}

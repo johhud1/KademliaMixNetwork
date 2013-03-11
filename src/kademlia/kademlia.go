@@ -798,7 +798,7 @@ func DoJoin(k *Kademlia) (bool) {
 	return success
 }
 
-
+//findType (1: findNode. 2: findValue)
 func IterativeFind(k *Kademlia, searchID ID, findType int) (bool, []FoundNode, []byte, error) {
 	var value []byte
     var shortList *list.List //shortlist is the list we are going to return
