@@ -9,6 +9,7 @@ import (
     "os"
 	//"fmt"
     "crypto/rsa"
+    "crypto/sha1"
     "crypto/rand"
     "math/big"
     "time"
@@ -100,7 +101,7 @@ func NewDryMartini(listenStr string, keylen int, rpcPath *string) *DryMartini {
 	dm.myMartiniContact.NodePort = port
 	dm.myMartiniContact.PubKey = dm.KeyPair.PublicKey.N.String()
 	dm.myMartiniContact.PubExp = dm.KeyPair.PublicKey.E
-	
+
 	if Verbose {
 		log.Printf("NodeIP: %s\n", dm.myMartiniContact.NodeIP)
 		log.Printf("NodePort: %d\n", dm.myMartiniContact.NodePort)
@@ -115,6 +116,30 @@ func NewDryMartini(listenStr string, keylen int, rpcPath *string) *DryMartini {
         os.Exit(1)
 	}
 	 */
+
+    // Encrypt/Decrypt Test
+    // First, ready the contact
+    readycon := dm.myMartiniContact.GetReadyContact()
+    sha11 := sha1.New()
+
+    test_message := []byte("Test message")
+    log.Printf("Original message: %s\n", string(test_message))
+    out, _ := rsa.EncryptOAEP(sha11, rand.Reader, &(readycon.PubKey), test_message, nil)
+    log.Printf("Encrypted: %v\n", out)
+
+    sha31 := sha1.New()
+    out2, errr := rsa.EncryptOAEP(sha31, rand.Reader, &(readycon.PubKey), out, nil)
+
+    log.Printf("%s", errr)
+
+    sha41 :=sha1.New()
+    out3, _ := rsa.DecryptOAEP(sha41, nil, dm.KeyPair, out2, nil)
+
+    sha21 := sha1.New()
+    back, _ := rsa.DecryptOAEP(sha21, nil, dm.KeyPair, out3, nil)
+    log.Printf("Back Again: %s\n", string(back))
+
+
     return dm
 }
 

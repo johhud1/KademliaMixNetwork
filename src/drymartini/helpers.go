@@ -4,7 +4,6 @@ import (
     "crypto/rsa"
     "math/big"
     "net"
-    "log"
 )
 
 type MartiniContactReady struct {

@@ -77,6 +77,8 @@ func MakeMartiniPing(dm *DryMartini, remoteHost net.IP, remotePort uint16) bool 
  */
 }
 
+
+
 //'join' the martini network (speakeasy?) by placing MartiniContact in the DHT
 //potentially need to connect to the Kademlia DHT for the first time here as well
 /*
@@ -97,3 +99,22 @@ func MakeJoin(m  *DryMartini, remoteHost net.IP, remotePort uint16){
 
 }
 */
+
+type KeyContact struct {
+    nextNodeIP net.IP
+    symmKey UUID
+}
+
+func (m *DryMartini) barCrawl(request string) bool {
+
+    //Generate a path
+
+    // Send the recursie request
+
+    //Wrap and send an olive
+}
+
+func (m *DryMartini) DistributeSymm(req PingRequest, res *PingResponse) error {
+
+
+}
