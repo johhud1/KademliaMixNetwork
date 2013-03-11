@@ -135,9 +135,6 @@ func NewUUID() (ret UUID) {
 	return
 }
 
-
-
-
 //more arguments for a later time
 //remoteAddr net.IP, remotePort uint16, doPing bool
 func DoJoin(dm *DryMartini) (bool) {

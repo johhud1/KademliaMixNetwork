@@ -58,7 +58,7 @@ func PrintLocalData(dm *DryMartini) {
 			log.Printf("drymartini.PrintLocalData %s\n", err)
 		}
 		//fmt.Printf("Print HashMap[%s]=%s\n", key.AsString(), string(value))
-		fmt.Printf("Print HashMap[%s]=%+v\n", key.AsString(), m)
+		fmt.Printf("Print HashMap[%s]=%+v\n", key.AsString(), m.GetReadyContact())
 	}
 
 }
