@@ -222,18 +222,23 @@ func WrapOlivesForPath(dm *DryMartini, mcPath []*MartiniContact, data []byte, sy
 	}
 
 	var tempOlive olive
-	for i := pathLength-1; i >= 0; i-- {
+	for i := pathLength-1; i > 0; i-- {
 		route := NewMartiniPick(mcPath[i-1], mcPath[i])
 		tempOlive.route = *route
-		tempOlive.data = theData
 		tempOlive.flowID = flowID
-		theData, err = json.Marshal(innerOlive)
+		//TODO: encrypt the data and put it into tempOlive
+		tempOlive.data = theData
+
+
+		//marshal the temp olive 
+		theData, err = json.Marshal(tempOlive)
 		if (err != nil){
 				log.Printf("error marshalling olive:%+v\n", tempOlive)
 				os.Exit(1)
 		}
 	}
-
+	//encrypt theData, put into outer olive
+	o.data = theData
 	o.flowID = flowID
 	return o
 }
