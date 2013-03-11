@@ -52,7 +52,9 @@ type olive struct {
 }
 
 type MartiniContact struct {
-    PubKey rsa.PublicKey
+    //PubKey rsa.PublicKey
+    PubKey string
+    PubExp int
     NodeIP string
     NodePort uint16
 }
@@ -65,6 +67,7 @@ func (mc MartiniContact) ToBytes() (b byte[]){
 	pubKeyStr string = (*mc.pubKey.N)
 }
 */
+
 
 // Create a new DryMartini object with its own kademlia and RPC server
 func NewDryMartini(listenStr string, keylen int, rpcPath *string) *DryMartini {
@@ -95,12 +98,14 @@ func NewDryMartini(listenStr string, keylen int, rpcPath *string) *DryMartini {
 	//myMartiniContact <- ip, port, public key
 	dm.myMartiniContact.NodeIP = host.String()
 	dm.myMartiniContact.NodePort = port
-	dm.myMartiniContact.PubKey = dm.KeyPair.PublicKey
+	dm.myMartiniContact.PubKey = dm.KeyPair.PublicKey.N.String()
+	dm.myMartiniContact.PubExp = dm.KeyPair.PublicKey.E
 	
 	if Verbose {
 		log.Printf("NodeIP: %s\n", dm.myMartiniContact.NodeIP)
 		log.Printf("NodePort: %d\n", dm.myMartiniContact.NodePort)
-		log.Printf("PubKey: %+v\n", dm.myMartiniContact.PubKey)
+		log.Printf("PubKey: %s\n", dm.myMartiniContact.PubKey)
+		log.Printf("PubExp: %d\n", dm.myMartiniContact.PubKey)
 	}
 	/*
 	//register
@@ -182,3 +187,4 @@ func DoJoin(dm *DryMartini) (bool) {
 	kademlia.MakeIterativeStore(dm.KademliaInst, key, mcBytes)
 	return true
 }
+
