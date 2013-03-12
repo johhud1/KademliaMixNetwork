@@ -3,15 +3,19 @@ package drymartini
 //RPC functions for our drymartini package
 
 import (
+    "os"
     "log"
 	//"fmt"
     "net"
 	//"io"
-	//"hash"
+	"hash"
 	"kademlia"
     //"net/rpc"
     //"strconv"
-	//"crypto/sha1"
+    "crypto/rsa"
+	"crypto/sha1"
+    "crypto/rand"
+    "encoding/json"
 )
 
 type PingRequest struct {
@@ -100,16 +104,60 @@ func MakeJoin(m  *DryMartini, remoteHost net.IP, remotePort uint16){
 }
 */
 
-type KeyContact struct {
-    nextNodeIP net.IP
-    symmKey UUID
-}
 
-func (m *DryMartini) barCrawl(request string) bool {
+func (m *DryMartini) barCrawl(request string, min int, max int) bool {
 
     //Generate a path
+    var chosenPath []*MartiniContact
+    chosenPath = GeneratePath(min, max)
 
     // Send the recursie request
+    var encryptedSym [][]byte
+    var jar []*olive
+    var flowID UUID
+    flowID = NewUUID()
+
+    var i int
+    // Build an array of olives
+    for i = 0;i < len(chosenPath) - 1; i++{
+        jar[i] = new(olive)
+        jar[i].flowID = flowID
+        jar[i].symmKey = NewUUID()
+        // Built its martiniPick
+        jar[i].route.nextNodeIP = chosenPath[i+1].NodeIP
+        jar[i].route.nextNodePort = chosenPath[i+1].NodePort
+        // First one?
+        if i == 0{
+            jar[i].route.prevNodeIP = m.myMartiniContact.NodeIP
+            jar[i].route.prevNodePort = m.myMartiniContact.NodePort
+        } else {
+            jar[i].route.prevNodeIP = jar[i-1].route.nextNodeIP
+            jar[i].route.prevNodePort = jar[i-1].route.nextNodePort
+        }
+    }
+    // Do the last one
+    jar[i] = new(olive)
+    jar[i].flowID = flowID
+    jar[i].symmKey = NewUUID()
+    jar[i].route.nextNodeIP = "end"
+    jar[i].route.prevNodeIP = jar[i-1].route.nextNodeIP
+    jar[i].route.prevNodePort = jar[i-1].route.nextNodePort
+
+    var tempBytes []byte
+    var err error
+    var sha_gen = hash.Hash
+
+    // Encrypt everything.
+    for i = 0; i < len(chosenPath); i++{
+        
+        tempBytes, err = json.Marshal(jar[i])
+        if (err != nil){
+            log.Printf("Error Marhsalling olive: %+v\n", jar[i])
+            os.Exit(1)
+        }
+        sha_gen = sha1.New()
+        encryptedSym[i], err = rsa.EncryptOAEP(sha_gen, rand.reader, &(chosenPath[0].GetReadyContact().PubKey), tempBytes, nil)
+    }
 
     //Wrap and send an olive
 }
