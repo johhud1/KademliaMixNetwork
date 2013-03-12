@@ -11,7 +11,7 @@ import (
 	"hash"
 	"kademlia"
     //"net/rpc"
-    "strconv"
+    //"strconv"
 	"net/rpc"
     "crypto/rsa"
 	"crypto/sha1"
@@ -19,6 +19,8 @@ import (
     "encoding/json"
 )
 
+/*
+//DryMartini RPC example code
 type PingRequest struct {
 	Msg string
 }
@@ -34,7 +36,7 @@ func (m *DryMartini) Ping(req PingRequest, res *PingResponse) error {
 
     return nil
 }
-
+*/
 
 func MakeMartiniPing(dm *DryMartini, remoteHost net.IP, remotePort uint16) bool {
 	
@@ -118,9 +120,11 @@ func BarCrawl(m *DryMartini, request string, min int, max int) bool {
     var flowID UUID
     flowID = NewUUID()
 
+	log.Printf("chosenPath: %+v\n", chosenPath)
+
     var i int
     // Build an array of olives
-    for i = 0;i < len(chosenPath) - 1; i++{
+    for i = 0; i < (len(chosenPath) - 1); i++ {
         jar[i] = new(olive)
         jar[i].flowID = flowID
         jar[i].symmKey = NewUUID()
@@ -128,7 +132,7 @@ func BarCrawl(m *DryMartini, request string, min int, max int) bool {
         jar[i].route.nextNodeIP = chosenPath[i+1].NodeIP
         jar[i].route.nextNodePort = chosenPath[i+1].NodePort
         // First one?
-        if i == 0{
+        if i == 0 {
             jar[i].route.prevNodeIP = m.myMartiniContact.NodeIP
             jar[i].route.prevNodePort = m.myMartiniContact.NodePort
         } else {
@@ -168,23 +172,79 @@ func BarCrawl(m *DryMartini, request string, min int, max int) bool {
 	}
     //Wrap and send an olive
 
+    var client *rpc.Client
+	var remoteAddrStr string = chosenPath[0].NodeIP+ ":"+ string(chosenPath[0].NodePort)
+
+	log.Printf("BarCrawl :::%s:::%s %d\n", remoteAddrStr, chosenPath[0].NodeIP, chosenPath[0].NodePort)
+    if RunningTests == true {
+		log.Printf("Unimplemented\n")
+		panic(1)
+		//var portstr string = RpcPath + strconv.FormatInt(int64(mp.nextNodePort), 10)
+		//log.Printf("test ping to rpcPath:%s\n", portstr)
+		//client, err = rpc.DialHTTPPath("tcp", remoteAddrStr, portstr)
+    } else {
+		client, err = rpc.DialHTTP("tcp", remoteAddrStr)
+	}
+
+    if err != nil {
+        log.Printf("Error: BarCrawl, DialHTTP, %s\n", err)
+        return false
+    }
+
+	//make rpc
+	var req *CCRequest = new(CCRequest)
+	req.Msg = "Request"
+	var res *CCResponse = new(CCResponse)
+
+    err = client.Call("DryMartini.CreateCircuit", req, res)
+    if err != nil {
+        log.Printf("Error: CreateCircuit, Call, %s\n", err)
+        return false
+    }
+	log.Printf("got DistributeSymm response: %s\n", res.Msg);
+
+    client.Close()
+
+	
+
 	return true
 }
 
-type symmKeyRequest struct {
-
+type CCRequest struct {
+	Msg string
+	EncryptedData [][]byte
 }
-type symmKeyResponse struct {
+type CCResponse struct {
+	Msg string
+	err error
+}
+
+func CreateCircuit(req CCRequest, res *CCResponse) bool {
+	//Dial the server
+	log.Printf("%v", req)
+	
+	res.Msg = "CreateCircuitReply"
+
+	return true
+}
+
+type SymmKeyRequest struct {
+	Msg string
+}
+type SymmKeyResponse struct {
 	Msg string
 
 }
 
-func (m *DryMartini) DistributeSymm(req symmKeyRequest, res *symmKeyResponse) error {
+func (m *DryMartini) DistributeSymm(req SymmKeyRequest, res *SymmKeyResponse) error {
 
 
 	return nil
 }
 
+
+
+/*
 func MakeDistributeSymmKeyRPC(mp *martiniPick) bool {
 	//Dial the server
     var client *rpc.Client
@@ -206,8 +266,9 @@ func MakeDistributeSymmKeyRPC(mp *martiniPick) bool {
     }
 
 	//make rpc
-	var req symmKeyRequest
-	var res *symmKeyResponse
+	var req *SymmKeyRequest = new(SymmKeyRequest)
+	req.Msg = "Request"
+	var res *SymmKeyResponse = new(SymmKeyResponse)
 
     err = client.Call("DryMartini.DistributeSymm", req, res)
     if err != nil {
@@ -219,4 +280,4 @@ func MakeDistributeSymmKeyRPC(mp *martiniPick) bool {
     client.Close()
 	return true
 }
-
+*/

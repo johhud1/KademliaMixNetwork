@@ -258,7 +258,7 @@ func GeneratePath(dm *DryMartini, min, max int) (mcPath []MartiniContact){
 	//myRand, err = rand.Int(rand.Reader, big.NewInt(int64(max-min)))
 	//threshold = int((minBig.Int64() + myRand.Int64()))
 	mcPath = make([]MartiniContact, max)
-	for i := 0; i< max; i++{
+	for i := 0; i< max; i++ {
 		var foundNodes []kademlia.FoundNode
 		var success bool
 		randId = kademlia.NewRandomID()
@@ -272,16 +272,25 @@ func GeneratePath(dm *DryMartini, min, max int) (mcPath []MartiniContact){
 			log.Printf("error making rand:%s\n", fuckingo)
 		}
 		index := int(fuckthis.Int64())
-		var hashedID kademlia.ID =foundNodes[index].NodeID.SHA1Hash()
+		var hashedID kademlia.ID = foundNodes[index].NodeID.SHA1Hash()
 		var mcBytes []byte
+
+		//FIXME check if you have already added the specific node
+
 		success, _, mcBytes, err = kademlia.IterativeFind(dm.KademliaInst, hashedID, 2)
-		if(err != nil){
+		if(err != nil) {
 			log.Printf("error finding MartiniContact with key:%s. err:%s\n", hashedID.AsString(), err)
+		}
+		if success {
+			log.Printf("GeneratePath: foundValue\n")
+		} else {
+			log.Printf("GeneratePath: DID NOT foundValue\n")
 		}
 		err = json.Unmarshal(mcBytes, &mcPath[i])
 		if(err != nil){
 			log.Printf("error finding MartiniContact with key:%s. err:%s\n", hashedID.AsString(), err)
 		}
+		log.Printf("GeneratePath %+v\n", mcPath[i])
 	}
 	return
 }
