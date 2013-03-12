@@ -273,24 +273,43 @@ func GeneratePath(dm *DryMartini, min, max int) (mcPath []MartiniContact){
 		}
 		index := int(fuckthis.Int64())
 		var hashedID kademlia.ID = foundNodes[index].NodeID.SHA1Hash()
-		var mcBytes []byte
-
-		//FIXME check if you have already added the specific node
-
-		success, _, mcBytes, err = kademlia.IterativeFind(dm.KademliaInst, hashedID, 2)
-		if(err != nil) {
+		mcPath[i], success = findMartiniContact(dm, hashedID)
+		//err = json.Unmarshal(mcBytes, &mcPath[i])
+		if(success == false){
 			log.Printf("error finding MartiniContact with key:%s. err:%s\n", hashedID.AsString(), err)
-		}
-		if success {
-			log.Printf("GeneratePath: foundValue\n")
-		} else {
-			log.Printf("GeneratePath: DID NOT foundValue\n")
-		}
-		err = json.Unmarshal(mcBytes, &mcPath[i])
-		if(err != nil){
-			log.Printf("error finding MartiniContact with key:%s. err:%s\n", hashedID.AsString(), err)
+			i--
+			continue
 		}
 		log.Printf("GeneratePath %+v\n", mcPath[i])
 	}
 	return
+}
+
+func findMartiniContact(dm *DryMartini, hashedID kademlia.ID) (MartiniContact, bool){
+	var mcBytes []byte
+	var mc MartiniContact
+	var err error
+	var success bool
+
+	//FIXME check if you have already added the specific node
+	mcBytes, success = dm.KademliaInst.ValueStore.Get(hashedID)
+	if !success {
+		success, _, mcBytes, err = kademlia.IterativeFind(dm.KademliaInst, hashedID, 2)
+		if(err != nil) {
+			log.Printf("error finding MartiniContact with key:%s. err:%s\n", hashedID.AsString(), err)
+			os.Exit(1)
+		}
+		if success {
+			log.Printf("findMartiniContact: foundValue\n")
+		} else {
+			log.Printf("GeneratePath: DID NOT foundValue\n")
+			return mc, false
+		}
+		err = json.Unmarshal(mcBytes, &mc)
+		if err != nil {
+			log.Printf("Error unmarshaling found MartiniContact. %s\n", err)
+			os.Exit(1)
+		}
+	}
+	return mc, true
 }

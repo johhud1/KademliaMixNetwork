@@ -205,7 +205,7 @@ func BarCrawl(m *DryMartini, request string, min int, max int) bool {
 
     client.Close()
 
-	
+
 
 	return true
 }
@@ -222,7 +222,7 @@ type CCResponse struct {
 func CreateCircuit(req CCRequest, res *CCResponse) bool {
 	//Dial the server
 	log.Printf("%v", req)
-	
+
 	res.Msg = "CreateCircuitReply"
 
 	return true
@@ -236,48 +236,3 @@ type SymmKeyResponse struct {
 
 }
 
-func (m *DryMartini) DistributeSymm(req SymmKeyRequest, res *SymmKeyResponse) error {
-
-
-	return nil
-}
-
-
-
-/*
-func MakeDistributeSymmKeyRPC(mp *martiniPick) bool {
-	//Dial the server
-    var client *rpc.Client
-	var remoteAddrStr string
-    var err error
-
-	remoteAddrStr = mp.nextNodeIP
-    if RunningTests == true {
-		var portstr string = RpcPath + strconv.FormatInt(int64(mp.nextNodePort), 10)
-		//log.Printf("test ping to rpcPath:%s\n", portstr)
-		client, err = rpc.DialHTTPPath("tcp", remoteAddrStr, portstr)
-    } else {
-		client, err = rpc.DialHTTP("tcp", remoteAddrStr)
-	}
-
-    if err != nil {
-        log.Printf("Error: MakePingCall, DialHTTP, %s\n", err)
-        return false
-    }
-
-	//make rpc
-	var req *SymmKeyRequest = new(SymmKeyRequest)
-	req.Msg = "Request"
-	var res *SymmKeyResponse = new(SymmKeyResponse)
-
-    err = client.Call("DryMartini.DistributeSymm", req, res)
-    if err != nil {
-        log.Printf("Error: MakeDistributeSymmKey, Call, %s\n", err)
-        return false
-    }
-	log.Printf("got DistributeSymm response: %s\n", res.Msg);
-
-    client.Close()
-	return true
-}
-*/
