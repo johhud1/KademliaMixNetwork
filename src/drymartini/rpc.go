@@ -219,13 +219,13 @@ type CCResponse struct {
 	err error
 }
 
-func CreateCircuit(req CCRequest, res *CCResponse) bool {
+func (dm *DryMartini) CreateCircuit(req CCRequest, res *CCResponse) error {
 	//Dial the server
 	log.Printf("%v", req)
 
 	res.Msg = "CreateCircuitReply"
 
-	return true
+	return nil
 }
 
 type SymmKeyRequest struct {
