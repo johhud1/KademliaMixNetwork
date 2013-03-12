@@ -9,6 +9,7 @@ import (
     "bufio"
     "strings"
     "kademlia"
+	"strconv"
     "drymartini"
 	"math/rand"
 	"time"
@@ -20,6 +21,9 @@ type DryMartiniInstruction struct {
 	flags uint8
 	CmdStr string
 	Addr string
+	minNodes, maxNodes int
+	request string
+	Key kademlia.ID
 }
 
 func NewDryMartiniInstruction(s string) (dmInst *DryMartiniInstruction) {
@@ -74,6 +78,33 @@ func NewDryMartiniInstruction(s string) (dmInst *DryMartiniInstruction) {
 			return dmInst
 		}
 		dmInst.flags = 6
+	case "genPath" :
+		if len(strTokens) != 3 {
+			return dmInst
+		}
+		dmInst.flags = 7
+		dmInst.minNodes, err= strconv.Atoi(strTokens[2])
+		dmInst.maxNodes, err= strconv.Atoi(strTokens[3])
+		if(err != nil){
+			log.Printf("error parsing strings to int: %s\n", err)
+		}
+	case "bc" :
+		if len(strTokens) != 4 {
+			return dmInst
+		}
+		dmInst.flags = 8
+		dmInst.request = strTokens[1]
+		dmInst.minNodes, err= strconv.Atoi(strTokens[2])
+		dmInst.maxNodes, err= strconv.Atoi(strTokens[3])
+		if(err != nil){
+			log.Printf("error parsing strings to int: %s\n", err)
+		}
+	case "fv" :
+		if len(strTokens) != 2 {
+			return dmInst
+		}
+		dmInst.flags = 9
+		dmInst.Key, err = kademlia.FromString(strTokens[1])
 	}
 
 	if err != nil {
@@ -101,11 +132,21 @@ func (dmInst *DryMartiniInstruction) IsPrintLocalBuckets() bool{
 func (dmInst *DryMartiniInstruction) IsPrintLocalData() bool{
 	return dmInst.flags == 6
 }
+func (dmInst *DryMartiniInstruction) IsGeneratePath() bool{
+	return dmInst.flags == 7
+}
+func (dmInst *DryMartiniInstruction) IsBarCrawl() bool{
+	return dmInst.flags == 8
+}
+func (dmInst *DryMartiniInstruction) IsFindValue() bool{
+	return dmInst.flags == 9
+}
 func (dmInst *DryMartiniInstruction) IsSkip() bool {
 	return dmInst.flags == 255
 }
 
 func (dmInst *DryMartiniInstruction) Execute(dm *drymartini.DryMartini) (status bool) {
+	var err error
 
 	switch  {
 	case dmInst.IsExit() :
@@ -160,6 +201,30 @@ func (dmInst *DryMartiniInstruction) Execute(dm *drymartini.DryMartini) (status 
 		//kademlia.PrintLocalData(dm.KademliaInst)
 		drymartini.PrintLocalData(dm)
 		return true
+	case dmInst.IsGeneratePath() :
+		log.Printf("Generate Path\n")
+		drymartini.GeneratePath(dm, dmInst.minNodes, dmInst.maxNodes)
+		return true
+	case dmInst.IsBarCrawl() :
+		log.Printf("Bar Crawl (negotiating symmkeys with nodes)")
+		drymartini.BarCrawl(dm, dmInst.request, dmInst.minNodes, dmInst.maxNodes)
+	case dmInst.IsFindValue() :
+		log.Printf("Find Value")
+		var sucess bool
+		//var nodes[]kademlia.FoundNode
+		var value []byte
+		sucess, _, value, err = kademlia.IterativeFind(dm.KademliaInst, dmInst.Key, 2)
+		if err != nil {
+			log.Printf("IterativeFind: error %s\n", err)
+		}
+		if sucess {
+			if value != nil {
+				log.Printf("IterativeFindValue: Value for key %s --> %s\n", dmInst.Key.AsString(), string(value))
+			} else {
+				log.Printf("IterativeFindValue err: success = true. value is nil\n")
+			}
+		}
+
 	}
 	return false
 }

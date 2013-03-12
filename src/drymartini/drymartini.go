@@ -3,13 +3,13 @@ package drymartini
 import (
     "kademlia"
     "net"
-    //"net/rpc"
+    "net/rpc"
     //"net/http"
     "log"
     "os"
 	//"fmt"
     "crypto/rsa"
-    "crypto/sha1"
+    //"crypto/sha1"
     "crypto/rand"
     "math/big"
     "time"
@@ -73,7 +73,7 @@ func (mc MartiniContact) ToBytes() (b byte[]){
 // Create a new DryMartini object with its own kademlia and RPC server
 func NewDryMartini(listenStr string, keylen int, rpcPath *string) *DryMartini {
     var err error
-    //var s *rpc.Server
+    var s *rpc.Server
     var dm *DryMartini
 
     dm = new(DryMartini)
@@ -90,7 +90,7 @@ func NewDryMartini(listenStr string, keylen int, rpcPath *string) *DryMartini {
 
 	//Initialize our Kademlia
 	//dm.KademliaInst, s = kademlia.NewKademlia(listenStr, rpcPath)
-	dm.KademliaInst, _ = kademlia.NewKademlia(listenStr, rpcPath)
+	dm.KademliaInst, s = kademlia.NewKademlia(listenStr, rpcPath)
 
 	var host net.IP
 	var port uint16
@@ -108,17 +108,16 @@ func NewDryMartini(listenStr string, keylen int, rpcPath *string) *DryMartini {
 		log.Printf("PubKey: %s\n", dm.myMartiniContact.PubKey)
 		log.Printf("PubExp: %d\n", dm.myMartiniContact.PubKey)
 	}
-	/*
 	//register
 	err = s.Register(dm)
 	if err != nil {
         log.Printf("Failed to register Drymartini! %s", err)
         os.Exit(1)
 	}
-	 */
 
     // Encrypt/Decrypt Test
     // First, ready the contact
+	/*
     readycon := dm.myMartiniContact.GetReadyContact()
     sha11 := sha1.New()
 
@@ -138,27 +137,12 @@ func NewDryMartini(listenStr string, keylen int, rpcPath *string) *DryMartini {
     sha21 := sha1.New()
     back, _ := rsa.DecryptOAEP(sha21, nil, dm.KeyPair, out3, nil)
     log.Printf("Back Again: %s\n", string(back))
+	 */
 
 
     return dm
 }
 
-
-const UUIDBytes = 20
-type UUID [UUIDBytes]byte
-
-func NewUUID() (ret UUID) {
-    var hold *big.Int
-    var err error
-	for i := 0; i < UUIDBytes; i++ {
-        hold, err = rand.Int(rand.Reader, big.NewInt(256))
-		if err != nil {
-            log.Printf("Keygen problems son")
-        }
-        ret[i] = uint8((*hold).Int64())
-	}
-	return
-}
 
 //more arguments for a later time
 //remoteAddr net.IP, remotePort uint16, doPing bool
@@ -223,13 +207,14 @@ func NewMartiniPick(from *MartiniContact, to *MartiniContact) (pick *martiniPick
 
 //choosing []bytes for data was pretty arbitrary, could probably be something else
 //o is the outermost olive
-func WrapOlivesForPath(dm *DryMartini, mcPath []*MartiniContact, data []byte, symmKey UUID)  (o *olive){
+func WrapOlivesForPath(dm *DryMartini, oPath []*olive, data []byte, symmKey UUID)  (o *olive){
 	var flowID UUID
 	var err error
-	pathLength := len(mcPath)
+	pathLength := len(oPath)
 	flowID = NewUUID()
 
-	//if only 1 MartiniContact exists in path, then we only construct 1 olive.. but that should probably never happen
+	//if only 1 MartiniContact exists in path, then we only construct 1 olive..
+	//but that should probably never happen, (assuming always more than 1 hop atm)
 	var innerOlive olive
 	innerOlive.flowID = flowID
 	innerOlive.data = data
@@ -245,8 +230,7 @@ func WrapOlivesForPath(dm *DryMartini, mcPath []*MartiniContact, data []byte, sy
 
 	var tempOlive olive
 	for i := pathLength-1; i > 0; i-- {
-		route := NewMartiniPick(mcPath[i-1], mcPath[i])
-		tempOlive.route = *route
+		tempOlive.route = oPath[i].route
 		tempOlive.flowID = flowID
 		//TODO: encrypt the data and put it into tempOlive
 		tempOlive.data = theData
@@ -265,15 +249,16 @@ func WrapOlivesForPath(dm *DryMartini, mcPath []*MartiniContact, data []byte, sy
 	return o
 }
 
-func (dm *DryMartini) GeneratePath(min, max int) (mcPath []*MartiniContact){
+func GeneratePath(dm *DryMartini, min, max int) (mcPath []MartiniContact){
 	var err error
-	var threshold int
-	var myRand *big.Int
+	//var threshold int
+	//var myRand *big.Int
 	var randId kademlia.ID
-	minBig := big.NewInt(int64(min))
-	myRand, err = rand.Int(rand.Reader, big.NewInt(int64(max-min)))
-	threshold = int((minBig.Int64() + myRand.Int64()))
-	for i := 0; i< threshold; i++{
+	//minBig := big.NewInt(int64(min))
+	//myRand, err = rand.Int(rand.Reader, big.NewInt(int64(max-min)))
+	//threshold = int((minBig.Int64() + myRand.Int64()))
+	mcPath = make([]MartiniContact, max)
+	for i := 0; i< max; i++{
 		var foundNodes []kademlia.FoundNode
 		var success bool
 		randId = kademlia.NewRandomID()
@@ -282,20 +267,20 @@ func (dm *DryMartini) GeneratePath(min, max int) (mcPath []*MartiniContact){
 			log.Printf("error finding nodeID:%s, success:%s msg:%s\n", randId, success, err);
 			os.Exit(1)
 		}
-		fuckthis, fuckyou := rand.Int(rand.Reader, big.NewInt(int64(len(foundNodes))))
-		if(fuckyou!=nil){
-			log.Printf("error making rand:%s\n", fuckyou)
+		fuckthis, fuckingo := rand.Int(rand.Reader, big.NewInt(int64(len(foundNodes))))
+		if(fuckingo!=nil){
+			log.Printf("error making rand:%s\n", fuckingo)
 		}
 		index := int(fuckthis.Int64())
 		var hashedID kademlia.ID =foundNodes[index].NodeID.SHA1Hash()
 		var mcBytes []byte
 		success, _, mcBytes, err = kademlia.IterativeFind(dm.KademliaInst, hashedID, 2)
 		if(err != nil){
-			log.Printf("error finding MartiniContact with key:%s. err:%s\n", hashedID, err)
+			log.Printf("error finding MartiniContact with key:%s. err:%s\n", hashedID.AsString(), err)
 		}
-		err = json.Unmarshal(mcBytes, mcPath[i])
+		err = json.Unmarshal(mcBytes, &mcPath[i])
 		if(err != nil){
-			log.Printf("error finding MartiniContact with key:%s. err:%s\n", hashedID, err)
+			log.Printf("error finding MartiniContact with key:%s. err:%s\n", hashedID.AsString(), err)
 		}
 	}
 	return

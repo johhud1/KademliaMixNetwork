@@ -11,7 +11,8 @@ import (
 	"hash"
 	"kademlia"
     //"net/rpc"
-    //"strconv"
+    "strconv"
+	"net/rpc"
     "crypto/rsa"
 	"crypto/sha1"
     "crypto/rand"
@@ -105,15 +106,15 @@ func MakeJoin(m  *DryMartini, remoteHost net.IP, remotePort uint16){
 */
 
 
-func (m *DryMartini) barCrawl(request string, min int, max int) bool {
+func BarCrawl(m *DryMartini, request string, min int, max int) bool {
 
     //Generate a path
-    var chosenPath []*MartiniContact
-    chosenPath = GeneratePath(min, max)
+    var chosenPath []MartiniContact
+    chosenPath = GeneratePath(m, min, max)
 
     // Send the recursie request
-    var encryptedSym [][]byte
-    var jar []*olive
+    var encryptedSym [][]byte = make([][]byte, len(chosenPath))
+    var jar []*olive = make([]*olive, len(chosenPath))
     var flowID UUID
     flowID = NewUUID()
 
@@ -145,24 +146,77 @@ func (m *DryMartini) barCrawl(request string, min int, max int) bool {
 
     var tempBytes []byte
     var err error
-    var sha_gen = hash.Hash
+    var sha_gen hash.Hash
 
+	log.Printf("building jar, flowID:%s\n", flowID.AsString())
     // Encrypt everything.
     for i = 0; i < len(chosenPath); i++{
-        
+		if Verbose {
+			log.Printf("jar[%d]: %+v\n", i, jar[i])
+		}
         tempBytes, err = json.Marshal(jar[i])
         if (err != nil){
             log.Printf("Error Marhsalling olive: %+v\n", jar[i])
             os.Exit(1)
         }
         sha_gen = sha1.New()
-        encryptedSym[i], err = rsa.EncryptOAEP(sha_gen, rand.reader, &(chosenPath[0].GetReadyContact().PubKey), tempBytes, nil)
+        encryptedSym[i], err = rsa.EncryptOAEP(sha_gen, rand.Reader, &(chosenPath[0].GetReadyContact().PubKey), tempBytes, nil)
     }
 
+	if Verbose {
+		//log.Printf("built encryptedArray: %+v", encryptedSym)
+	}
     //Wrap and send an olive
+
+	return true
 }
 
-func (m *DryMartini) DistributeSymm(req PingRequest, res *PingResponse) error {
-
+type symmKeyRequest struct {
 
 }
+type symmKeyResponse struct {
+	Msg string
+
+}
+
+func (m *DryMartini) DistributeSymm(req symmKeyRequest, res *symmKeyResponse) error {
+
+
+	return nil
+}
+
+func MakeDistributeSymmKeyRPC(mp *martiniPick) bool {
+	//Dial the server
+    var client *rpc.Client
+	var remoteAddrStr string
+    var err error
+
+	remoteAddrStr = mp.nextNodeIP
+    if RunningTests == true {
+		var portstr string = RpcPath + strconv.FormatInt(int64(mp.nextNodePort), 10)
+		//log.Printf("test ping to rpcPath:%s\n", portstr)
+		client, err = rpc.DialHTTPPath("tcp", remoteAddrStr, portstr)
+    } else {
+		client, err = rpc.DialHTTP("tcp", remoteAddrStr)
+	}
+
+    if err != nil {
+        log.Printf("Error: MakePingCall, DialHTTP, %s\n", err)
+        return false
+    }
+
+	//make rpc
+	var req symmKeyRequest
+	var res *symmKeyResponse
+
+    err = client.Call("DryMartini.DistributeSymm", req, res)
+    if err != nil {
+        log.Printf("Error: MakeDistributeSymmKey, Call, %s\n", err)
+        return false
+    }
+	log.Printf("got DistributeSymm response: %s\n", res.Msg);
+
+    client.Close()
+	return true
+}
+
