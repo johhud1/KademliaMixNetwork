@@ -275,7 +275,7 @@ func GeneratePath(dm *DryMartini, min, max int) (mcPath []MartiniContact){
 		var hashedID kademlia.ID = foundNodes[index].NodeID.SHA1Hash()
 		mcPath[i], success = findMartiniContact(dm, hashedID)
 		//err = json.Unmarshal(mcBytes, &mcPath[i])
-		if(success == false){
+		if !success {
 			log.Printf("error finding MartiniContact with key:%s. err:%s\n", hashedID.AsString(), err)
 			i--
 			continue
@@ -305,14 +305,13 @@ func findMartiniContact(dm *DryMartini, hashedID kademlia.ID) (MartiniContact, b
 			log.Printf("GeneratePath: DID NOT foundValue\n")
 			return mc, false
 		}
-		err = json.Unmarshal(mcBytes, &mc)
-		if err != nil {
-			log.Printf("Error unmarshaling found MartiniContact. %s\n", err)
-			os.Exit(1)
-		}
 	} else {
 		log.Printf("found martiniContact locally. Key:%s\n", hashedID)
 	}
 	err = json.Unmarshal(mcBytes, &mc)
+	if err != nil {
+		log.Printf("Error unmarshaling found MartiniContact. %s\n", err)
+		os.Exit(1)
+	}
 	return mc, true
 }

@@ -17,6 +17,7 @@ import (
 	"crypto/sha1"
     "crypto/rand"
     "encoding/json"
+	"strconv"
 )
 
 /*
@@ -173,7 +174,7 @@ func BarCrawl(m *DryMartini, request string, min int, max int) bool {
     //Wrap and send an olive
 
     var client *rpc.Client
-	var remoteAddrStr string = chosenPath[0].NodeIP+ ":"+ string(chosenPath[0].NodePort)
+	var remoteAddrStr string = chosenPath[0].NodeIP+ ":"+ strconv.FormatUint(uint64(chosenPath[0].NodePort), 10)
 
 	log.Printf("BarCrawl :::%s:::%s %d\n", remoteAddrStr, chosenPath[0].NodeIP, chosenPath[0].NodePort)
     if RunningTests == true {
@@ -194,6 +195,7 @@ func BarCrawl(m *DryMartini, request string, min int, max int) bool {
 	//make rpc
 	var req *CCRequest = new(CCRequest)
 	req.Msg = "Request"
+	req.EncryptedData = encryptedSym
 	var res *CCResponse = new(CCResponse)
 
     err = client.Call("DryMartini.CreateCircuit", req, res)
@@ -220,9 +222,26 @@ type CCResponse struct {
 }
 
 func (dm *DryMartini) CreateCircuit(req CCRequest, res *CCResponse) error {
-	//Dial the server
-	log.Printf("%v", req)
+	var o *olive = new(olive)
+	var sha_gen hash.Hash = sha1.New()
+	var decryptedData []byte
+	var err error
 
+	//Dial the server
+	log.Printf("%v\n", req)
+	log.Printf("%+v\n", req.EncryptedData)
+
+	decryptedData, err = rsa.DecryptOAEP(sha_gen, nil, dm.KeyPair, req.EncryptedData[0], nil)
+	if err != nil {
+		log.Printf("Error: DryMartini.CreateCircuit.Decrypt( %s)\n", err)
+	}
+
+	err = json.Unmarshal(decryptedData, o)
+	if err != nil {
+		log.Printf("Error: DryMartini.CreateCircuit.Unmarshal( %s)\n", err)
+	}
+
+	log.Printf("%+v\n", o)
 	res.Msg = "CreateCircuitReply"
 
 	return nil
