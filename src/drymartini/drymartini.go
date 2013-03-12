@@ -313,5 +313,6 @@ func findMartiniContact(dm *DryMartini, hashedID kademlia.ID) (MartiniContact, b
 	} else {
 		log.Printf("found martiniContact locally. Key:%s\n", hashedID)
 	}
+	err = json.Unmarshal(mcBytes, &mc)
 	return mc, true
 }
