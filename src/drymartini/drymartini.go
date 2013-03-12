@@ -310,6 +310,8 @@ func findMartiniContact(dm *DryMartini, hashedID kademlia.ID) (MartiniContact, b
 			log.Printf("Error unmarshaling found MartiniContact. %s\n", err)
 			os.Exit(1)
 		}
+	} else {
+		log.Printf("found martiniContact locally. Key:%s\n", hashedID)
 	}
 	return mc, true
 }
