@@ -298,3 +298,78 @@ type SymmKeyResponse struct {
 
 }
 
+type ServerData struct {
+    Sent Olive
+}
+type ServerResp struct {
+    Success bool
+}
+
+
+
+
+func MakeSendCall(dataLump Olive, nextNodeAddrStr string) bool {
+    var client *rpc.Client
+	var err error
+
+	log.Printf("MakeSendCall: %s\n")
+    if RunningTests == true {
+		log.Printf("Unimplemented\n")
+		panic(1)
+		//var portstr string = RpcPath + strconv.FormatInt(int64(mp.nextNodePort), 10)
+		//log.Printf("test ping to rpcPath:%s\n", portstr)
+		//client, err = rpc.DialHTTPPath("tcp", remoteAddrStr, portstr)
+    } else {
+		client, err = rpc.DialHTTP("tcp", nextNodeAddrStr)
+	}
+    if err != nil {
+        log.Printf("Error: MakeSendCall, DialHTTP, %s\n", err)
+        return false
+    }
+
+	//make rpc
+	var res *ServerResp = new(ServerResp)
+	var req *ServerData = new(ServerData)
+	req.Sent = dataLump
+
+    err = client.Call("DryMartini.ServeDrink", req, res)
+    if err != nil {
+        log.Printf("Error: SendCall, Call, %s\n", err)
+        return false
+    }
+	log.Printf("got SendCall response: %s:%s\n", nextNodeAddrStr, res.Success);
+
+    client.Close()
+
+	return res.Success
+}
+
+
+// SEND IT RECURSIVELY, THATS HOW BARS WORK
+func (dm *DryMartini) ServerDrink(req ServerData, resp *ServerResp) error {
+    var raw_data []byte
+    var decolive Olive
+    var currFlow UUID
+    var err error
+
+    currFlow = req.Sent.FlowID
+
+    raw_data = DecryptDataSymm(req.Sent.Data, dm.Bartender[currFlow].SymmKey)
+    // Unmarshal the new olive
+    err = json.Unmarshal(raw_data, &decolive)
+    if err != nil {
+        log.Printf("%s\n", err)
+        resp.Success = false
+    }
+
+
+    //Send the new olive!
+    //TODO: End case should maybe return false? It should check for failure.
+	var nextNodeAddrStr string = decolive.Route.NextNodeIP + ":" + strconv.FormatUint(uint64(decolive.Route.NextNodePort), 10)
+    resp.Success = MakeSendCall(decolive, nextNodeAddrStr)
+
+    return nil
+}
+
+
+
