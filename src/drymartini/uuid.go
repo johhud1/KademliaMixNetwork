@@ -1,13 +1,14 @@
 package drymartini
 
 import (
+    "os"
 	"encoding/hex"
 	"math/big"
 	"crypto/rand"
 	"log"
 	)
 
-const UUIDBytes = 20
+const UUIDBytes = 16
 type UUID [UUIDBytes]byte
 
 func (id UUID) AsString() string {
@@ -25,4 +26,26 @@ func NewUUID() (ret UUID) {
         ret[i] = uint8((*hold).Int64())
 	}
 	return
+}
+
+func (x *UUID) MarshalJSON() ([]byte, error) {
+        log.Printf("Marshaling a UUID!\n")
+        stuff := x[0:]
+        return stuff, nil
+    }
+
+func (ret *UUID) UnmarshalJSON(x string) error {
+
+    bytes, err := hex.DecodeString(x)
+    if err != nil {
+        log.Printf("Error: FromString, %s\n", err)
+        os.Exit(-1)
+    }
+
+    for i := 0; i < len(bytes); i++ {
+        ret[i] = bytes[i]
+    }
+
+
+    return nil
 }
