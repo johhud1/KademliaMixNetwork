@@ -36,20 +36,20 @@ type DryMartini struct {
 
 // The flow structure, it remembers olives
 type martiniPick struct {
-    nextNodeIP string
-    nextNodePort uint16
-    prevNodeIP string
-    prevNodePort uint16
+    NextNodeIP string
+    NextNodePort uint16
+    PrevNodeIP string
+    PrevNodePort uint16
 }
 
 type olive struct {
     // NOTE: This should change for each node, we might be risking path
     // discovery
-    flowID UUID
-    data []byte
-    route martiniPick
+    FlowID UUID
+    Data []byte
+    Route martiniPick
     // We reuse UUID because it's the right length, not really a uuid
-    symmKey UUID
+    SymmKey UUID
 }
 
 type MartiniContact struct {
@@ -196,18 +196,18 @@ func DoJoin(dm *DryMartini) (bool) {
 
 func NewMartiniPick(from *MartiniContact, to *MartiniContact) (pick *martiniPick){
 	//TODO: implement
-	pick.prevNodeIP = from.NodeIP
-	pick.prevNodePort = from.NodePort
+	pick.PrevNodeIP = from.NodeIP
+	pick.PrevNodePort = from.NodePort
 	if (to != nil){
-		pick.nextNodeIP = to.NodeIP
-		pick.nextNodePort = to.NodePort
+		pick.NextNodeIP = to.NodeIP
+		pick.NextNodePort = to.NodePort
 	}
 	return
 }
 
-//choosing []bytes for data was pretty arbitrary, could probably be something else
+//choosing []bytes for Data was pretty arbitrary, could probably be something else
 //o is the outermost olive
-func WrapOlivesForPath(dm *DryMartini, oPath []*olive, data []byte, symmKey UUID)  (o *olive){
+func WrapOlivesForPath(dm *DryMartini, oPath []*olive, Data []byte, SymmKey UUID)  (o *olive){
 	var flowID UUID
 	var err error
 	pathLength := len(oPath)
@@ -216,10 +216,10 @@ func WrapOlivesForPath(dm *DryMartini, oPath []*olive, data []byte, symmKey UUID
 	//if only 1 MartiniContact exists in path, then we only construct 1 olive..
 	//but that should probably never happen, (assuming always more than 1 hop atm)
 	var innerOlive olive
-	innerOlive.flowID = flowID
-	innerOlive.data = data
-	//innerOlive.route = NewMartiniPick(mcPath[pathLength-1], nil)
-	innerOlive.symmKey = symmKey
+	innerOlive.FlowID = flowID
+	innerOlive.Data = Data
+	//innerOlive.Route = NewMartiniPick(mcPath[pathLength-1], nil)
+	innerOlive.SymmKey = SymmKey
 
 	var theData []byte
 	theData, err = json.Marshal(innerOlive)
@@ -230,10 +230,10 @@ func WrapOlivesForPath(dm *DryMartini, oPath []*olive, data []byte, symmKey UUID
 
 	var tempOlive olive
 	for i := pathLength-1; i > 0; i-- {
-		tempOlive.route = oPath[i].route
-		tempOlive.flowID = flowID
-		//TODO: encrypt the data and put it into tempOlive
-		tempOlive.data = theData
+		tempOlive.Route = oPath[i].Route
+		tempOlive.FlowID = flowID
+		//TODO: encrypt the Data and put it into tempOlive
+		tempOlive.Data = theData
 
 
 		//marshal the temp olive 
@@ -244,8 +244,8 @@ func WrapOlivesForPath(dm *DryMartini, oPath []*olive, data []byte, symmKey UUID
 		}
 	}
 	//encrypt theData, put into outer olive
-	o.data = theData
-	o.flowID = flowID
+	o.Data = theData
+	o.FlowID = flowID
 	return o
 }
 
