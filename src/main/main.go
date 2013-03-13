@@ -114,7 +114,7 @@ func NewDryMartiniInstruction(s string) (dmInst *DryMartiniInstruction) {
 		dmInst.flags = 10
 	case "send" :
 		//kademlia.Assert(len(strTokens) == 3, "send requires 2 arguments")//pld
-		if len(strTokens) != 1 {
+		if len(strTokens) != 3 {
 			return dmInst
 		}
 		dmInst.flags = 11
