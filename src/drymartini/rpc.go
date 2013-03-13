@@ -135,7 +135,8 @@ func BarCrawl(m *DryMartini, request string, min int, max int) bool {
         // Built its martiniPick
         jar[i].Route.NextNodeIP = chosenPath[i+1].NodeIP
         jar[i].Route.NextNodePort = chosenPath[i+1].NodePort
-        jar[i].Route.SymmKey = NewUUID()
+		m.myTab[i] = NewUUID()
+        jar[i].Route.SymmKey = m.myTab[i]
 
         // First one?
         if i == 0 {
@@ -156,7 +157,8 @@ func BarCrawl(m *DryMartini, request string, min int, max int) bool {
     //jar[i].Route.PrevNodePort = jar[i-1].Route.NextNodePort
     jar[i].Route.PrevNodeIP = chosenPath[i-1].NodeIP
     jar[i].Route.PrevNodePort = chosenPath[i-1].NodePort
-    jar[i].Route.SymmKey = NewUUID()
+	m.myTab[i] = NewUUID()
+    jar[i].Route.SymmKey = m.myTab[i]
 	jar[i].Data = []byte(request)
 
     var tempBytes []byte
@@ -190,7 +192,6 @@ func BarCrawl(m *DryMartini, request string, min int, max int) bool {
 
 	if success {
 		//m.Bartender[flowID] = 
-		
 	}
 
 	return success
@@ -266,7 +267,7 @@ func (dm *DryMartini) CreateCircuit(req CCRequest, res *CCResponse) error {
 		return nil//Change to valid error
 	}
 
-	dm.Bartender[nextNodeOlive.FlowID] = nextNodeOlive.Route 
+	dm.Bartender[nextNodeOlive.FlowID] = nextNodeOlive.Route
 	log.Printf("NextNodeOlive_data:%s\n", string(nextNodeOlive.Data))
 
 	if len(req.EncryptedData) != 1 {

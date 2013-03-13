@@ -26,6 +26,8 @@ type DryMartini struct {
 	DoJoinFlag bool
     //Flow state
     Bartender map[UUID]MartiniPick
+	//map of circuits(flows) 
+	myTab []UUID
 
 	//My ContactInfo
 	myMartiniContact MartiniContact
