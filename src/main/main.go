@@ -105,8 +105,14 @@ func NewDryMartiniInstruction(s string) (dmInst *DryMartiniInstruction) {
 		}
 		dmInst.flags = 9
 		dmInst.Key, err = kademlia.FromString(strTokens[1])
+	case "plf" :
+		//kademlia.Assert(len(strTokens) == 1, "printLocalData requires 0 arguments")//pld
+		if len(strTokens) != 1 {
+			return dmInst
+		}
+		dmInst.flags = 10
 	}
-
+	
 	if err != nil {
 		//?
 	}
@@ -140,6 +146,9 @@ func (dmInst *DryMartiniInstruction) IsBarCrawl() bool{
 }
 func (dmInst *DryMartiniInstruction) IsFindValue() bool{
 	return dmInst.flags == 9
+}
+func (dmInst *DryMartiniInstruction) IsPrintLocalFlowData() bool{
+	return dmInst.flags == 10
 }
 func (dmInst *DryMartiniInstruction) IsSkip() bool {
 	return dmInst.flags == 255
@@ -200,6 +209,10 @@ func (dmInst *DryMartiniInstruction) Execute(dm *drymartini.DryMartini) (status 
 		log.Printf("Print Local Data!\n")
 		//kademlia.PrintLocalData(dm.KademliaInst)
 		drymartini.PrintLocalData(dm)
+		return true
+	case dmInst.IsPrintLocalFlowData() :
+		log.Printf("Print Local FlowData!\n")
+		drymartini.PrintLocalFlowData(dm)
 		return true
 	case dmInst.IsGeneratePath() :
 		log.Printf("Generate Path\n")

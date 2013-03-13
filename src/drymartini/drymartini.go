@@ -25,7 +25,7 @@ type DryMartini struct {
     KeyPair *rsa.PrivateKey
 	DoJoinFlag bool
     //Flow state
-    bartender map[UUID]MartiniPick
+    Bartender map[UUID]MartiniPick
 
 	//My ContactInfo
 	myMartiniContact MartiniContact
@@ -36,6 +36,7 @@ type DryMartini struct {
 
 // The flow structure, it remembers Olives
 type MartiniPick struct {
+	SymmKey UUID
     NextNodeIP string
     NextNodePort uint16
     PrevNodeIP string
@@ -49,7 +50,7 @@ type Olive struct {
     Data []byte
     Route MartiniPick
     // We reuse UUID because it's the right length, not really a uuid
-    SymmKey UUID
+    //SymmKey UUID
 }
 
 type MartiniContact struct {
@@ -86,7 +87,7 @@ func NewDryMartini(listenStr string, keylen int, rpcPath *string) *DryMartini {
     }
 
     //Initialize flow struct
-    dm.bartender = make(map[UUID]MartiniPick)
+    dm.Bartender = make(map[UUID]MartiniPick)
 
 	//Initialize our Kademlia
 	//dm.KademliaInst, s = kademlia.NewKademlia(listenStr, rpcPath)
@@ -249,6 +250,7 @@ func NewMartiniPick(from *MartiniContact, to *MartiniContact) (pick *MartiniPick
 	return
 }
 
+/*
 //choosing []bytes for Data was pretty arbitrary, could probably be something else
 //o is the outermost Olive
 //need to take FLOWID as an argument. 
@@ -293,6 +295,8 @@ func WrapOlivesForPath(dm *DryMartini, oPath []*Olive, Data []byte, SymmKey UUID
 	o.FlowID = flowID
 	return o
 }
+*/
+
 
 func GeneratePath(dm *DryMartini, min, max int) (mcPath []MartiniContact){
 	var err error
@@ -351,7 +355,7 @@ func findMartiniContact(dm *DryMartini, hashedID kademlia.ID) (MartiniContact, b
 			return mc, false
 		}
 	} else {
-		log.Printf("found martiniContact locally. Key:%s\n", hashedID)
+		log.Printf("found martiniContact locally. Key:%+v\n", hashedID)
 	}
 	err = json.Unmarshal(mcBytes, &mc)
 	if err != nil {
