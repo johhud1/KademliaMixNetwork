@@ -53,6 +53,9 @@ func DecryptDataSymm(data []byte, key UUID) ([]byte) {
     var next int
     var i int
     var plain []byte
+    var plain_trim []byte
+    var count int
+    var new_len int
 
     //Make the cipher
     c, err := aes.NewCipher(key[0:])
@@ -68,10 +71,22 @@ func DecryptDataSymm(data []byte, key UUID) ([]byte) {
         base = i*16
         next = (i+1)*16
         c.Decrypt(plain[base:next], data[base:next])
-
     }
 
-    return plain
+    // Clean off the 0 on the end
+    for i=0 ; i < 16 ; i++ {
+        if (plain[(total_len * 16) - i - 1] == 0) {
+            count = count + 1
+        }
+    }
+
+    new_len = (total_len * 16) - count
+    plain_trim = make([]byte, new_len)
+    for i=0; i < new_len; i++ {
+        plain_trim[i] = plain[i]
+    }
+
+    return plain_trim
 
 }
 

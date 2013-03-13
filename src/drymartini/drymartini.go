@@ -139,6 +139,7 @@ func NewDryMartini(listenStr string, keylen int, rpcPath *string) *DryMartini {
     log.Printf("Back Again: %s\n", string(back))
 	 */
 
+    /*
     test_pick := new(MartiniPick)
     test_pick.NextNodeIP = "127.0.0.1"
     test_pick.NextNodePort = 2000
@@ -151,25 +152,37 @@ func NewDryMartini(listenStr string, keylen int, rpcPath *string) *DryMartini {
     test_olive.Route = *test_pick
     test_olive.SymmKey = NewUUID()
 
-
+    key := NewUUID()
 
     var marsh []byte
     var errr error
     var clean_olive Olive
+    var enc []byte
+    var dec []byte
 
     log.Printf("ORIGINAL: %+v\n", *test_olive)
+
+
     marsh, errr = json.Marshal(test_olive)
     if errr != nil {
         log.Printf("%s\n", errr)
         os.Exit(-1)
     }
     log.Printf("MARSHALED: %s\n", marsh)
-    errr = json.Unmarshal(marsh, &clean_olive)
+
+    enc = EncryptDataSymm(marsh, key)
+    log.Printf("ENCRYPTED: %v\n", enc)
+
+    dec = DecryptDataSymm(enc, key)
+    log.Printf("DECRYPTED: %s\n", dec)
+
+    errr = json.Unmarshal(dec, &clean_olive)
     if errr != nil {
         log.Printf("%s\n", errr)
         os.Exit(-1)
     }
     log.Printf("CLEAN: %+v\n", clean_olive)
+    */
 
     return dm
 }
