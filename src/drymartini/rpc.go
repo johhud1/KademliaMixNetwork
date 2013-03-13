@@ -129,13 +129,14 @@ func BarCrawl(m *DryMartini, request string, min int, max int) bool {
     for i = 0; i < (len(chosenPath) - 1); i++ {
         jar[i] = new(Olive)
         jar[i].FlowID = flowID
-        jar[i].SymmKey = NewUUID()
 
 		jar[i].Data = []byte("testData_"+strconv.Itoa(i))
 
         // Built its martiniPick
         jar[i].Route.NextNodeIP = chosenPath[i+1].NodeIP
         jar[i].Route.NextNodePort = chosenPath[i+1].NodePort
+        jar[i].Route.SymmKey = NewUUID()
+
         // First one?
         if i == 0 {
             jar[i].Route.PrevNodeIP = m.myMartiniContact.NodeIP
@@ -150,12 +151,12 @@ func BarCrawl(m *DryMartini, request string, min int, max int) bool {
     // Do the last one
     jar[i] = new(Olive)
     jar[i].FlowID = flowID
-    jar[i].SymmKey = NewUUID()
     jar[i].Route.NextNodeIP = "end"
     //jar[i].Route.PrevNodeIP = jar[i-1].Route.NextNodeIP
     //jar[i].Route.PrevNodePort = jar[i-1].Route.NextNodePort
     jar[i].Route.PrevNodeIP = chosenPath[i-1].NodeIP
     jar[i].Route.PrevNodePort = chosenPath[i-1].NodePort
+    jar[i].Route.SymmKey = NewUUID()
 	jar[i].Data = []byte(request)
 
     var tempBytes []byte
@@ -186,6 +187,11 @@ func BarCrawl(m *DryMartini, request string, min int, max int) bool {
     //Wrap and send an Olive
 	var nextNodeAddrStr string = chosenPath[0].NodeIP + ":" + strconv.FormatUint(uint64(chosenPath[0].NodePort), 10)
 	success = MakeCircuitCreateCall(m, nextNodeAddrStr, encryptedSym)
+
+	if success {
+		//m.Bartender[flowID] = 
+		
+	}
 
 	return success
 }
@@ -260,6 +266,8 @@ func (dm *DryMartini) CreateCircuit(req CCRequest, res *CCResponse) error {
 		return nil//Change to valid error
 	}
 
+	
+	dm.Bartender[nextNodeOlive.FlowID] = nextNodeOlive.Route 
 	log.Printf("NextNodeOlive_data:%s\n", string(nextNodeOlive.Data))
 
 	if len(req.EncryptedData) != 1 {

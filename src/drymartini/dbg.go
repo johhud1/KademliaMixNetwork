@@ -61,3 +61,15 @@ func PrintLocalData(dm *DryMartini) {
 		fmt.Printf("Print HashMap[%s]=%+v\n", key.AsString(), m.GetReadyContact())
 	}
 }
+
+func PrintLocalFlowData(dm *DryMartini) {
+	var err error
+
+	for key, value := range dm.Bartender {
+		if err != nil {
+			log.Printf("drymartini.PrintLocalData %s\n", err)
+		}
+		//fmt.Printf("Print HashMap[%s]=%s\n", key.AsString(), string(value))
+		fmt.Printf("Print HashMap[%s]=%+v\n", key.AsString(), value.SymmKey)
+	}
+}
