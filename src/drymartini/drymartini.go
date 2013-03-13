@@ -292,6 +292,7 @@ func GeneratePath(dm *DryMartini, min, max int) (mcPath []MartiniContact){
 	//var threshold int
 	//var myRand *big.Int
 	var randId kademlia.ID
+	var pathMap map[MartiniContact]bool = make(map[MartiniContact]bool)
 	//minBig := big.NewInt(int64(min))
 	//myRand, err = rand.Int(rand.Reader, big.NewInt(int64(max-min)))
 	//threshold = int((minBig.Int64() + myRand.Int64()))
@@ -311,7 +312,17 @@ func GeneratePath(dm *DryMartini, min, max int) (mcPath []MartiniContact){
 		}
 		index := int(fuckthis.Int64())
 		var hashedID kademlia.ID = foundNodes[index].NodeID.SHA1Hash()
-		mcPath[i], success = findMartiniContact(dm, hashedID)
+		var tempMC MartiniContact
+		tempMC, success = findMartiniContact(dm, hashedID)
+		_, alreadyInPath := pathMap[tempMC]
+		if(alreadyInPath){
+			log.Printf("trying to make a circular path. nahah girlfriend. skipping!\n")
+			i--
+			continue
+		} else {
+			pathMap[tempMC] = true
+			mcPath[i] = tempMC
+		}
 		//err = json.Unmarshal(mcBytes, &mcPath[i])
 		if !success {
 			log.Printf("error finding MartiniContact with key:%s. err:%s\n", hashedID.AsString(), err)
