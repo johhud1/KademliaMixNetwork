@@ -32,8 +32,8 @@ type DryMartini struct {
 	//My ContactInfo
 	myMartiniContact MartiniContact
 
-	
-
+	MapFlowIndexToFlowID map[int]UUID
+	EasyNewFlowIndex int
 	//Others Contact Info
 	//otherMartiniContact map[ID]MartiniContact
 }
@@ -82,6 +82,8 @@ func NewDryMartini(listenStr string, keylen int, rpcPath *string) *DryMartini {
     var dm *DryMartini
 
     dm = new(DryMartini)
+
+	dm.EasyNewFlowIndex = 0
 
     //Initialize key pair
     dm.KeyPair, err = rsa.GenerateKey(rand.Reader, keylen)
@@ -367,4 +369,22 @@ func findMartiniContact(dm *DryMartini, hashedID kademlia.ID) (MartiniContact, b
 		os.Exit(1)
 	}
 	return mc, true
+}
+
+func SendData(dm *DryMartini, flowIndex int, data string) (success bool) {
+	var flowID UUID
+	var found bool
+	//map index to flowID
+	flowID, found = dm.MapFlowIndexToFlowID[flowIndex]
+	if !found {
+		log.Printf("No map from flowIndex to flowID")
+		return false
+	} else {
+		log.Printf("Found map from flowIndex to flowID")
+	}
+	flowID = flowID
+	//wrap data
+
+	//make send rpc
+	return true
 }

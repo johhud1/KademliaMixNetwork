@@ -195,6 +195,8 @@ func BarCrawl(m *DryMartini, request string, min int, max int) bool {
 	success = MakeCircuitCreateCall(m, nextNodeAddrStr, encryptedSym)
 
 	if success {
+		m.MapFlowIndexToFlowID[m.EasyNewFlowIndex] = flowID
+		m.EasyNewFlowIndex++
 		//m.Bartender[flowID] = 
 	}
 
