@@ -117,16 +117,16 @@ func BarCrawl(m *DryMartini, request string, min int, max int) bool {
 
     // Send the recursie request
     var encryptedSym [][]byte = make([][]byte, len(chosenPath))
-    var jar []*olive = make([]*olive, len(chosenPath))
+    var jar []*Olive = make([]*Olive, len(chosenPath))
     var flowID UUID
     flowID = NewUUID()
 
 	log.Printf("chosenPath: %+v\n", chosenPath)
 
     var i int
-    // Build an array of olives
+    // Build an array of Olives
     for i = 0; i < (len(chosenPath) - 1); i++ {
-        jar[i] = new(olive)
+        jar[i] = new(Olive)
         jar[i].FlowID = flowID
         jar[i].SymmKey = NewUUID()
         // Built its martiniPick
@@ -142,7 +142,7 @@ func BarCrawl(m *DryMartini, request string, min int, max int) bool {
         }
     }
     // Do the last one
-    jar[i] = new(olive)
+    jar[i] = new(Olive)
     jar[i].FlowID = flowID
     jar[i].SymmKey = NewUUID()
     jar[i].Route.NextNodeIP = "end"
@@ -161,7 +161,7 @@ func BarCrawl(m *DryMartini, request string, min int, max int) bool {
 		}
         tempBytes, err = json.Marshal(jar[i])
         if (err != nil){
-            log.Printf("Error Marhsalling olive: %+v\n", jar[i])
+            log.Printf("Error Marhsalling Olive: %+v\n", jar[i])
             os.Exit(1)
         }
         sha_gen = sha1.New()
@@ -171,7 +171,7 @@ func BarCrawl(m *DryMartini, request string, min int, max int) bool {
 	if Verbose {
 		//log.Printf("built encryptedArray: %+v", encryptedSym)
 	}
-    //Wrap and send an olive
+    //Wrap and send an Olive
 
     var client *rpc.Client
 	var remoteAddrStr string = chosenPath[0].NodeIP+ ":"+ strconv.FormatUint(uint64(chosenPath[0].NodePort), 10)
@@ -222,7 +222,7 @@ type CCResponse struct {
 }
 
 func (dm *DryMartini) CreateCircuit(req CCRequest, res *CCResponse) error {
-	var o *olive = new(olive)
+	var o *Olive = new(Olive)
 	var sha_gen hash.Hash = sha1.New()
 	var decryptedData []byte
 	var err error
