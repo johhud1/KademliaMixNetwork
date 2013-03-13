@@ -244,7 +244,26 @@ func (dm *DryMartini) CreateCircuit(req CCRequest, res *CCResponse) error {
 		log.Printf("Error: DryMartini.CreateCircuit.Unmarshal( %s)\n", err)
 	}
 
-	log.Printf("%+v\n", o)
+	log.Printf("olive:%+v\n", o)
+    var client *rpc.Client
+	var remoteAddrStr string = o.Route.NextNodeIP+ ":"+ strconv.FormatUint(uint64(o.Route.NextNodePort), 10)
+
+	log.Printf("CreateCircuit :::%s:::%s %d\n", remoteAddrStr, o.Route.NextNodeIP, o.Route.NextNodePort)
+    if RunningTests == true {
+		log.Printf("Unimplemented\n")
+		panic(1)
+		//var portstr string = RpcPath + strconv.FormatInt(int64(mp.nextNodePort), 10)
+		//log.Printf("test ping to rpcPath:%s\n", portstr)
+		//client, err = rpc.DialHTTPPath("tcp", remoteAddrStr, portstr)
+    } else {
+		client, err = rpc.DialHTTP("tcp", remoteAddrStr)
+	}
+
+    if err != nil {
+        log.Printf("Error: CreateCircuit, DialHTTP, %s\n", err)
+        return false
+    }
+
 	res.Msg = "CreateCircuitReply"
 
 	return nil
