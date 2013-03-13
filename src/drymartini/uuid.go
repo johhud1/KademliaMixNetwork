@@ -28,9 +28,9 @@ func NewUUID() (ret UUID) {
 	return
 }
 
-func (x *UUID) MarshalJSON() ([]byte, error) {
+func (x *UUID) MarshalJSON() (string, error) {
         log.Printf("Marshaling a UUID!\n")
-        stuff := x[0:]
+        stuff := string(x[0:])
         return stuff, nil
     }
 
