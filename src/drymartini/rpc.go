@@ -166,6 +166,9 @@ func BarCrawl(m *DryMartini, request string, min int, max int) bool {
         }
         sha_gen = sha1.New()
         encryptedSym[i], err = rsa.EncryptOAEP(sha_gen, rand.Reader, &(chosenPath[0].GetReadyContact().PubKey), tempBytes, nil)
+		if err != nil {
+			log.Printf("BarCraw.EncryptOAEP %s %d\n", err, len(tempBytes))
+		}
     }
 
 	if Verbose {
