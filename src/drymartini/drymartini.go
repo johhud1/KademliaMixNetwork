@@ -26,14 +26,10 @@ type DryMartini struct {
 	DoJoinFlag bool
     //Flow state
     Bartender map[UUID]MartiniPick
-	
 	Memento map[UUID][]UUID
 
 	//My ContactInfo
 	myMartiniContact MartiniContact
-
-	
-
 	//Others Contact Info
 	//otherMartiniContact map[ID]MartiniContact
 }
@@ -254,15 +250,10 @@ func NewMartiniPick(from *MartiniContact, to *MartiniContact) (pick *MartiniPick
 	return
 }
 
-/*
-//choosing []bytes for Data was pretty arbitrary, could probably be something else
-//o is the outermost Olive
-//need to take FLOWID as an argument. 
-func WrapOlivesForPath(dm *DryMartini, oPath []*Olive, Data []byte, SymmKey UUID)  (o *Olive){
-	var flowID UUID
+//pathKeys  are in order of closest Nodes key to furthest 
+func WrapOlivesForPath(dm *DryMartini, flowID UUID, pathKeys []UUID, Data []byte)  []byte{
 	var err error
-	pathLength := len(oPath)
-	flowID = NewUUID()
+	pathLength := len(pathKeys)
 
 	//if only 1 MartiniContact exists in path, then we only construct 1 Olive..
 	//but that should probably never happen, (assuming always more than 1 hop atm)
@@ -270,7 +261,6 @@ func WrapOlivesForPath(dm *DryMartini, oPath []*Olive, Data []byte, SymmKey UUID
 	innerOlive.FlowID = flowID
 	innerOlive.Data = Data
 	//innerOlive.Route = NewMartiniPick(mcPath[pathLength-1], nil)
-	innerOlive.SymmKey = SymmKey
 
 	var theData []byte
 	theData, err = json.Marshal(innerOlive)
@@ -281,25 +271,20 @@ func WrapOlivesForPath(dm *DryMartini, oPath []*Olive, Data []byte, SymmKey UUID
 
 	var tempOlive Olive
 	for i := pathLength-1; i > 0; i-- {
-		tempOlive.Route = oPath[i].Route
 		tempOlive.FlowID = flowID
-		//TODO: encrypt the Data and put it into tempOlive
-		tempOlive.Data = theData
-
+		//encrypt the Data (using furthest nodes key) and put it into tempOlive
+		tempOlive.Data = EncryptDataSymm(theData, pathKeys[i])
 
 		//marshal the temp Olive 
 		theData, err = json.Marshal(tempOlive)
 		if (err != nil){
-				log.Printf("error marshalling Olive:%+v\n", tempOlive)
+				log.Printf("error marshalling Olive:%+v, err:%s\n", tempOlive, err)
 				os.Exit(1)
 		}
 	}
-	//encrypt theData, put into outer Olive
-	o.Data = theData
-	o.FlowID = flowID
-	return o
+	theData = EncryptDataSymm(theData, pathKeys[0])
+	return theData
 }
-*/
 
 
 func GeneratePath(dm *DryMartini, min, max int) (mcPath []MartiniContact){
