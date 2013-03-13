@@ -351,7 +351,7 @@ func findMartiniContact(dm *DryMartini, hashedID kademlia.ID) (MartiniContact, b
 			return mc, false
 		}
 	} else {
-		log.Printf("found martiniContact locally. Key:%s\n", hashedID)
+		log.Printf("found martiniContact locally. Key:%+v\n", hashedID)
 	}
 	err = json.Unmarshal(mcBytes, &mc)
 	if err != nil {

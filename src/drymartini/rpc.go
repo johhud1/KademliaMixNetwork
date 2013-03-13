@@ -3,7 +3,7 @@ package drymartini
 //RPC functions for our drymartini package
 
 import (
-    "os"
+    //"os"
     "log"
 	//"fmt"
     "net"
@@ -110,6 +110,7 @@ func MakeJoin(m  *DryMartini, remoteHost net.IP, remotePort uint16){
 
 
 func BarCrawl(m *DryMartini, request string, min int, max int) bool {
+	var success bool
 
     //Generate a path
     var chosenPath []MartiniContact
@@ -121,7 +122,7 @@ func BarCrawl(m *DryMartini, request string, min int, max int) bool {
     var flowID UUID
     flowID = NewUUID()
 
-	log.Printf("chosenPath: %+v\n", chosenPath)
+	//log.Printf("chosenPath: %+v\n", chosenPath)
 
     var i int
     // Build an array of Olives
@@ -129,6 +130,9 @@ func BarCrawl(m *DryMartini, request string, min int, max int) bool {
         jar[i] = new(Olive)
         jar[i].FlowID = flowID
         jar[i].SymmKey = NewUUID()
+
+		jar[i].Data = []byte("testData_"+strconv.Itoa(i))
+
         // Built its martiniPick
         jar[i].Route.NextNodeIP = chosenPath[i+1].NodeIP
         jar[i].Route.NextNodePort = chosenPath[i+1].NodePort
@@ -137,8 +141,10 @@ func BarCrawl(m *DryMartini, request string, min int, max int) bool {
             jar[i].Route.PrevNodeIP = m.myMartiniContact.NodeIP
             jar[i].Route.PrevNodePort = m.myMartiniContact.NodePort
         } else {
-            jar[i].Route.PrevNodeIP = jar[i-1].Route.NextNodeIP
-            jar[i].Route.PrevNodePort = jar[i-1].Route.NextNodePort
+            //jar[i].Route.PrevNodeIP = jar[i-1].Route.NextNodeIP
+            //jar[i].Route.PrevNodePort = jar[i-1].Route.NextNodePort
+            jar[i].Route.PrevNodeIP = chosenPath[i-1].NodeIP
+            jar[i].Route.PrevNodePort = chosenPath[i-1].NodePort
         }
     }
     // Do the last one
@@ -146,40 +152,50 @@ func BarCrawl(m *DryMartini, request string, min int, max int) bool {
     jar[i].FlowID = flowID
     jar[i].SymmKey = NewUUID()
     jar[i].Route.NextNodeIP = "end"
-    jar[i].Route.PrevNodeIP = jar[i-1].Route.NextNodeIP
-    jar[i].Route.PrevNodePort = jar[i-1].Route.NextNodePort
+    //jar[i].Route.PrevNodeIP = jar[i-1].Route.NextNodeIP
+    //jar[i].Route.PrevNodePort = jar[i-1].Route.NextNodePort
+    jar[i].Route.PrevNodeIP = chosenPath[i-1].NodeIP
+    jar[i].Route.PrevNodePort = chosenPath[i-1].NodePort
+	jar[i].Data = []byte(request)
 
     var tempBytes []byte
     var err error
     var sha_gen hash.Hash
 
-	log.Printf("building jar, flowID:%s\n", flowID.AsString())
+	//log.Printf("building jar, flowID:%s\n", flowID.AsString())
     // Encrypt everything.
     for i = 0; i < len(chosenPath); i++{
 		if Verbose {
-			log.Printf("jar[%d]: %+v\n", i, jar[i])
+			//log.Printf("jar[%d]: %+v\n", i, jar[i])
 		}
         tempBytes, err = json.Marshal(jar[i])
         if (err != nil){
             log.Printf("Error Marhsalling Olive: %+v\n", jar[i])
-            os.Exit(1)
+            return false
         }
         sha_gen = sha1.New()
-        encryptedSym[i], err = rsa.EncryptOAEP(sha_gen, rand.Reader, &(chosenPath[0].GetReadyContact().PubKey), tempBytes, nil)
+        encryptedSym[i], err = rsa.EncryptOAEP(sha_gen, rand.Reader, &(chosenPath[i].GetReadyContact().PubKey), tempBytes, nil)
 		if err != nil {
 			log.Printf("BarCraw.EncryptOAEP %s %d\n", err, len(tempBytes))
+			return false
 		}
+		log.Printf("path, %d %s:%d\n", i, chosenPath[i].NodeIP, chosenPath[i].NodePort)
+		//log.Printf("---\n%+v\n%+v\n---\n", tempBytes, encryptedSym[i])
     }
 
-	if Verbose {
-		//log.Printf("built encryptedArray: %+v", encryptedSym)
-	}
     //Wrap and send an Olive
+	var nextNodeAddrStr string = chosenPath[0].NodeIP + ":" + strconv.FormatUint(uint64(chosenPath[0].NodePort), 10)
+	success = MakeCircuitCreateCall(m, nextNodeAddrStr, encryptedSym)
 
+	return success
+}
+
+
+func MakeCircuitCreateCall(dm *DryMartini, nextNodeAddrStr string, encryptedArray [][]byte,) bool {
     var client *rpc.Client
-	var remoteAddrStr string = chosenPath[0].NodeIP+ ":"+ strconv.FormatUint(uint64(chosenPath[0].NodePort), 10)
+	var err error
 
-	log.Printf("BarCrawl :::%s:::%s %d\n", remoteAddrStr, chosenPath[0].NodeIP, chosenPath[0].NodePort)
+	log.Printf("MakeCircuitCreateCall: %s\n", nextNodeAddrStr)
     if RunningTests == true {
 		log.Printf("Unimplemented\n")
 		panic(1)
@@ -187,18 +203,16 @@ func BarCrawl(m *DryMartini, request string, min int, max int) bool {
 		//log.Printf("test ping to rpcPath:%s\n", portstr)
 		//client, err = rpc.DialHTTPPath("tcp", remoteAddrStr, portstr)
     } else {
-		client, err = rpc.DialHTTP("tcp", remoteAddrStr)
+		client, err = rpc.DialHTTP("tcp", nextNodeAddrStr)
 	}
-
     if err != nil {
-        log.Printf("Error: BarCrawl, DialHTTP, %s\n", err)
+        log.Printf("Error: MakeCircuitCreateCall, DialHTTP, %s\n", err)
         return false
     }
 
 	//make rpc
 	var req *CCRequest = new(CCRequest)
-	req.Msg = "Request"
-	req.EncryptedData = encryptedSym
+	req.EncryptedData = encryptedArray
 	var res *CCResponse = new(CCResponse)
 
     err = client.Call("DryMartini.CreateCircuit", req, res)
@@ -206,46 +220,58 @@ func BarCrawl(m *DryMartini, request string, min int, max int) bool {
         log.Printf("Error: CreateCircuit, Call, %s\n", err)
         return false
     }
-	log.Printf("got DistributeSymm response: %s\n", res.Msg);
+	log.Printf("got DistributeSymm response: %s:%s\n", nextNodeAddrStr, res.Success);
 
     client.Close()
 
-
-
-	return true
+	return res.Success
 }
 
 type CCRequest struct {
-	Msg string
 	EncryptedData [][]byte
 }
 type CCResponse struct {
-	Msg string
+	Success bool
 	err error
 }
 
 func (dm *DryMartini) CreateCircuit(req CCRequest, res *CCResponse) error {
-	var o *Olive = new(Olive)
+	var nextNodeOlive *Olive = new(Olive)
 	var sha_gen hash.Hash = sha1.New()
 	var decryptedData []byte
 	var err error
+	var encryptedData [][]byte
 
 	//Dial the server
-	log.Printf("%v\n", req)
-	log.Printf("%+v\n", req.EncryptedData)
+	//log.Printf("%v\n", req)
+	//log.Printf("%+v\n", req.EncryptedData)
 
 	decryptedData, err = rsa.DecryptOAEP(sha_gen, nil, dm.KeyPair, req.EncryptedData[0], nil)
 	if err != nil {
 		log.Printf("Error: DryMartini.CreateCircuit.Decrypt( %s)\n", err)
+		res.Success = false
+		return nil//Change to valid error
 	}
-
-	err = json.Unmarshal(decryptedData, o)
+	
+	err = json.Unmarshal(decryptedData, nextNodeOlive)
 	if err != nil {
 		log.Printf("Error: DryMartini.CreateCircuit.Unmarshal( %s)\n", err)
+		res.Success = false
+		return nil//Change to valid error
 	}
 
-	log.Printf("%+v\n", o)
-	res.Msg = "CreateCircuitReply"
+	log.Printf("NextNodeOlive_data:%s\n", string(nextNodeOlive.Data))
+
+	if len(req.EncryptedData) != 1 {
+		log.Printf("CreateCircuit: len(%d) \n", len(req.EncryptedData))
+		encryptedData = req.EncryptedData[1:]	
+	
+		var nextNodeAddrStr string = nextNodeOlive.Route.NextNodeIP + ":" + strconv.FormatUint(uint64(nextNodeOlive.Route.NextNodePort), 10)
+		log.Printf("NextHopeIs: %s\n", nextNodeAddrStr)
+		res.Success = MakeCircuitCreateCall(dm, nextNodeAddrStr, encryptedData)
+	} else {
+		res.Success = true
+	}
 
 	return nil
 }
