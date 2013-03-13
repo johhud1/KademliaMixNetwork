@@ -137,6 +137,7 @@ func BarCrawl(m *DryMartini, request string, min int, max int) bool {
         jar[i].Route.NextNodePort = chosenPath[i+1].NodePort
         jar[i].Route.SymmKey = NewUUID()
 
+
         // First one?
         if i == 0 {
             jar[i].Route.PrevNodeIP = m.myMartiniContact.NodeIP
@@ -147,6 +148,9 @@ func BarCrawl(m *DryMartini, request string, min int, max int) bool {
             jar[i].Route.PrevNodeIP = chosenPath[i-1].NodeIP
             jar[i].Route.PrevNodePort = chosenPath[i-1].NodePort
         }
+
+		m.Memento[flowID] = append(m.Memento[flowID], jar[i].Route.SymmKey)
+
     }
     // Do the last one
     jar[i] = new(Olive)
@@ -158,6 +162,8 @@ func BarCrawl(m *DryMartini, request string, min int, max int) bool {
     jar[i].Route.PrevNodePort = chosenPath[i-1].NodePort
     jar[i].Route.SymmKey = NewUUID()
 	jar[i].Data = []byte(request)
+
+	m.Memento[flowID] = append(m.Memento[flowID], jar[i].Route.SymmKey)
 
     var tempBytes []byte
     var err error
