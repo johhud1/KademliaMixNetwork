@@ -258,7 +258,7 @@ func GeneratePath(dm *DryMartini, min, max int) (mcPath []MartiniContact){
 	//myRand, err = rand.Int(rand.Reader, big.NewInt(int64(max-min)))
 	//threshold = int((minBig.Int64() + myRand.Int64()))
 	mcPath = make([]MartiniContact, max)
-	for i := 0; i< max; i++{
+	for i := 0; i< max; i++ {
 		var foundNodes []kademlia.FoundNode
 		var success bool
 		randId = kademlia.NewRandomID()
@@ -272,16 +272,46 @@ func GeneratePath(dm *DryMartini, min, max int) (mcPath []MartiniContact){
 			log.Printf("error making rand:%s\n", fuckingo)
 		}
 		index := int(fuckthis.Int64())
-		var hashedID kademlia.ID =foundNodes[index].NodeID.SHA1Hash()
-		var mcBytes []byte
-		success, _, mcBytes, err = kademlia.IterativeFind(dm.KademliaInst, hashedID, 2)
-		if(err != nil){
+		var hashedID kademlia.ID = foundNodes[index].NodeID.SHA1Hash()
+		mcPath[i], success = findMartiniContact(dm, hashedID)
+		//err = json.Unmarshal(mcBytes, &mcPath[i])
+		if !success {
 			log.Printf("error finding MartiniContact with key:%s. err:%s\n", hashedID.AsString(), err)
+			i--
+			continue
 		}
-		err = json.Unmarshal(mcBytes, &mcPath[i])
-		if(err != nil){
-			log.Printf("error finding MartiniContact with key:%s. err:%s\n", hashedID.AsString(), err)
-		}
+		log.Printf("GeneratePath %+v\n", mcPath[i])
 	}
 	return
+}
+
+func findMartiniContact(dm *DryMartini, hashedID kademlia.ID) (MartiniContact, bool){
+	var mcBytes []byte
+	var mc MartiniContact
+	var err error
+	var success bool
+
+	//FIXME check if you have already added the specific node
+	mcBytes, success = dm.KademliaInst.ValueStore.Get(hashedID)
+	if !success {
+		success, _, mcBytes, err = kademlia.IterativeFind(dm.KademliaInst, hashedID, 2)
+		if(err != nil) {
+			log.Printf("error finding MartiniContact with key:%s. err:%s\n", hashedID.AsString(), err)
+			os.Exit(1)
+		}
+		if success {
+			log.Printf("findMartiniContact: foundValue\n")
+		} else {
+			log.Printf("GeneratePath: DID NOT foundValue\n")
+			return mc, false
+		}
+	} else {
+		log.Printf("found martiniContact locally. Key:%s\n", hashedID)
+	}
+	err = json.Unmarshal(mcBytes, &mc)
+	if err != nil {
+		log.Printf("Error unmarshaling found MartiniContact. %s\n", err)
+		os.Exit(1)
+	}
+	return mc, true
 }

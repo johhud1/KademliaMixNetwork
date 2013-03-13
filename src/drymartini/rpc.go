@@ -11,14 +11,17 @@ import (
 	"hash"
 	"kademlia"
     //"net/rpc"
-    "strconv"
+    //"strconv"
 	"net/rpc"
     "crypto/rsa"
 	"crypto/sha1"
     "crypto/rand"
     "encoding/json"
+	"strconv"
 )
 
+/*
+//DryMartini RPC example code
 type PingRequest struct {
 	Msg string
 }
@@ -34,7 +37,7 @@ func (m *DryMartini) Ping(req PingRequest, res *PingResponse) error {
 
     return nil
 }
-
+*/
 
 func MakeMartiniPing(dm *DryMartini, remoteHost net.IP, remotePort uint16) bool {
 	
@@ -118,9 +121,11 @@ func BarCrawl(m *DryMartini, request string, min int, max int) bool {
     var flowID UUID
     flowID = NewUUID()
 
+	log.Printf("chosenPath: %+v\n", chosenPath)
+
     var i int
     // Build an array of olives
-    for i = 0;i < len(chosenPath) - 1; i++{
+    for i = 0; i < (len(chosenPath) - 1); i++ {
         jar[i] = new(olive)
         jar[i].flowID = flowID
         jar[i].symmKey = NewUUID()
@@ -128,7 +133,7 @@ func BarCrawl(m *DryMartini, request string, min int, max int) bool {
         jar[i].route.nextNodeIP = chosenPath[i+1].NodeIP
         jar[i].route.nextNodePort = chosenPath[i+1].NodePort
         // First one?
-        if i == 0{
+        if i == 0 {
             jar[i].route.prevNodeIP = m.myMartiniContact.NodeIP
             jar[i].route.prevNodePort = m.myMartiniContact.NodePort
         } else {
@@ -168,55 +173,85 @@ func BarCrawl(m *DryMartini, request string, min int, max int) bool {
 	}
     //Wrap and send an olive
 
-	return true
-}
-
-type symmKeyRequest struct {
-
-}
-type symmKeyResponse struct {
-	Msg string
-
-}
-
-func (m *DryMartini) DistributeSymm(req symmKeyRequest, res *symmKeyResponse) error {
-
-
-	return nil
-}
-
-func MakeDistributeSymmKeyRPC(mp *martiniPick) bool {
-	//Dial the server
     var client *rpc.Client
-	var remoteAddrStr string
-    var err error
+	var remoteAddrStr string = chosenPath[0].NodeIP+ ":"+ strconv.FormatUint(uint64(chosenPath[0].NodePort), 10)
 
-	remoteAddrStr = mp.nextNodeIP
+	log.Printf("BarCrawl :::%s:::%s %d\n", remoteAddrStr, chosenPath[0].NodeIP, chosenPath[0].NodePort)
     if RunningTests == true {
-		var portstr string = RpcPath + strconv.FormatInt(int64(mp.nextNodePort), 10)
+		log.Printf("Unimplemented\n")
+		panic(1)
+		//var portstr string = RpcPath + strconv.FormatInt(int64(mp.nextNodePort), 10)
 		//log.Printf("test ping to rpcPath:%s\n", portstr)
-		client, err = rpc.DialHTTPPath("tcp", remoteAddrStr, portstr)
+		//client, err = rpc.DialHTTPPath("tcp", remoteAddrStr, portstr)
     } else {
 		client, err = rpc.DialHTTP("tcp", remoteAddrStr)
 	}
 
     if err != nil {
-        log.Printf("Error: MakePingCall, DialHTTP, %s\n", err)
+        log.Printf("Error: BarCrawl, DialHTTP, %s\n", err)
         return false
     }
 
 	//make rpc
-	var req symmKeyRequest
-	var res *symmKeyResponse
+	var req *CCRequest = new(CCRequest)
+	req.Msg = "Request"
+	req.EncryptedData = encryptedSym
+	var res *CCResponse = new(CCResponse)
 
-    err = client.Call("DryMartini.DistributeSymm", req, res)
+    err = client.Call("DryMartini.CreateCircuit", req, res)
     if err != nil {
-        log.Printf("Error: MakeDistributeSymmKey, Call, %s\n", err)
+        log.Printf("Error: CreateCircuit, Call, %s\n", err)
         return false
     }
 	log.Printf("got DistributeSymm response: %s\n", res.Msg);
 
     client.Close()
+
+
+
 	return true
+}
+
+type CCRequest struct {
+	Msg string
+	EncryptedData [][]byte
+}
+type CCResponse struct {
+	Msg string
+	err error
+}
+
+func (dm *DryMartini) CreateCircuit(req CCRequest, res *CCResponse) error {
+	var o *olive = new(olive)
+	var sha_gen hash.Hash = sha1.New()
+	var decryptedData []byte
+	var err error
+
+	//Dial the server
+	log.Printf("%v\n", req)
+	log.Printf("%+v\n", req.EncryptedData)
+
+	decryptedData, err = rsa.DecryptOAEP(sha_gen, nil, dm.KeyPair, req.EncryptedData[0], nil)
+	if err != nil {
+		log.Printf("Error: DryMartini.CreateCircuit.Decrypt( %s)\n", err)
+	}
+
+	err = json.Unmarshal(decryptedData, o)
+	if err != nil {
+		log.Printf("Error: DryMartini.CreateCircuit.Unmarshal( %s)\n", err)
+	}
+
+	log.Printf("%+v\n", o)
+	res.Msg = "CreateCircuitReply"
+
+	return nil
+}
+
+type SymmKeyRequest struct {
+	Msg string
+}
+type SymmKeyResponse struct {
+	Msg string
+
 }
 
