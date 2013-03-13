@@ -24,6 +24,7 @@ type DryMartiniInstruction struct {
 	minNodes, maxNodes int
 	request string
 	Key kademlia.ID
+	FlowIndex int
 }
 
 func NewDryMartiniInstruction(s string) (dmInst *DryMartiniInstruction) {
@@ -111,6 +112,14 @@ func NewDryMartiniInstruction(s string) (dmInst *DryMartiniInstruction) {
 			return dmInst
 		}
 		dmInst.flags = 10
+	case "send" :
+		//kademlia.Assert(len(strTokens) == 3, "send requires 2 arguments")//pld
+		if len(strTokens) != 3 {
+			return dmInst
+		}
+		dmInst.flags = 11
+		dmInst.FlowIndex, err = strconv.Atoi(strTokens[1])
+		dmInst.request = strTokens[2]
 	}
 	
 	if err != nil {
@@ -149,6 +158,9 @@ func (dmInst *DryMartiniInstruction) IsFindValue() bool{
 }
 func (dmInst *DryMartiniInstruction) IsPrintLocalFlowData() bool{
 	return dmInst.flags == 10
+}
+func (dmInst *DryMartiniInstruction) IsSend() bool{
+	return dmInst.flags == 11
 }
 func (dmInst *DryMartiniInstruction) IsSkip() bool {
 	return dmInst.flags == 255
@@ -237,6 +249,9 @@ func (dmInst *DryMartiniInstruction) Execute(dm *drymartini.DryMartini) (status 
 				log.Printf("IterativeFindValue err: success = true. value is nil\n")
 			}
 		}
+	case dmInst.IsSend() :
+		log.Printf("Send %d %s\n", dmInst.FlowIndex, dmInst.request)
+		drymartini.SendData(dm, dmInst.FlowIndex, dmInst.request)
 
 	}
 	return false

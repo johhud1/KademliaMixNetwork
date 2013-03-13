@@ -149,7 +149,7 @@ func BarCrawl(m *DryMartini, request string, min int, max int) bool {
             jar[i].Route.PrevNodePort = chosenPath[i-1].NodePort
         }
 
-		m.Memento[flowID] = append(m.Memento[flowID], jar[i].Route.SymmKey)
+		m.Momento[flowID] = append(m.Momento[flowID], jar[i].Route.SymmKey)
 
     }
     // Do the last one
@@ -163,7 +163,7 @@ func BarCrawl(m *DryMartini, request string, min int, max int) bool {
     jar[i].Route.SymmKey = NewUUID()
 	jar[i].Data = []byte(request)
 
-	m.Memento[flowID] = append(m.Memento[flowID], jar[i].Route.SymmKey)
+	m.Momento[flowID] = append(m.Momento[flowID], jar[i].Route.SymmKey)
 
     var tempBytes []byte
     var err error
@@ -183,7 +183,7 @@ func BarCrawl(m *DryMartini, request string, min int, max int) bool {
         sha_gen = sha1.New()
         encryptedSym[i], err = rsa.EncryptOAEP(sha_gen, rand.Reader, &(chosenPath[i].GetReadyContact().PubKey), tempBytes, nil)
 		if err != nil {
-			log.Printf("BarCraw.EncryptOAEP %s %d\n", err, len(tempBytes))
+			log.Printf("BarCrawl.EncryptOAEP %s %d\n", err, len(tempBytes))
 			return false
 		}
 		log.Printf("path, %d %s:%d\n", i, chosenPath[i].NodeIP, chosenPath[i].NodePort)
@@ -194,8 +194,16 @@ func BarCrawl(m *DryMartini, request string, min int, max int) bool {
 	var nextNodeAddrStr string = chosenPath[0].NodeIP + ":" + strconv.FormatUint(uint64(chosenPath[0].NodePort), 10)
 	success = MakeCircuitCreateCall(m, nextNodeAddrStr, encryptedSym)
 
+    //Thing to remember locally, so we know where to send
+    var ourFirstPick MartiniPick
+
 	if success {
-		//m.Bartender[flowID] = 
+		m.MapFlowIndexToFlowID[m.EasyNewFlowIndex] = flowID
+		m.EasyNewFlowIndex++
+        // Build a pick for the first hop
+        ourFirstPick.NextNodeIP = chosenPath[0].NodeIP
+        ourFirstPick.NextNodePort = chosenPath[0].NodePort
+		m.Bartender[flowID] = ourFirstPick
 	}
 
 	return success
@@ -358,6 +366,12 @@ func (dm *DryMartini) ServerDrink(req ServerData, resp *ServerResp) error {
     if err != nil {
         log.Printf("%s\n", err)
         resp.Success = false
+    }
+
+    if decolive.Route.NextNodeIP == "end" {
+        log.Printf("We made it to the end!\n")
+        resp.Success = true
+        return nil
     }
 
 

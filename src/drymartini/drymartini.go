@@ -7,6 +7,7 @@ import (
     //"net/http"
     "log"
     "os"
+    "strconv"
 	//"fmt"
     "crypto/rsa"
     //"crypto/sha1"
@@ -26,10 +27,13 @@ type DryMartini struct {
 	DoJoinFlag bool
     //Flow state
     Bartender map[UUID]MartiniPick
-	Memento map[UUID][]UUID
+	Momento map[UUID][]UUID
 
 	//My ContactInfo
 	myMartiniContact MartiniContact
+
+	MapFlowIndexToFlowID map[int]UUID
+	EasyNewFlowIndex int
 	//Others Contact Info
 	//otherMartiniContact map[ID]MartiniContact
 }
@@ -79,6 +83,8 @@ func NewDryMartini(listenStr string, keylen int, rpcPath *string) *DryMartini {
 
     dm = new(DryMartini)
 
+	dm.EasyNewFlowIndex = 0
+
     //Initialize key pair
     dm.KeyPair, err = rsa.GenerateKey(rand.Reader, keylen)
     if err != nil {
@@ -88,6 +94,8 @@ func NewDryMartini(listenStr string, keylen int, rpcPath *string) *DryMartini {
 
     //Initialize flow struct
     dm.Bartender = make(map[UUID]MartiniPick)
+	dm.Momento = make(map[UUID][]UUID)
+	dm.MapFlowIndexToFlowID = make(map[int]UUID)
 
 	//Initialize our Kademlia
 	//dm.KademliaInst, s = kademlia.NewKademlia(listenStr, rpcPath)
@@ -270,7 +278,7 @@ func WrapOlivesForPath(dm *DryMartini, flowID UUID, pathKeys []UUID, Data []byte
 	}
 
 	var tempOlive Olive
-	for i := pathLength-1; i > 0; i-- {
+    for i := pathLength-1; i > 0; i-- {
 		tempOlive.FlowID = flowID
 		//encrypt the Data (using furthest nodes key) and put it into tempOlive
 		tempOlive.Data = EncryptDataSymm(theData, pathKeys[i])
@@ -363,4 +371,35 @@ func findMartiniContact(dm *DryMartini, hashedID kademlia.ID) (MartiniContact, b
 		os.Exit(1)
 	}
 	return mc, true
+}
+
+func SendData(dm *DryMartini, flowIndex int, data string) (success bool) {
+	var flowID UUID
+	var found bool
+	//map index to flowID
+	flowID, found = dm.MapFlowIndexToFlowID[flowIndex]
+	if !found {
+		log.Printf("No map from flowIndex to flowID")
+		return false
+	} else {
+		log.Printf("Found map from flowIndex to flowID")
+	}
+	flowID = flowID
+	//wrap data
+    var sendingOlive Olive
+
+    sendingOlive.Data = WrapOlivesForPath(dm, flowID, dm.Momento[flowID],[]byte(data))
+    sendingOlive.FlowID = flowID
+
+	var nextNodeAddrStr string = dm.Bartender[flowID].NextNodeIP + ":" + strconv.FormatUint(uint64(dm.Bartender[flowID].NextNodePort), 10)
+
+    //make send rpc
+    var dataSent bool
+    dataSent = MakeSendCall(sendingOlive, nextNodeAddrStr)
+    if !dataSent {
+        log.Printf("Some terrible error happened while sending\n")
+    }
+
+
+	return true
 }

@@ -65,11 +65,17 @@ func PrintLocalData(dm *DryMartini) {
 func PrintLocalFlowData(dm *DryMartini) {
 	var err error
 
+	for key, value := range dm.MapFlowIndexToFlowID {
+		if err != nil {
+			log.Printf("drymartini.PrintLocalFlowData %s\n", err)
+		}
+		fmt.Printf("Print MapFlowIndexToFlowID[%d]=%+v\n", key, value)
+	}
+
 	for key, value := range dm.Bartender {
 		if err != nil {
-			log.Printf("drymartini.PrintLocalData %s\n", err)
+			log.Printf("drymartini.PrintLocalFlowData %s\n", err)
 		}
-		//fmt.Printf("Print HashMap[%s]=%s\n", key.AsString(), string(value))
-		fmt.Printf("Print HashMap[%s]=%+v\n", key.AsString(), value.SymmKey)
+		fmt.Printf("Print Bartender[%s]=%+v\n", key.AsString(), value.SymmKey)
 	}
 }
