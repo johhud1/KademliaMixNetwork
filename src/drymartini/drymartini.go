@@ -251,6 +251,7 @@ func NewMartiniPick(from *MartiniContact, to *MartiniContact) (pick *MartiniPick
 
 //choosing []bytes for Data was pretty arbitrary, could probably be something else
 //o is the outermost Olive
+//need to take FLOWID as an argument. 
 func WrapOlivesForPath(dm *DryMartini, oPath []*Olive, Data []byte, SymmKey UUID)  (o *Olive){
 	var flowID UUID
 	var err error
