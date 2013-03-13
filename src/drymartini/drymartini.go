@@ -28,6 +28,7 @@ type DryMartini struct {
     Bartender map[UUID]MartiniPick
 	
 	Memento map[UUID][]UUID
+
 	//My ContactInfo
 	myMartiniContact MartiniContact
 

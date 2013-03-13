@@ -196,7 +196,6 @@ func BarCrawl(m *DryMartini, request string, min int, max int) bool {
 
 	if success {
 		//m.Bartender[flowID] = 
-		
 	}
 
 	return success
@@ -264,7 +263,7 @@ func (dm *DryMartini) CreateCircuit(req CCRequest, res *CCResponse) error {
 		res.Success = false
 		return nil//Change to valid error
 	}
-	
+
 	err = json.Unmarshal(decryptedData, nextNodeOlive)
 	if err != nil {
 		log.Printf("Error: DryMartini.CreateCircuit.Unmarshal( %s)\n", err)
@@ -272,14 +271,13 @@ func (dm *DryMartini) CreateCircuit(req CCRequest, res *CCResponse) error {
 		return nil//Change to valid error
 	}
 
-	
-	dm.Bartender[nextNodeOlive.FlowID] = nextNodeOlive.Route 
+	dm.Bartender[nextNodeOlive.FlowID] = nextNodeOlive.Route
 	log.Printf("NextNodeOlive_data:%s\n", string(nextNodeOlive.Data))
 
 	if len(req.EncryptedData) != 1 {
 		log.Printf("CreateCircuit: len(%d) \n", len(req.EncryptedData))
-		encryptedData = req.EncryptedData[1:]	
-	
+		encryptedData = req.EncryptedData[1:]
+
 		var nextNodeAddrStr string = nextNodeOlive.Route.NextNodeIP + ":" + strconv.FormatUint(uint64(nextNodeOlive.Route.NextNodePort), 10)
 		log.Printf("NextHopeIs: %s\n", nextNodeAddrStr)
 		res.Success = MakeCircuitCreateCall(dm, nextNodeAddrStr, encryptedData)
