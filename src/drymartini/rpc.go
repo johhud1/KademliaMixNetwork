@@ -127,27 +127,27 @@ func BarCrawl(m *DryMartini, request string, min int, max int) bool {
     // Build an array of olives
     for i = 0; i < (len(chosenPath) - 1); i++ {
         jar[i] = new(olive)
-        jar[i].flowID = flowID
-        jar[i].symmKey = NewUUID()
+        jar[i].FlowID = flowID
+        jar[i].SymmKey = NewUUID()
         // Built its martiniPick
-        jar[i].route.nextNodeIP = chosenPath[i+1].NodeIP
-        jar[i].route.nextNodePort = chosenPath[i+1].NodePort
+        jar[i].Route.NextNodeIP = chosenPath[i+1].NodeIP
+        jar[i].Route.NextNodePort = chosenPath[i+1].NodePort
         // First one?
         if i == 0 {
-            jar[i].route.prevNodeIP = m.myMartiniContact.NodeIP
-            jar[i].route.prevNodePort = m.myMartiniContact.NodePort
+            jar[i].Route.PrevNodeIP = m.myMartiniContact.NodeIP
+            jar[i].Route.PrevNodePort = m.myMartiniContact.NodePort
         } else {
-            jar[i].route.prevNodeIP = jar[i-1].route.nextNodeIP
-            jar[i].route.prevNodePort = jar[i-1].route.nextNodePort
+            jar[i].Route.PrevNodeIP = jar[i-1].Route.NextNodeIP
+            jar[i].Route.PrevNodePort = jar[i-1].Route.NextNodePort
         }
     }
     // Do the last one
     jar[i] = new(olive)
-    jar[i].flowID = flowID
-    jar[i].symmKey = NewUUID()
-    jar[i].route.nextNodeIP = "end"
-    jar[i].route.prevNodeIP = jar[i-1].route.nextNodeIP
-    jar[i].route.prevNodePort = jar[i-1].route.nextNodePort
+    jar[i].FlowID = flowID
+    jar[i].SymmKey = NewUUID()
+    jar[i].Route.NextNodeIP = "end"
+    jar[i].Route.PrevNodeIP = jar[i-1].Route.NextNodeIP
+    jar[i].Route.PrevNodePort = jar[i-1].Route.NextNodePort
 
     var tempBytes []byte
     var err error
