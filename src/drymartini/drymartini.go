@@ -27,7 +27,7 @@ type DryMartini struct {
 	DoJoinFlag bool
     //Flow state
     Bartender map[UUID]MartiniPick
-	Momento map[UUID][]UUID
+	Momento map[UUID][]FlowIDSymmKeyPair
 
 	//My ContactInfo
 	myMartiniContact MartiniContact
@@ -45,6 +45,11 @@ type MartiniPick struct {
     NextNodePort uint16
     PrevNodeIP string
     PrevNodePort uint16
+}
+
+type FlowIDSymmKeyPair struct {
+	SymmKey UUID
+	FlowID UUID
 }
 
 type Olive struct {
@@ -94,7 +99,7 @@ func NewDryMartini(listenStr string, keylen int, rpcPath *string) *DryMartini {
 
     //Initialize flow struct
     dm.Bartender = make(map[UUID]MartiniPick)
-	dm.Momento = make(map[UUID][]UUID)
+	dm.Momento = make(map[UUID][]FlowIDSymmKeyPair)
 	dm.MapFlowIndexToFlowID = make(map[int]UUID)
 
 	//Initialize our Kademlia
@@ -259,14 +264,17 @@ func NewMartiniPick(from *MartiniContact, to *MartiniContact) (pick *MartiniPick
 }
 
 //pathKeys  are in order of closest Nodes key to furthest 
-func WrapOlivesForPath(dm *DryMartini, flowID UUID, pathKeys []UUID, Data []byte)  []byte{
+func WrapOlivesForPath(dm *DryMartini, flowID UUID, pathKeyFlows []FlowIDSymmKeyPair, Data []byte)  []byte{
 	var err error
-	pathLength := len(pathKeys)
+	pathLength := len(pathKeyFlows)
 
 	//if only 1 MartiniContact exists in path, then we only construct 1 Olive..
 	//but that should probably never happen, (assuming always more than 1 hop atm)
 	var innerOlive Olive
+
+	//might wanna delete this at some point, should be unneccessary. inner olive doesn't need flow id
 	innerOlive.FlowID = flowID
+
 	innerOlive.Data = Data
     log.Printf("We are packaging data: %s", string(Data))
 	//innerOlive.Route = NewMartiniPick(mcPath[pathLength-1], nil)
@@ -280,10 +288,11 @@ func WrapOlivesForPath(dm *DryMartini, flowID UUID, pathKeys []UUID, Data []byte
 
 	var tempOlive Olive
     for i := pathLength-1; i > 0; i-- {
-		tempOlive.FlowID = flowID
+		//important that flowID is shifted by 1
+		tempOlive.FlowID = pathKeyFlows[i].FlowID
 		//encrypt the Data (using furthest nodes key) and put it into tempOlive
-		tempOlive.Data = EncryptDataSymm(theData, pathKeys[i])
-        log.Printf("USING KEY: %v\n", pathKeys[i])
+		tempOlive.Data = EncryptDataSymm(theData, pathKeyFlows[i].SymmKey)
+        log.Printf("USING SYMMKEY and FLOWID: %+v\n", pathKeyFlows[i])
 
 		//marshal the temp Olive 
 		theData, err = json.Marshal(tempOlive)
@@ -292,8 +301,8 @@ func WrapOlivesForPath(dm *DryMartini, flowID UUID, pathKeys []UUID, Data []byte
 				os.Exit(1)
 		}
 	}
-    log.Printf("USING KEY: %v\n", pathKeys[0])
-	theData = EncryptDataSymm(theData, pathKeys[0])
+    log.Printf("USING SymmKEY and FlowID: %v\n", pathKeyFlows[0])
+	theData = EncryptDataSymm(theData, pathKeyFlows[0].SymmKey)
 	return theData
 }
 /*
@@ -336,7 +345,7 @@ func UnwrapOlivesForPath(dm *DryMartini, pathKeys []UUID, Data []byte)  []byte{
 */
 
 //pathKeys  are in order of closest Nodes key to furthest 
-func UnwrapOlivesForPath(dm *DryMartini, pathKeys []UUID, Data []byte)  []byte{
+func UnwrapOlivesForPath(dm *DryMartini, pathKeys []FlowIDSymmKeyPair, Data []byte)  []byte{
 	var err error
 	var tempOlive Olive
 	var decData []byte
@@ -348,8 +357,8 @@ func UnwrapOlivesForPath(dm *DryMartini, pathKeys []UUID, Data []byte)  []byte{
 
     for i := 0; i < pathLength; i++ {
 		//encrypt the Data (using furthest nodes key) and put it into tempOlive
-		decData = DecryptDataSymm(theData, pathKeys[i])
-        log.Printf("USING KEY: %v\n", pathKeys[i])
+		decData = DecryptDataSymm(theData, pathKeys[i].SymmKey)
+        log.Printf("USING SYMMKEY and FLOWID: %+v\n", pathKeys[i])
 
 		//marshal the temp Olive 
 		err = json.Unmarshal(decData, &tempOlive)
@@ -456,8 +465,9 @@ func SendData(dm *DryMartini, flowIndex int, data string) (success bool) {
 	//wrap data
     var sendingOlive Olive
 
-    sendingOlive.Data = WrapOlivesForPath(dm, flowID, dm.Momento[flowID],[]byte(data))
-    sendingOlive.FlowID = flowID
+    sendingOlive.Data = WrapOlivesForPath(dm, flowID,dm.Momento[flowID],[]byte(data))
+	//first olive gets flowID for first node in path
+    sendingOlive.FlowID = dm.Momento[flowID][0].FlowID
 
 	var nextNodeAddrStr string = dm.Bartender[flowID].NextNodeIP + ":" + strconv.FormatUint(uint64(dm.Bartender[flowID].NextNodePort), 10)
 

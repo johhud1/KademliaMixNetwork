@@ -119,16 +119,18 @@ func BarCrawl(m *DryMartini, request string, min int, max int) bool {
     // Send the recursie request
     var encryptedSym [][]byte = make([][]byte, len(chosenPath))
     var jar []*Olive = make([]*Olive, len(chosenPath))
-    var flowID UUID
-    flowID = NewUUID()
+    var myFlowID UUID = NewUUID()
 
 	//log.Printf("chosenPath: %+v\n", chosenPath)
 
     var i int
+	var tempFlowID UUID
     // Build an array of Olives
     for i = 0; i < (len(chosenPath) - 1); i++ {
         jar[i] = new(Olive)
-        jar[i].FlowID = flowID
+		//make a new UUID for each node in the circuit
+		tempFlowID = NewUUID()
+        jar[i].FlowID = tempFlowID
 
 		jar[i].Data = []byte("testData_"+strconv.Itoa(i))
 
@@ -148,13 +150,14 @@ func BarCrawl(m *DryMartini, request string, min int, max int) bool {
             jar[i].Route.PrevNodeIP = chosenPath[i-1].NodeIP
             jar[i].Route.PrevNodePort = chosenPath[i-1].NodePort
         }
-
-		m.Momento[flowID] = append(m.Momento[flowID], jar[i].Route.SymmKey)
+		//append the new SymmKeyFlowID pair to momento. so we can use this to build wrapped olive with correct flowID
+		m.Momento[myFlowID] = append(m.Momento[myFlowID], FlowIDSymmKeyPair{SymmKey:jar[i].Route.SymmKey, FlowID : tempFlowID})
 
     }
     // Do the last one
     jar[i] = new(Olive)
-    jar[i].FlowID = flowID
+	tempFlowID = NewUUID()
+    jar[i].FlowID = tempFlowID
     jar[i].Route.NextNodeIP = "end"
     //jar[i].Route.PrevNodeIP = jar[i-1].Route.NextNodeIP
     //jar[i].Route.PrevNodePort = jar[i-1].Route.NextNodePort
@@ -163,7 +166,7 @@ func BarCrawl(m *DryMartini, request string, min int, max int) bool {
     jar[i].Route.SymmKey = NewUUID()
 	jar[i].Data = []byte(request)
 
-	m.Momento[flowID] = append(m.Momento[flowID], jar[i].Route.SymmKey)
+	m.Momento[myFlowID] = append(m.Momento[myFlowID], FlowIDSymmKeyPair{SymmKey:jar[i].Route.SymmKey, FlowID: tempFlowID})
 
     var tempBytes []byte
     var err error
@@ -198,12 +201,12 @@ func BarCrawl(m *DryMartini, request string, min int, max int) bool {
     var ourFirstPick MartiniPick
 
 	if success {
-		m.MapFlowIndexToFlowID[m.EasyNewFlowIndex] = flowID
+		m.MapFlowIndexToFlowID[m.EasyNewFlowIndex] = myFlowID
 		m.EasyNewFlowIndex++
         // Build a pick for the first hop
         ourFirstPick.NextNodeIP = chosenPath[0].NodeIP
         ourFirstPick.NextNodePort = chosenPath[0].NodePort
-		m.Bartender[flowID] = ourFirstPick
+		m.Bartender[myFlowID] = ourFirstPick
 	}
 
 	return success
@@ -384,7 +387,8 @@ func (dm *DryMartini) ServeDrink(req ServerData, resp *ServerResp) error {
 		var marshalledOlive []byte
         log.Printf("PAYLOAD: %s\n", payload)
 		var responseOlive Olive
-		responseOlive.FlowID = currFlow
+		//flowid already set. Don't mess
+		//responseOlive.FlowID = currFlow
 		responseOlive.Data = []byte(payload+"response_data")
 		marshalledOlive, err = json.Marshal(responseOlive)
 		if(err!=nil){
@@ -407,7 +411,8 @@ func (dm *DryMartini) ServeDrink(req ServerData, resp *ServerResp) error {
 
 	var marshalledOlive []byte
 	var responseOlive Olive
-	responseOlive.FlowID = currFlow
+	//flowID already set. don't mess
+	//responseOlive.FlowID = currFlow
 	responseOlive.Data = responseData
 	marshalledOlive, err = json.Marshal(responseOlive)
 	if(err!=nil){

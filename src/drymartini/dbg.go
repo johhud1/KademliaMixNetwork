@@ -69,20 +69,21 @@ func PrintLocalFlowData(dm *DryMartini) {
 		if err != nil {
 			log.Printf("drymartini.PrintLocalFlowData %s\n", err)
 		}
-		fmt.Printf("Print MapFlowIndexToFlowID[%d]=%+v\n", key, value)
+		//since Value should be UUID, can print as a string, for matching against momento key
+		fmt.Printf("Print MapFlowIndexToFlowID[%d]=%s\n", key, value.AsString())
 	}
 
 	for key, value := range dm.Bartender {
 		if err != nil {
 			log.Printf("drymartini.PrintLocalFlowData %s\n", err)
 		}
-		fmt.Printf("Print Bartender[%s]=%+v\n", key.AsString(), value.SymmKey)
+		fmt.Printf("Print Bartender[%v]=%+v\n", key, value.SymmKey)
 	}
 
 	for key, value := range dm.Momento {
 		if err != nil {
 			log.Printf("drymartini.PrintLocalFlowData %s\n", err)
 		}
-		fmt.Printf("Print Momento[%s]=%+v\n", key.AsString(), value)
+		fmt.Printf("Print Momento[%v]=%+v\n", key, value)
 	}
 }
