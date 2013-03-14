@@ -309,12 +309,13 @@ type ServerData struct {
 }
 type ServerResp struct {
     Success bool
+	Data []byte
 }
 
 
 
 
-func MakeSendCall(dataLump Olive, nextNodeAddrStr string) bool {
+func MakeSendCall(dataLump Olive, nextNodeAddrStr string) (bool, []byte) {
     var client *rpc.Client
 	var err error
 
@@ -330,7 +331,7 @@ func MakeSendCall(dataLump Olive, nextNodeAddrStr string) bool {
 	}
     if err != nil {
         log.Printf("Error: MakeSendCall, DialHTTP, %s\n", err)
-        return false
+        return false, nil
     }
 
 	//make rpc
@@ -341,13 +342,13 @@ func MakeSendCall(dataLump Olive, nextNodeAddrStr string) bool {
     err = client.Call("DryMartini.ServeDrink", req, res)
     if err != nil {
         log.Printf("Error: SendCall, Call, %s\n", err)
-        return false
+        return false, nil
     }
 	log.Printf("got SendCall response: %s:%v\n", nextNodeAddrStr, res.Success);
 
     client.Close()
 
-	return res.Success
+	return res.Success, res.Data
 }
 
 
@@ -356,13 +357,16 @@ func (dm *DryMartini) ServeDrink(req ServerData, resp *ServerResp) error {
     var raw_data []byte
     var decolive Olive
     var currFlow UUID
+	var responseData []byte
     var err error
+	var symmKey UUID
 
     currFlow = req.Sent.FlowID
+	symmKey = dm.Bartender[currFlow].SymmKey
 
     log.Printf("Getting a ServeDrink call!\n")
     log.Printf("We were given olive: %+v\n", req.Sent)
-    log.Printf("Will use SymmKey: %v\n", dm.Bartender[currFlow].SymmKey)
+    log.Printf("Will use SymmKey: %v\n", symmKey)
     raw_data = DecryptDataSymm(req.Sent.Data, dm.Bartender[currFlow].SymmKey)
     log.Printf("RAW DATA: %v\n", raw_data)
     log.Printf("RAW DATA(s): %s\n", string(raw_data))
@@ -375,7 +379,18 @@ func (dm *DryMartini) ServeDrink(req ServerData, resp *ServerResp) error {
 
     if dm.Bartender[currFlow].NextNodeIP  == "end" {
         log.Printf("We made it to the end!\n")
-        log.Printf("PAYLOAD: %s\n", string(decolive.Data))
+		var payload string = string(decolive.Data)
+		var marshalledOlive []byte
+        log.Printf("PAYLOAD: %s\n", payload)
+		var responseOlive Olive
+		responseOlive.FlowID = currFlow
+		responseOlive.Data = []byte(payload+"response_data")
+		marshalledOlive, err = json.Marshal(responseOlive)
+		if(err!=nil){
+			log.Printf("error marhsalling responseOlive: %s\n", err)
+		}
+		encData := EncryptDataSymm(marshalledOlive, symmKey)
+		resp.Data = encData
         resp.Success = true
         return nil
     }
@@ -385,7 +400,7 @@ func (dm *DryMartini) ServeDrink(req ServerData, resp *ServerResp) error {
     //Send the new olive!
     //TODO: End case should maybe return false? It should check for failure.
 	var nextNodeAddrStr string = dm.Bartender[currFlow].NextNodeIP + ":" + strconv.FormatUint(uint64(dm.Bartender[currFlow].NextNodePort), 10)
-    resp.Success = MakeSendCall(decolive, nextNodeAddrStr)
+    resp.Success, responseData  = MakeSendCall(decolive, nextNodeAddrStr)
 
     return nil
 }

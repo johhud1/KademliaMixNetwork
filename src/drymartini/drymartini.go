@@ -297,6 +297,42 @@ func WrapOlivesForPath(dm *DryMartini, flowID UUID, pathKeys []UUID, Data []byte
 	return theData
 }
 
+//pathKeys  are in order of closest Nodes key to furthest 
+func UnwrapOlivesForPath(dm *DryMartini, pathKeys []UUID, Data []byte)  []byte{
+	var err error
+	pathLength := len(pathKeys)
+
+	//if only 1 MartiniContact exists in path, then we only construct 1 Olive..
+	//but that should probably never happen, (assuming always more than 1 hop atm)
+	var innerOlive Olive
+	innerOlive.Data = Data
+    log.Printf("We are packaging data: %s", string(Data))
+	//innerOlive.Route = NewMartiniPick(mcPath[pathLength-1], nil)
+
+	var theData []byte
+	theData, err = json.Marshal(innerOlive)
+	if (err != nil){
+		log.Printf("error marshalling inner Olive:%+v\n", innerOlive)
+		os.Exit(1)
+	}
+
+	var tempOlive Olive
+	var tempData []byte
+    for i := 0; i < pathLength; i++ {
+		//encrypt the Data (using furthest nodes key) and put it into tempOlive
+		tempData = DecryptDataSymm(theData, pathKeys[i])
+        log.Printf("USING KEY: %v\n", pathKeys[i])
+
+		//marshal the temp Olive 
+		err = json.Unmarshal(tempData, &tempOlive)
+		if (err != nil){
+				log.Printf("error marshalling Olive:%+v, err:%s\n", tempOlive, err)
+				os.Exit(1)
+		}
+		tempData = tempOlive.Data
+	}
+	return theData
+}
 
 func GeneratePath(dm *DryMartini, min, max int) (mcPath []MartiniContact){
 	var err error
@@ -402,6 +438,7 @@ func SendData(dm *DryMartini, flowIndex int, data string) (success bool) {
     if !dataSent {
         log.Printf("Some terrible error happened while sending\n")
     }
+
 
 
 	return true
