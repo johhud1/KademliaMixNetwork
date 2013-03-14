@@ -479,7 +479,6 @@ func SendData(dm *DryMartini, flowIndex int, data string) (success bool) {
         log.Printf("Some terrible error happened while sending\n")
 		return false
     }
-	
 	//unwrap data
 	responseData = UnwrapOlivesForPath(dm, dm.Momento[flowID], encResponseData)
 	log.Printf("SEND REPLY: %s\n", string(responseData))

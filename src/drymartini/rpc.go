@@ -5,13 +5,14 @@ package drymartini
 import (
     //"os"
     "log"
-	//"fmt"
+	"fmt"
     "net"
-	//"io"
+	"net/http"
 	"hash"
 	"kademlia"
     //"net/rpc"
     //"strconv"
+	"io/ioutil"
 	"net/rpc"
     "crypto/rsa"
 	"crypto/sha1"
@@ -385,11 +386,17 @@ func (dm *DryMartini) ServeDrink(req ServerData, resp *ServerResp) error {
         log.Printf("We made it to the end!\n")
 		var payload string = string(decolive.Data)
 		var marshalledOlive []byte
+		var responsePayload []byte
         log.Printf("PAYLOAD: %s\n", payload)
+		responsePayload, err = pathEndAction(payload)
+		if (err!=nil){
+			responsePayload = []byte(fmt.Sprintf("error completing endPathAction with payload:%s", payload))
+		}
 		var responseOlive Olive
 		//flowid already set. Don't mess
 		//responseOlive.FlowID = currFlow
-		responseOlive.Data = []byte(payload+"response_data")
+		log.Printf("path end action completed: setting response:%s\n", string(responsePayload))
+		responseOlive.Data = responsePayload
 		marshalledOlive, err = json.Marshal(responseOlive)
 		if(err!=nil){
 			log.Printf("error marhsalling responseOlive: %s\n", err)
@@ -423,9 +430,25 @@ func (dm *DryMartini) ServeDrink(req ServerData, resp *ServerResp) error {
 	encData := EncryptDataSymm(marshalledOlive, symmKey)
 	resp.Data = encData
     resp.Success = true
-	
     return nil
 }
 
 
-
+func pathEndAction(payload string) ([]byte, error){
+	var err error
+	var responseBody []byte
+	var resp *http.Response
+	resp, err = http.Get(payload)
+	if(err != nil){
+		log.Printf("error for http.get: %s\n", err)
+		return responseBody, err
+	}
+	log.Printf("pathEndAction response:%+v\n", resp)
+	responseBody, err = ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
+	if(err == nil){
+		log.Printf("error reading response.Body: %s\n", err)
+		return responseBody, err
+	}
+	return responseBody, err
+}
