@@ -78,4 +78,11 @@ func PrintLocalFlowData(dm *DryMartini) {
 		}
 		fmt.Printf("Print Bartender[%s]=%+v\n", key.AsString(), value.SymmKey)
 	}
+
+	for key, value := range dm.Momento {
+		if err != nil {
+			log.Printf("drymartini.PrintLocalFlowData %s\n", err)
+		}
+		fmt.Printf("Print Momento[%s]=%+v\n", key.AsString(), value)
+	}
 }

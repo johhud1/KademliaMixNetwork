@@ -318,7 +318,7 @@ func MakeSendCall(dataLump Olive, nextNodeAddrStr string) bool {
     var client *rpc.Client
 	var err error
 
-	log.Printf("MakeSendCall: %s\n")
+	log.Printf("MakeSendCall:: next: %s!", nextNodeAddrStr)
     if RunningTests == true {
 		log.Printf("Unimplemented\n")
 		panic(1)
@@ -343,7 +343,7 @@ func MakeSendCall(dataLump Olive, nextNodeAddrStr string) bool {
         log.Printf("Error: SendCall, Call, %s\n", err)
         return false
     }
-	log.Printf("got SendCall response: %s:%s\n", nextNodeAddrStr, res.Success);
+	log.Printf("got SendCall response: %s:%v\n", nextNodeAddrStr, res.Success);
 
     client.Close()
 
@@ -352,7 +352,7 @@ func MakeSendCall(dataLump Olive, nextNodeAddrStr string) bool {
 
 
 // SEND IT RECURSIVELY, THATS HOW BARS WORK
-func (dm *DryMartini) ServerDrink(req ServerData, resp *ServerResp) error {
+func (dm *DryMartini) ServeDrink(req ServerData, resp *ServerResp) error {
     var raw_data []byte
     var decolive Olive
     var currFlow UUID
@@ -360,24 +360,31 @@ func (dm *DryMartini) ServerDrink(req ServerData, resp *ServerResp) error {
 
     currFlow = req.Sent.FlowID
 
+    log.Printf("Getting a ServeDrink call!\n")
+    log.Printf("We were given olive: %+v\n", req.Sent)
+    log.Printf("Will use SymmKey: %v\n", dm.Bartender[currFlow].SymmKey)
     raw_data = DecryptDataSymm(req.Sent.Data, dm.Bartender[currFlow].SymmKey)
+    log.Printf("RAW DATA: %v\n", raw_data)
+    log.Printf("RAW DATA(s): %s\n", string(raw_data))
     // Unmarshal the new olive
     err = json.Unmarshal(raw_data, &decolive)
     if err != nil {
-        log.Printf("%s\n", err)
+        log.Printf("Unmarshal error: %s\n", err)
         resp.Success = false
     }
 
-    if decolive.Route.NextNodeIP == "end" {
+    if dm.Bartender[currFlow].NextNodeIP  == "end" {
         log.Printf("We made it to the end!\n")
+        log.Printf("PAYLOAD: %s\n", string(decolive.Data))
         resp.Success = true
         return nil
     }
 
+    log.Printf("About to send out olive: %+v\n", decolive)
 
     //Send the new olive!
     //TODO: End case should maybe return false? It should check for failure.
-	var nextNodeAddrStr string = decolive.Route.NextNodeIP + ":" + strconv.FormatUint(uint64(decolive.Route.NextNodePort), 10)
+	var nextNodeAddrStr string = dm.Bartender[currFlow].NextNodeIP + ":" + strconv.FormatUint(uint64(dm.Bartender[currFlow].NextNodePort), 10)
     resp.Success = MakeSendCall(decolive, nextNodeAddrStr)
 
     return nil

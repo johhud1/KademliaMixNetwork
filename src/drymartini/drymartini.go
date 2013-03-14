@@ -268,6 +268,7 @@ func WrapOlivesForPath(dm *DryMartini, flowID UUID, pathKeys []UUID, Data []byte
 	var innerOlive Olive
 	innerOlive.FlowID = flowID
 	innerOlive.Data = Data
+    log.Printf("We are packaging data: %s", string(Data))
 	//innerOlive.Route = NewMartiniPick(mcPath[pathLength-1], nil)
 
 	var theData []byte
@@ -282,6 +283,7 @@ func WrapOlivesForPath(dm *DryMartini, flowID UUID, pathKeys []UUID, Data []byte
 		tempOlive.FlowID = flowID
 		//encrypt the Data (using furthest nodes key) and put it into tempOlive
 		tempOlive.Data = EncryptDataSymm(theData, pathKeys[i])
+        log.Printf("USING KEY: %v\n", pathKeys[i])
 
 		//marshal the temp Olive 
 		theData, err = json.Marshal(tempOlive)
@@ -290,6 +292,7 @@ func WrapOlivesForPath(dm *DryMartini, flowID UUID, pathKeys []UUID, Data []byte
 				os.Exit(1)
 		}
 	}
+    log.Printf("USING KEY: %v\n", pathKeys[0])
 	theData = EncryptDataSymm(theData, pathKeys[0])
 	return theData
 }
