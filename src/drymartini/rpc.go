@@ -375,6 +375,7 @@ func (dm *DryMartini) ServeDrink(req ServerData, resp *ServerResp) error {
     if err != nil {
         log.Printf("Unmarshal error: %s\n", err)
         resp.Success = false
+		return nil
     }
 
     if dm.Bartender[currFlow].NextNodeIP  == "end" {
@@ -388,6 +389,8 @@ func (dm *DryMartini) ServeDrink(req ServerData, resp *ServerResp) error {
 		marshalledOlive, err = json.Marshal(responseOlive)
 		if(err!=nil){
 			log.Printf("error marhsalling responseOlive: %s\n", err)
+			resp.Success = false
+			return nil
 		}
 		encData := EncryptDataSymm(marshalledOlive, symmKey)
 		resp.Data = encData
@@ -402,6 +405,20 @@ func (dm *DryMartini) ServeDrink(req ServerData, resp *ServerResp) error {
 	var nextNodeAddrStr string = dm.Bartender[currFlow].NextNodeIP + ":" + strconv.FormatUint(uint64(dm.Bartender[currFlow].NextNodePort), 10)
     resp.Success, responseData  = MakeSendCall(decolive, nextNodeAddrStr)
 
+	var marshalledOlive []byte
+	var responseOlive Olive
+	responseOlive.FlowID = currFlow
+	responseOlive.Data = responseData
+	marshalledOlive, err = json.Marshal(responseOlive)
+	if(err!=nil){
+		log.Printf("error marhsalling responseOlive: %s\n", err)
+		resp.Success = false
+		return nil
+	}
+	encData := EncryptDataSymm(marshalledOlive, symmKey)
+	resp.Data = encData
+    resp.Success = true
+	
     return nil
 }
 

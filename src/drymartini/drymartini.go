@@ -296,7 +296,7 @@ func WrapOlivesForPath(dm *DryMartini, flowID UUID, pathKeys []UUID, Data []byte
 	theData = EncryptDataSymm(theData, pathKeys[0])
 	return theData
 }
-
+/*
 //pathKeys  are in order of closest Nodes key to furthest 
 func UnwrapOlivesForPath(dm *DryMartini, pathKeys []UUID, Data []byte)  []byte{
 	var err error
@@ -333,6 +333,35 @@ func UnwrapOlivesForPath(dm *DryMartini, pathKeys []UUID, Data []byte)  []byte{
 	}
 	return theData
 }
+*/
+
+//pathKeys  are in order of closest Nodes key to furthest 
+func UnwrapOlivesForPath(dm *DryMartini, pathKeys []UUID, Data []byte)  []byte{
+	var err error
+	var tempOlive Olive
+	var decData []byte
+	var theData []byte
+
+	pathLength := len(pathKeys)
+
+	theData = Data
+
+    for i := 0; i < pathLength; i++ {
+		//encrypt the Data (using furthest nodes key) and put it into tempOlive
+		decData = DecryptDataSymm(theData, pathKeys[i])
+        log.Printf("USING KEY: %v\n", pathKeys[i])
+
+		//marshal the temp Olive 
+		err = json.Unmarshal(decData, &tempOlive)
+		if (err != nil){
+				log.Printf("error marshalling Olive:%+v, err:%s\n", tempOlive, err)
+				os.Exit(1)
+		}
+		theData = tempOlive.Data
+	}
+	return theData
+}
+
 
 func GeneratePath(dm *DryMartini, min, max int) (mcPath []MartiniContact){
 	var err error
@@ -433,12 +462,17 @@ func SendData(dm *DryMartini, flowIndex int, data string) (success bool) {
 	var nextNodeAddrStr string = dm.Bartender[flowID].NextNodeIP + ":" + strconv.FormatUint(uint64(dm.Bartender[flowID].NextNodePort), 10)
 
     //make send rpc
-    var dataSent bool
-    dataSent = MakeSendCall(sendingOlive, nextNodeAddrStr)
-    if !dataSent {
+	var encResponseData []byte
+	var responseData []byte
+    success, encResponseData = MakeSendCall(sendingOlive, nextNodeAddrStr)
+    if !success {
         log.Printf("Some terrible error happened while sending\n")
+		return false
     }
-
+	
+	//unwrap data
+	responseData = UnwrapOlivesForPath(dm, dm.Momento[flowID], encResponseData)
+	log.Printf("SEND REPLY: %s\n", string(responseData))
 
 
 	return true
