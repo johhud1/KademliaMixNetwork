@@ -100,11 +100,14 @@ func NewKademlia(listenStr string, rpcPath *string) (k *Kademlia, s *rpc.Server)
 	s = rpc.NewServer()
 	s.Register(k)
 	if(RunningTests == true){
+		if(kAndPaths == nil){
+			kAndPaths = make(map[*Kademlia]string)
+		}
 		Assert(kAndPaths != nil, "trying to setup testing kadem without initializing kAndPaths")
-		//rpc.Register(k)
+		kAndPaths[k] = *rpcPath
+		log.Printf("making kademlia listening on rpcPath:%s\n", *rpcPath)
 		s.HandleHTTP(*rpcPath, "/debug/"+*rpcPath)
 	} else {
-		//rpc.Register(k)
 		s.HandleHTTP(rpc.DefaultRPCPath, rpc.DefaultDebugPath)
 	}
 
@@ -180,8 +183,8 @@ func MakePingCall(k *Kademlia, remoteHost net.IP, remotePort uint16) bool {
 
 	//Dial the server
     if RunningTests == true {
-		var portstr string = rpcPath + strconv.FormatInt(int64(remotePort), 10)
-		//log.Printf("test ping to rpcPath:%s\n", portstr)
+		var portstr string = RpcPath + strconv.FormatInt(int64(remotePort), 10)
+		log.Printf("test ping to rpcPath:%s\n", portstr)
 		client, err = rpc.DialHTTPPath("tcp", remoteAddrStr, portstr)
     } else {
 		client, err = rpc.DialHTTP("tcp", remoteAddrStr)
@@ -257,7 +260,7 @@ func MakeStore(k *Kademlia, remoteContact *Contact, Key ID, Value []byte) bool {
 	//Dial the server
     if RunningTests == true {
 		//if we're running tests, need to DialHTTPPath
-		var portstr string = rpcPath + remotePortStr
+		var portstr string = RpcPath + remotePortStr
 		client, err = rpc.DialHTTPPath("tcp", remoteAddrStr, portstr)
     } else {
 		client, err = rpc.DialHTTP("tcp", remoteAddrStr)
@@ -367,7 +370,7 @@ func MakeFindValueCall(k *Kademlia, remoteContact *Contact, Key ID, fvChan chan 
 	//Dial the server
     if RunningTests == true {
 		//if we're running tests, need to DialHTTPPath
-		var portstr string = rpcPath + remotePortStr
+		var portstr string = RpcPath + remotePortStr
 		//log.Printf("test FindNodeValue to rpcPath:%s\n", portstr)
 		client, err = rpc.DialHTTPPath("tcp", remoteAddrStr, portstr)
     } else {
@@ -633,7 +636,7 @@ func MakeFindNodeCall(k *Kademlia, remoteContact *Contact, searchKey ID, NodeCha
 	//Dial the server
     if RunningTests == true {
 		//if we're running tests, need to DialHTTPPath
-		var portstr string = rpcPath + remotePortStr
+		var portstr string = RpcPath + remotePortStr
 		//log.Printf("test FindNodeCall to rpcPath:%s\n", portstr)
 		client, err = rpc.DialHTTPPath("tcp", remoteAddrStr, portstr)
     } else {

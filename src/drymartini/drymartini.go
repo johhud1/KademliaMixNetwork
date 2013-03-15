@@ -81,7 +81,7 @@ func (mc MartiniContact) ToBytes() (b byte[]){
 
 
 // Create a new DryMartini object with its own kademlia and RPC server
-func NewDryMartini(listenStr string, keylen int, rpcPath *string) *DryMartini {
+func NewDryMartini(listenStr string, keylen int) *DryMartini {
     var err error
     var s *rpc.Server
     var dm *DryMartini
@@ -102,13 +102,18 @@ func NewDryMartini(listenStr string, keylen int, rpcPath *string) *DryMartini {
 	dm.Momento = make(map[UUID][]FlowIDSymmKeyPair)
 	dm.MapFlowIndexToFlowID = make(map[int]UUID)
 
-	//Initialize our Kademlia
-	//dm.KademliaInst, s = kademlia.NewKademlia(listenStr, rpcPath)
-	dm.KademliaInst, s = kademlia.NewKademlia(listenStr, rpcPath)
-
 	var host net.IP
 	var port uint16
 	host, port, err = kademlia.AddrStrToHostPort(listenStr)
+
+	//Initialize our Kademlia
+	//dm.KademliaInst, s = kademlia.NewKademlia(listenStr, rpcPath)
+	portStr := strconv.FormatUint(uint64(port), 10)
+	var rpcPathStr string = kademlia.RpcPath+portStr
+	if(Verbose){
+		log.Printf("making new Kademlia with listenStr:%s, rpcPath\n", listenStr, rpcPathStr)
+	}
+	dm.KademliaInst, s = kademlia.NewKademlia(listenStr, &rpcPathStr)
 
 	//myMartiniContact <- ip, port, public key
 	dm.myMartiniContact.NodeIP = host.String()

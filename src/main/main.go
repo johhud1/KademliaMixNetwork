@@ -120,8 +120,17 @@ func NewDryMartiniInstruction(s string) (dmInst *DryMartiniInstruction) {
 		dmInst.flags = 11
 		dmInst.FlowIndex, err = strconv.Atoi(strTokens[1])
 		dmInst.request = strTokens[2]
+	case "makewarmswarm" :
+		if len(strTokens) != 2 {
+			return dmInst
+		}
+		dmInst.minNodes, err  = strconv.Atoi(strTokens[1])
+		if (err != nil){
+			log.Printf("error parsing num nodes:%s\n", err)
+			return dmInst
+		}
+		dmInst.flags = 12
 	}
-	
 	if err != nil {
 		//?
 	}
@@ -161,6 +170,9 @@ func (dmInst *DryMartiniInstruction) IsPrintLocalFlowData() bool{
 }
 func (dmInst *DryMartiniInstruction) IsSend() bool{
 	return dmInst.flags == 11
+}
+func (dmInst *DryMartiniInstruction) IsMakeSwarm() bool{
+	return dmInst.flags == 12
 }
 func (dmInst *DryMartiniInstruction) IsSkip() bool {
 	return dmInst.flags == 255
@@ -252,7 +264,10 @@ func (dmInst *DryMartiniInstruction) Execute(dm *drymartini.DryMartini) (status 
 	case dmInst.IsSend() :
 		log.Printf("Send %d %s\n", dmInst.FlowIndex, dmInst.request)
 		drymartini.SendData(dm, dmInst.FlowIndex, dmInst.request)
-
+	case dmInst.IsMakeSwarm() :
+		log.Printf("Making swarm: numNodes:d\n", dmInst.minNodes)
+		drymartini.MakeSwarm(dmInst.minNodes)
+		drymartini.WarmSwarm(dm, drymartini.TestMartinis)
 	}
 	return false
 }
@@ -279,7 +294,7 @@ func main() {
 
     //instantiate
     var drymart *drymartini.DryMartini
-    drymart = drymartini.NewDryMartini(listenStr, 4096, nil)
+    drymart = drymartini.NewDryMartini(listenStr, 4096)
 
     //fmt.Printf("%s", drymart.KeyPair)
 

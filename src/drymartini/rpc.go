@@ -11,14 +11,14 @@ import (
 	"hash"
 	"kademlia"
     //"net/rpc"
-    //"strconv"
+    "strconv"
+	"strings"
 	"io/ioutil"
 	"net/rpc"
     "crypto/rsa"
 	"crypto/sha1"
     "crypto/rand"
     "encoding/json"
-	"strconv"
 )
 
 /*
@@ -185,6 +185,9 @@ func BarCrawl(m *DryMartini, request string, min int, max int) bool {
             return false
         }
         sha_gen = sha1.New()
+		if (Verbose){
+			log.Printf("encrypting CC element:%s with pubkey:%s\n", i, chosenPath[i].PubKey)
+		}
         encryptedSym[i], err = rsa.EncryptOAEP(sha_gen, rand.Reader, &(chosenPath[i].GetReadyContact().PubKey), tempBytes, nil)
 		if err != nil {
 			log.Printf("BarCrawl.EncryptOAEP %s %d\n", err, len(tempBytes))
@@ -219,12 +222,17 @@ func MakeCircuitCreateCall(dm *DryMartini, nextNodeAddrStr string, encryptedArra
 	var err error
 
 	log.Printf("MakeCircuitCreateCall: %s\n", nextNodeAddrStr)
-    if RunningTests == true {
-		log.Printf("Unimplemented\n")
-		panic(1)
-		//var portstr string = RpcPath + strconv.FormatInt(int64(mp.nextNodePort), 10)
-		//log.Printf("test ping to rpcPath:%s\n", portstr)
-		//client, err = rpc.DialHTTPPath("tcp", remoteAddrStr, portstr)
+    if kademlia.RunningTests == true {
+		//log.Printf("Unimplemented\n")
+		//panic(1)
+		var nextNodePort string = strings.Split(nextNodeAddrStr, ":")[1]
+		if(nextNodePort == ""){
+			log.Printf("error getting next port: MakeSendCall\n");
+			panic(1)
+		}
+		var portstr string = kademlia.RpcPath + nextNodePort
+		log.Printf("test makeCircuitCreateCall to rpcPath:%s\n", portstr)
+		client, err = rpc.DialHTTPPath("tcp", nextNodeAddrStr, portstr)
     } else {
 		client, err = rpc.DialHTTP("tcp", nextNodeAddrStr)
 	}
@@ -269,6 +277,9 @@ func (dm *DryMartini) CreateCircuit(req CCRequest, res *CCResponse) error {
 	//log.Printf("%v\n", req)
 	//log.Printf("%+v\n", req.EncryptedData)
 
+	if(Verbose){
+		log.Printf("CreateCircuit, my pubKey:%s\n", dm.myMartiniContact.PubKey)
+	}
 	decryptedData, err = rsa.DecryptOAEP(sha_gen, nil, dm.KeyPair, req.EncryptedData[0], nil)
 	if err != nil {
 		log.Printf("Error: DryMartini.CreateCircuit.Decrypt( %s)\n", err)
@@ -324,12 +335,17 @@ func MakeSendCall(dataLump Olive, nextNodeAddrStr string) (bool, []byte) {
 	var err error
 
 	log.Printf("MakeSendCall:: next: %s!", nextNodeAddrStr)
-    if RunningTests == true {
-		log.Printf("Unimplemented\n")
-		panic(1)
-		//var portstr string = RpcPath + strconv.FormatInt(int64(mp.nextNodePort), 10)
-		//log.Printf("test ping to rpcPath:%s\n", portstr)
-		//client, err = rpc.DialHTTPPath("tcp", remoteAddrStr, portstr)
+    if kademlia.RunningTests == true {
+		//log.Printf("Unimplemented\n")
+		//panic(1)
+		var nextNodePort string = strings.Split(nextNodeAddrStr, ":")[1]
+		if(nextNodePort == ""){
+			log.Printf("error getting next port: MakeSendCall\n");
+			panic(1)
+		}
+		var portstr string = kademlia.RpcPath + nextNodePort
+		log.Printf("test MakeSendCall to rpcPath:%s\n", portstr)
+		client, err = rpc.DialHTTPPath("tcp", nextNodeAddrStr, portstr)
     } else {
 		client, err = rpc.DialHTTP("tcp", nextNodeAddrStr)
 	}

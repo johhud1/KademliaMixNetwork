@@ -15,7 +15,7 @@ var Verbose bool = true
 var kAndPaths map[*Kademlia]string
 var TestKademlias []*Kademlia
 
-var rpcPath string = "/myRpc" //the rpc path of a kadem rpc handler must always be this string concatenated with the port its on
+var RpcPath string = "/myRpc" //the rpc path of a kadem rpc handler must always be this string concatenated with the port its on
 var RunningTests bool = false
 func Assert(cond bool, msg string) {
 	if !cond {
@@ -39,11 +39,11 @@ func RunTests(numNodes string) {
     for i:=0; i<portrange; i++ {
 		istr := strconv.FormatInt(int64(7900+i), 10)
 		newkademstr := "localhost:"+istr
-		myRpcPath := rpcPath+istr
-		log.Printf("creating newKademlia with AddrString:%s and rpcPath:%s\n", newkademstr, rpcPath)
+		myRpcPath := RpcPath+istr
+		log.Printf("creating newKademlia with AddrString:%s and rpcPath:%s\n", newkademstr, RpcPath)
 		var k *Kademlia
 		k, _ = NewKademlia(newkademstr, &myRpcPath)
-		kAndPaths[k] = rpcPath
+		kAndPaths[k] = RpcPath
 		TestKademlias[i] = k
 
     }
