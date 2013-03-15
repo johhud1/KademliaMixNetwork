@@ -34,8 +34,6 @@ type DryMartini struct {
 
 	MapFlowIndexToFlowID map[int]UUID
 	EasyNewFlowIndex int
-	//Others Contact Info
-	//otherMartiniContact map[ID]MartiniContact
 }
 
 // The flow structure, it remembers Olives
@@ -53,8 +51,6 @@ type FlowIDSymmKeyPair struct {
 }
 
 type Olive struct {
-    // NOTE: This should change for each node, we might be risking path
-    // discovery
     FlowID UUID
     Data []byte
     Route MartiniPick
@@ -134,74 +130,6 @@ func NewDryMartini(listenStr string, keylen int) *DryMartini {
         os.Exit(1)
 	}
 
-    // Encrypt/Decrypt Test
-    // First, ready the contact
-	/*
-    readycon := dm.myMartiniContact.GetReadyContact()
-    sha11 := sha1.New()
-
-    test_message := []byte("Test message")
-    log.Printf("Original message: %s\n", string(test_message))
-    out, _ := rsa.EncryptOAEP(sha11, rand.Reader, &(readycon.PubKey), test_message, nil)
-    log.Printf("Encrypted: %v\n", out)
-
-    sha31 := sha1.New()
-    out2, errr := rsa.EncryptOAEP(sha31, rand.Reader, &(readycon.PubKey), out, nil)
-
-    log.Printf("%s", errr)
-
-    sha41 :=sha1.New()
-    out3, _ := rsa.DecryptOAEP(sha41, nil, dm.KeyPair, out2, nil)
-
-    sha21 := sha1.New()
-    back, _ := rsa.DecryptOAEP(sha21, nil, dm.KeyPair, out3, nil)
-    log.Printf("Back Again: %s\n", string(back))
-	 */
-
-    /*
-    test_pick := new(MartiniPick)
-    test_pick.NextNodeIP = "127.0.0.1"
-    test_pick.NextNodePort = 2000
-    test_pick.PrevNodeIP = "127.0.0.1"
-    test_pick.PrevNodePort = 2001
-
-    test_olive := new(Olive)
-    test_olive.FlowID = NewUUID()
-    test_olive.Data = []byte("farts")
-    test_olive.Route = *test_pick
-    test_olive.SymmKey = NewUUID()
-
-    key := NewUUID()
-
-    var marsh []byte
-    var errr error
-    var clean_olive Olive
-    var enc []byte
-    var dec []byte
-
-    log.Printf("ORIGINAL: %+v\n", *test_olive)
-
-
-    marsh, errr = json.Marshal(test_olive)
-    if errr != nil {
-        log.Printf("%s\n", errr)
-        os.Exit(-1)
-    }
-    log.Printf("MARSHALED: %s\n", marsh)
-
-    enc = EncryptDataSymm(marsh, key)
-    log.Printf("ENCRYPTED: %v\n", enc)
-
-    dec = DecryptDataSymm(enc, key)
-    log.Printf("DECRYPTED: %s\n", dec)
-
-    errr = json.Unmarshal(dec, &clean_olive)
-    if errr != nil {
-        log.Printf("%s\n", errr)
-        os.Exit(-1)
-    }
-    log.Printf("CLEAN: %+v\n", clean_olive)
-    */
 
     return dm
 }
@@ -218,11 +146,6 @@ func DoJoin(dm *DryMartini) (bool) {
 	if Verbose {
 		log.Printf("drymartini.DoJoin()\n")
 	}
-/*
-	if (doPing){
-		kademlia.MakePingCall(dm.KademliaInst, remoteAddr, remotePort)
-	}
-	*/
 
 	success = kademlia.DoJoin(dm.KademliaInst)
 	if !success {
@@ -282,7 +205,6 @@ func WrapOlivesForPath(dm *DryMartini, flowID UUID, pathKeyFlows []FlowIDSymmKey
 
 	innerOlive.Data = Data
     log.Printf("We are packaging data: %s", string(Data))
-	//innerOlive.Route = NewMartiniPick(mcPath[pathLength-1], nil)
 
 	var theData []byte
 	theData, err = json.Marshal(innerOlive)
@@ -310,44 +232,6 @@ func WrapOlivesForPath(dm *DryMartini, flowID UUID, pathKeyFlows []FlowIDSymmKey
 	theData = EncryptDataSymm(theData, pathKeyFlows[0].SymmKey)
 	return theData
 }
-/*
-//pathKeys  are in order of closest Nodes key to furthest 
-func UnwrapOlivesForPath(dm *DryMartini, pathKeys []UUID, Data []byte)  []byte{
-	var err error
-	pathLength := len(pathKeys)
-
-	//if only 1 MartiniContact exists in path, then we only construct 1 Olive..
-	//but that should probably never happen, (assuming always more than 1 hop atm)
-	var innerOlive Olive
-	innerOlive.Data = Data
-    log.Printf("We are packaging data: %s", string(Data))
-	//innerOlive.Route = NewMartiniPick(mcPath[pathLength-1], nil)
-
-	var theData []byte
-	theData, err = json.Marshal(innerOlive)
-	if (err != nil){
-		log.Printf("error marshalling inner Olive:%+v\n", innerOlive)
-		os.Exit(1)
-	}
-
-	var tempOlive Olive
-	var tempData []byte
-    for i := 0; i < pathLength; i++ {
-		//encrypt the Data (using furthest nodes key) and put it into tempOlive
-		tempData = DecryptDataSymm(theData, pathKeys[i])
-        log.Printf("USING KEY: %v\n", pathKeys[i])
-
-		//marshal the temp Olive 
-		err = json.Unmarshal(tempData, &tempOlive)
-		if (err != nil){
-				log.Printf("error marshalling Olive:%+v, err:%s\n", tempOlive, err)
-				os.Exit(1)
-		}
-		tempData = tempOlive.Data
-	}
-	return theData
-}
-*/
 
 //pathKeys  are in order of closest Nodes key to furthest 
 func UnwrapOlivesForPath(dm *DryMartini, pathKeys []FlowIDSymmKeyPair, Data []byte)  []byte{
@@ -430,7 +314,6 @@ func findMartiniContact(dm *DryMartini, hashedID kademlia.ID) (MartiniContact, b
 	var err error
 	var success bool
 
-	//FIXME check if you have already added the specific node
 	mcBytes, success = dm.KademliaInst.ValueStore.Get(hashedID)
 	if !success {
 		success, _, mcBytes, err = kademlia.IterativeFind(dm.KademliaInst, hashedID, 2)

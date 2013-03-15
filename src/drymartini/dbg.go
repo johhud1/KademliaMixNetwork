@@ -26,42 +26,31 @@ func Assert(cond bool, msg string) {
 	}
 }
 
-func RunTests(numMartinis string){
-		var portrange int
-		var err error
-		portrange, err = strconv.Atoi(numMartinis)
-		if(err != nil){
-			log.Printf("Error RunTest: arg parse failed. Got:%s\n", numMartinis)
-		}
-		TestMartinis = make([]*DryMartini, portrange)
-		RunningTests = true
+func RunTests(dm *DryMartini, numMartinis string, startPort int){
+	var portrange int
+	var err error
+	portrange, err = strconv.Atoi(numMartinis)
+	if(err != nil){
+		log.Printf("Error RunTest: arg parse failed. Got:%s\n", numMartinis)
+	}
+	TestMartinis = make([]*DryMartini, portrange)
+	RunningTests = true
 
-    for i:=0; i<portrange; i++ {
-		myPortStr := strconv.FormatInt(int64(7900+i), 10)
-		//kPortStr := strconv.FormatInt(int64(1900+i), 10)
-		newDryMartStr := "localhost:"+myPortStr
-		//myRpcPath := RpcPath+myPortStr
-		//kRpcPath := KademRpcPath+kPortStr
-		log.Printf("creating newDryMartini with AddrString:%s and RpcPath:%s\n", newDryMartStr, kademlia.RpcPath)
-		var dm *DryMartini = NewDryMartini(newDryMartStr, 2048)
-		TestMartinis[i] = dm
-    }
-
+	MakeSwarm(portrange, startPort)
+	WarmSwarm(dm, TestMartinis)
     log.Printf("done testing!\n")
 }
 
-func MakeSwarm(portrange int){
-	TestMartinis = make([]*DryMartini, portrange)
+func MakeSwarm(portrange int, startPort int) []*DryMartini{
+	var myTestMartinis []*DryMartini= make([]*DryMartini, portrange)
 	kademlia.RunningTests = true
     for i:=0; i<portrange; i++ {
-		myPortStr := strconv.FormatInt(int64(7900+i), 10)
-		//kPortStr := strconv.FormatInt(int64(1900+i), 10)
+		myPortStr := strconv.FormatInt(int64(startPort+i), 10)
 		newDryMartStr := "localhost:"+myPortStr
-		//myRpcPath := RpcPath+myPortStr
-		//kRpcPath := KademRpcPath+kPortStr
 		var dm *DryMartini = NewDryMartini(newDryMartStr, 4096)
-		TestMartinis[i] = dm
+		myTestMartinis[i] = dm
     }
+	return myTestMartinis
 }
 
 func WarmSwarm(me *DryMartini, marts []*DryMartini){
@@ -79,20 +68,19 @@ func WarmSwarm(me *DryMartini, marts []*DryMartini){
 	for k := 0; k< rounds; k++{
 		for i := 0; i < len(marts); i++{
 			//TODO: fix this shit
-			myPortStr := strconv.FormatInt(int64(7900+i), 10)
-			newDryMartStr := "localhost:"+myPortStr
-			remotehost, remoteport, err = kademlia.AddrStrToHostPort(newDryMartStr)
+			var randomDM *DryMartini = getRandomDM(marts, len(marts))
+			var readyRanContact *MartiniContactReady = randomDM.myMartiniContact.GetReadyContact()
+			remotehost = readyRanContact.NodeIP
+			remoteport = readyRanContact.NodePort
+
 			if(err!=nil){
 				log.Printf("error converting addr to host/port in warmswarm:%s\n", err);
 			}
-			var randomDM *DryMartini = getRandomDM(marts, len(marts))
-			MakeMartiniPing(randomDM, remotehost, remoteport)
+			MakeMartiniPing(marts[i], remotehost, remoteport)
 			MakeMartiniPing(me, remotehost, remoteport)
-			DoJoin(randomDM)
+			DoJoin(marts[i])
 		}
 	}
-
-
 }
 func getRandomDM(dms []*DryMartini, pr int) (*DryMartini){
     index := rand.Intn(pr)
