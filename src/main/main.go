@@ -265,7 +265,7 @@ func (dmInst *DryMartiniInstruction) Execute(dm *drymartini.DryMartini) (status 
 		log.Printf("Send %d %s\n", dmInst.FlowIndex, dmInst.request)
 		drymartini.SendData(dm, dmInst.FlowIndex, dmInst.request)
 	case dmInst.IsMakeSwarm() :
-		log.Printf("Making swarm: numNodes:d\n", dmInst.minNodes)
+		log.Printf("Making swarm: numNodes:%d\n", dmInst.minNodes)
 		drymartini.MakeSwarm(dmInst.minNodes)
 		drymartini.WarmSwarm(dm, drymartini.TestMartinis)
 	}

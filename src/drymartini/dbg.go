@@ -11,7 +11,7 @@ import (
 	"fmt"
 )
 
-const Verbose bool = true
+const Verbose bool = false
 
 var kAndPaths map[*DryMartini]string
 var TestMartinis []*DryMartini
