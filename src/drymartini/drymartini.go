@@ -139,7 +139,6 @@ func NewDryMartini(listenStr string, keylen int) *DryMartini {
 //remoteAddr net.IP, remotePort uint16, doPing bool
 func DoJoin(dm *DryMartini) (bool) {
 	var success bool
-	var err error
 	var secToWait time.Duration = 1
 
 
@@ -160,6 +159,12 @@ func DoJoin(dm *DryMartini) (bool) {
 
 	//Store our contact information
 	//TODO
+	StoreContactInfo(dm)
+	return true
+}
+
+func StoreContactInfo(dm *DryMartini) {
+	var err error
 	var mcBytes []byte
 	var key kademlia.ID = dm.KademliaInst.ContactInfo.NodeID.SHA1Hash()
 	mcBytes, err = json.Marshal(dm.myMartiniContact)
@@ -170,14 +175,13 @@ func DoJoin(dm *DryMartini) (bool) {
 	var m MartiniContact
 	err = json.Unmarshal(mcBytes, &m)
 	if err != nil {
-		log.Printf("drymartini.PrintLocalData %s\n", err)
+		log.Printf("error: drymartini.PrintLocalData %s\n", err)
 	}
 	log.Printf("Print HashMap[%s]=%+v\n", key.AsString(), m)
 
 
 	log.Printf("storing martiniContact:%+v %+v at ID: %x\n", dm.myMartiniContact, mcBytes, key)
 	kademlia.MakeIterativeStore(dm.KademliaInst, key, mcBytes)
-	return true
 }
 
 func NewMartiniPick(from *MartiniContact, to *MartiniContact) (pick *MartiniPick){
@@ -271,9 +275,11 @@ func GeneratePath(dm *DryMartini, min, max int) (mcPath []MartiniContact){
 	//myRand, err = rand.Int(rand.Reader, big.NewInt(int64(max-min)))
 	//threshold = int((minBig.Int64() + myRand.Int64()))
 	mcPath = make([]MartiniContact, max)
-	for i := 0; i< max; i++ {
+	var safetyCounter int = 0
+	for i := 0; (safetyCounter < 1000) && (i< max); i++ {
 		var foundNodes []kademlia.FoundNode
 		var success bool
+		safetyCounter++
 		randId = kademlia.NewRandomID()
 		success, foundNodes, _, err = kademlia.IterativeFind(dm.KademliaInst, randId, 1)
 		if(err != nil){
@@ -288,6 +294,11 @@ func GeneratePath(dm *DryMartini, min, max int) (mcPath []MartiniContact){
 		var hashedID kademlia.ID = foundNodes[index].NodeID.SHA1Hash()
 		var tempMC MartiniContact
 		tempMC, success = findMartiniContact(dm, hashedID)
+		if !success {
+			log.Printf("error finding MartiniContact with key:%s. err:%s\n", hashedID.AsString(), err)
+			i--
+			continue
+		}
 		_, alreadyInPath := pathMap[tempMC]
 		if(alreadyInPath){
 			log.Printf("trying to make a circular path. nahah girlfriend. skipping!\n")
@@ -298,11 +309,6 @@ func GeneratePath(dm *DryMartini, min, max int) (mcPath []MartiniContact){
 			mcPath[i] = tempMC
 		}
 		//err = json.Unmarshal(mcBytes, &mcPath[i])
-		if !success {
-			log.Printf("error finding MartiniContact with key:%s. err:%s\n", hashedID.AsString(), err)
-			i--
-			continue
-		}
 		log.Printf("GeneratePath %+v\n", mcPath[i])
 	}
 	return
@@ -324,7 +330,7 @@ func findMartiniContact(dm *DryMartini, hashedID kademlia.ID) (MartiniContact, b
 		if success {
 			log.Printf("findMartiniContact: foundValue\n")
 		} else {
-			log.Printf("GeneratePath: DID NOT foundValue\n")
+			log.Printf("IterativeFind failed to findvalue for key:%s\n",hashedID.AsString())
 			return mc, false
 		}
 	} else {
@@ -338,18 +344,17 @@ func findMartiniContact(dm *DryMartini, hashedID kademlia.ID) (MartiniContact, b
 	return mc, true
 }
 
-func SendData(dm *DryMartini, flowIndex int, data string) (success bool) {
+func SendData(dm *DryMartini, flowIndex int, data string) (response string, success bool) {
 	var flowID UUID
 	var found bool
 	//map index to flowID
 	flowID, found = dm.MapFlowIndexToFlowID[flowIndex]
 	if !found {
 		log.Printf("No map from flowIndex to flowID")
-		return false
+		return "",false
 	} else {
 		log.Printf("Found map from flowIndex to flowID")
 	}
-	flowID = flowID
 	//wrap data
     var sendingOlive Olive
 
@@ -365,12 +370,12 @@ func SendData(dm *DryMartini, flowIndex int, data string) (success bool) {
     success, encResponseData = MakeSendCall(sendingOlive, nextNodeAddrStr)
     if !success {
         log.Printf("Some terrible error happened while sending\n")
-		return false
+		return  "", false
     }
 	//unwrap data
 	responseData = UnwrapOlivesForPath(dm, dm.Momento[flowID], encResponseData)
 	log.Printf("SEND REPLY: %s\n", string(responseData))
 
 
-	return true
+	return string(responseData), true
 }

@@ -557,6 +557,7 @@ func RefreshTimers(k *Kademlia) {
         }
     }()
 
+	//JACK: TODO: potentially add option to turn this off, so contact info can expire w/out heartbeats
     //republish timer
     go func() {
         var success bool
@@ -964,8 +965,13 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) (bool, []FoundNode, [
     //log.Printf("iterativeFind: exiting main iterative loop\n")
     shortArray, value := sendRPCsToFoundNodes(k, findType, localContact, searchID, shortList, sentMap, liveMap)
 
-    //log.Printf("iterativeFind: end\n")
-    return true, shortArray, value, nil
+	if (findType == 1){
+		return true, shortArray, value, nil
+	} else if (value != nil){
+		return true, shortArray, value, nil
+	}
+	//if we're here and we were looking for a value, we failed. return false and foundnodes. 
+	return false, shortArray, value, nil
 }
 
 func sendRPCsToFoundNodes(k *Kademlia, findType int, localContact *Contact, searchID ID, slist *list.List, sentMap map[ID]bool, liveMap map[ID]bool) ([]FoundNode, []byte){

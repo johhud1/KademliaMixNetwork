@@ -32,7 +32,7 @@ func MakeMartiniPing(dm *DryMartini, remoteHost net.IP, remotePort uint16) bool 
 }
 
 
-func BarCrawl(m *DryMartini, request string, min int, max int) bool {
+func BarCrawl(m *DryMartini, request string, min int, max int) (bool, int) {
 	var success bool
 
     //Generate a path
@@ -100,7 +100,7 @@ func BarCrawl(m *DryMartini, request string, min int, max int) bool {
         tempBytes, err = json.Marshal(jar[i])
         if (err != nil){
             log.Printf("Error Marhsalling Olive: %+v\n", jar[i])
-            return false
+            return false, -1
         }
         sha_gen = sha1.New()
 		if (Verbose){
@@ -109,7 +109,7 @@ func BarCrawl(m *DryMartini, request string, min int, max int) bool {
         encryptedSym[i], err = rsa.EncryptOAEP(sha_gen, rand.Reader, &(chosenPath[i].GetReadyContact().PubKey), tempBytes, nil)
 		if err != nil {
 			log.Printf("BarCrawl.EncryptOAEP %s %d\n", err, len(tempBytes))
-			return false
+			return false, -1
 		}
 		log.Printf("path, %d %s:%d\n", i, chosenPath[i].NodeIP, chosenPath[i].NodePort)
     }
@@ -130,7 +130,7 @@ func BarCrawl(m *DryMartini, request string, min int, max int) bool {
 		m.Bartender[myFlowID] = ourFirstPick
 	}
 
-	return success
+	return success, (m.EasyNewFlowIndex -1)
 }
 
 
@@ -145,7 +145,7 @@ func MakeCircuitCreateCall(dm *DryMartini, nextNodeAddrStr string, encryptedArra
 		var nextNodePort string = strings.Split(nextNodeAddrStr, ":")[1]
 		if(nextNodePort == ""){
 			log.Printf("error getting next port: MakeSendCall\n");
-			panic(1)
+			return false
 		}
 		var portstr string = kademlia.RpcPath + nextNodePort
 		log.Printf("test makeCircuitCreateCall to rpcPath:%s\n", portstr)
@@ -301,12 +301,14 @@ func (dm *DryMartini) ServeDrink(req ServerData, resp *ServerResp) error {
     currFlow = req.Sent.FlowID
 	symmKey = dm.Bartender[currFlow].SymmKey
 
-    log.Printf("Getting a ServeDrink call!\n")
-    log.Printf("We were given olive: %+v\n", req.Sent)
-    log.Printf("Will use SymmKey: %v\n", symmKey)
     raw_data = DecryptDataSymm(req.Sent.Data, dm.Bartender[currFlow].SymmKey)
-    log.Printf("RAW DATA: %v\n", raw_data)
-    log.Printf("RAW DATA(s): %s\n", string(raw_data))
+	if (Verbose){
+		log.Printf("Getting a ServeDrink call!\n")
+		log.Printf("We were given olive: %+v\n", req.Sent)
+		log.Printf("Will use SymmKey: %v\n", symmKey)
+		log.Printf("RAW DATA: %v\n", raw_data)
+		log.Printf("RAW DATA(s): %s\n", string(raw_data))
+	}
     // Unmarshal the new olive
     err = json.Unmarshal(raw_data, &decolive)
     if err != nil {
@@ -341,8 +343,6 @@ func (dm *DryMartini) ServeDrink(req ServerData, resp *ServerResp) error {
         resp.Success = true
         return nil
     }
-
-    log.Printf("About to send out olive: %+v\n", decolive)
 
     //Send the new olive!
     //TODO: End case should maybe return false? It should check for failure.
