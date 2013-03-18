@@ -9,7 +9,7 @@ import (
 	"container/list"
 )
 
-var Verbose bool = true
+var Verbose bool = false
 //REVIEW: probably can trash this map struct. Since all the Make* 
 //calls now construct the path themselves with RpcPath+port#
 var kAndPaths map[*Kademlia]string

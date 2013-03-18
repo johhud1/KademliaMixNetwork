@@ -208,7 +208,7 @@ func WrapOlivesForPath(dm *DryMartini, flowID UUID, pathKeyFlows []FlowIDSymmKey
 	innerOlive.FlowID = flowID
 
 	innerOlive.Data = Data
-    log.Printf("We are packaging data: %s", string(Data))
+    //log.Printf("We are packaging data: %s", string(Data))
 
 	var theData []byte
 	theData, err = json.Marshal(innerOlive)
@@ -232,7 +232,7 @@ func WrapOlivesForPath(dm *DryMartini, flowID UUID, pathKeyFlows []FlowIDSymmKey
 				os.Exit(1)
 		}
 	}
-    log.Printf("USING SymmKEY and FlowID: %v\n", pathKeyFlows[0])
+    //log.Printf("USING SymmKEY and FlowID: %v\n", pathKeyFlows[0])
 	theData = EncryptDataSymm(theData, pathKeyFlows[0].SymmKey)
 	return theData
 }
@@ -251,7 +251,7 @@ func UnwrapOlivesForPath(dm *DryMartini, pathKeys []FlowIDSymmKeyPair, Data []by
     for i := 0; i < pathLength; i++ {
 		//encrypt the Data (using furthest nodes key) and put it into tempOlive
 		decData = DecryptDataSymm(theData, pathKeys[i].SymmKey)
-        log.Printf("USING SYMMKEY and FLOWID: %+v\n", pathKeys[i])
+        //log.Printf("USING SYMMKEY and FLOWID: %+v\n", pathKeys[i])
 
 		//marshal the temp Olive 
 		err = json.Unmarshal(decData, &tempOlive)
@@ -301,7 +301,9 @@ func GeneratePath(dm *DryMartini, min, max int) (mcPath []MartiniContact){
 		}
 		_, alreadyInPath := pathMap[tempMC]
 		if(alreadyInPath){
-			log.Printf("trying to make a circular path. nahah girlfriend. skipping!\n")
+			if (Verbose){
+				log.Printf("trying to make a circular path. nahah girlfriend. skipping!\n")
+			}
 			i--
 			continue
 		} else {
@@ -309,7 +311,7 @@ func GeneratePath(dm *DryMartini, min, max int) (mcPath []MartiniContact){
 			mcPath[i] = tempMC
 		}
 		//err = json.Unmarshal(mcBytes, &mcPath[i])
-		log.Printf("GeneratePath %+v\n", mcPath[i])
+		//log.Printf("GeneratePath %+v\n", mcPath[i])
 	}
 	return
 }
@@ -328,13 +330,13 @@ func findMartiniContact(dm *DryMartini, hashedID kademlia.ID) (MartiniContact, b
 			os.Exit(1)
 		}
 		if success {
-			log.Printf("findMartiniContact: foundValue\n")
+			//log.Printf("findMartiniContact: foundValue\n")
 		} else {
 			log.Printf("IterativeFind failed to findvalue for key:%s\n",hashedID.AsString())
 			return mc, false
 		}
 	} else {
-		log.Printf("found martiniContact locally. Key:%+v\n", hashedID)
+		//log.Printf("found martiniContact locally. Key:%+v\n", hashedID)
 	}
 	err = json.Unmarshal(mcBytes, &mc)
 	if err != nil {
@@ -374,7 +376,7 @@ func SendData(dm *DryMartini, flowIndex int, data string) (response string, succ
     }
 	//unwrap data
 	responseData = UnwrapOlivesForPath(dm, dm.Momento[flowID], encResponseData)
-	log.Printf("SEND REPLY: %s\n", string(responseData))
+	//log.Printf("SEND REPLY: %s\n", string(responseData))
 
 
 	return string(responseData), true

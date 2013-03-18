@@ -251,7 +251,9 @@ func MakeSendCall(dataLump Olive, nextNodeAddrStr string) (bool, []byte) {
     var client *rpc.Client
 	var err error
 
-	log.Printf("MakeSendCall:: next: %s!", nextNodeAddrStr)
+	if(Verbose){
+		log.Printf("MakeSendCall:: next: %s!", nextNodeAddrStr)
+	}
     if kademlia.RunningTests == true {
 		//log.Printf("Unimplemented\n")
 		//panic(1)
@@ -281,7 +283,9 @@ func MakeSendCall(dataLump Olive, nextNodeAddrStr string) (bool, []byte) {
         log.Printf("Error: SendCall, Call, %s\n", err)
         return false, nil
     }
-	log.Printf("got SendCall response: %s:%v\n", nextNodeAddrStr, res.Success);
+	if (Verbose){
+		log.Printf("got SendCall response: %s:%v\n", nextNodeAddrStr, res.Success);
+	}
 
     client.Close()
 
@@ -330,7 +334,7 @@ func (dm *DryMartini) ServeDrink(req ServerData, resp *ServerResp) error {
 		var responseOlive Olive
 		//flowid already set. Don't mess
 		//responseOlive.FlowID = currFlow
-		log.Printf("path end action completed: setting response:%s\n", string(responsePayload))
+		//log.Printf("path end action completed: setting response:%s\n", string(responsePayload))
 		responseOlive.Data = responsePayload
 		marshalledOlive, err = json.Marshal(responseOlive)
 		if(err!=nil){
@@ -376,7 +380,7 @@ func pathEndAction(payload string) ([]byte, error){
 		log.Printf("error for http.get: %s\n", err)
 		return responseBody, err
 	}
-	log.Printf("pathEndAction response:%+v\n", resp)
+	//log.Printf("pathEndAction response:%+v\n", resp)
 	responseBody, err = ioutil.ReadAll(resp.Body)
 	resp.Body.Close()
 	if(err == nil){
