@@ -7,6 +7,7 @@ import (
     "log"
 	"fmt"
     "net"
+	"dbg"
 	"net/http"
 	"hash"
 	"kademlia"
@@ -23,9 +24,7 @@ import (
 
 func MakeMartiniPing(dm *DryMartini, remoteHost net.IP, remotePort uint16) bool {
 
-	if Verbose {
-		log.Printf("MakeMartiniPing %s %d\n", remoteHost, remotePort)
-	}
+	dbg.Printf("MakeMartiniPing %s %d\n", Verbose, remoteHost, remotePort)
 
 	return kademlia.MakePingCall(dm.KademliaInst, remoteHost, remotePort);
 
@@ -94,24 +93,20 @@ func BarCrawl(m *DryMartini, request string, min int, max int) (bool, int) {
 	//log.Printf("building jar, flowID:%s\n", flowID.AsString())
     // Encrypt everything.
     for i = 0; i < len(chosenPath); i++{
-		if Verbose {
-			log.Printf("jar[%d]: %+v\n", i, jar[i])
-		}
+		dbg.Printf("jar[%d]: %+v\n", Verbose, i, jar[i])
         tempBytes, err = json.Marshal(jar[i])
         if (err != nil){
             log.Printf("Error Marhsalling Olive: %+v\n", jar[i])
             return false, -1
         }
         sha_gen = sha1.New()
-		if (Verbose){
-			log.Printf("encrypting CC element:%s with pubkey:%s\n", i, chosenPath[i].PubKey)
-		}
+		dbg.Printf("encrypting CC element:%s with pubkey:%s\n", Verbose, i, chosenPath[i].PubKey)
         encryptedSym[i], err = rsa.EncryptOAEP(sha_gen, rand.Reader, &(chosenPath[i].GetReadyContact().PubKey), tempBytes, nil)
 		if err != nil {
 			log.Printf("BarCrawl.EncryptOAEP %s %d\n", err, len(tempBytes))
 			return false, -1
 		}
-		log.Printf("path, %d %s:%d\n", i, chosenPath[i].NodeIP, chosenPath[i].NodePort)
+		dbg.Printf("path, %d %s:%d\n", Verbose, i, chosenPath[i].NodeIP, chosenPath[i].NodePort)
     }
 
     //Wrap and send an Olive
@@ -168,7 +163,7 @@ func MakeCircuitCreateCall(dm *DryMartini, nextNodeAddrStr string, encryptedArra
         log.Printf("Error: CreateCircuit, Call, %s\n", err)
         return false
     }
-	log.Printf("got DistributeSymm response: %s:%s\n", nextNodeAddrStr, res.Success);
+	log.Printf("got DistributeSymm response: %s:%v\n", nextNodeAddrStr, res.Success);
 
     client.Close()
 
@@ -194,12 +189,10 @@ func (dm *DryMartini) CreateCircuit(req CCRequest, res *CCResponse) error {
 	//log.Printf("%v\n", req)
 	//log.Printf("%+v\n", req.EncryptedData)
 
-	if(Verbose){
-		log.Printf("CreateCircuit, my pubKey:%s\n", dm.myMartiniContact.PubKey)
-	}
+	dbg.Printf("CreateCircuit, my pubKey:%s\n", Verbose, dm.myMartiniContact.PubKey)
 	decryptedData, err = rsa.DecryptOAEP(sha_gen, nil, dm.KeyPair, req.EncryptedData[0], nil)
 	if err != nil {
-		log.Printf("Error: DryMartini.CreateCircuit.Decrypt( %s)\n", err)
+		log.Printf("Error: DryMartini.CreateCircuit.Decrypt( %s). IP:%s Port:%d\n",  err, dm.myMartiniContact.NodeIP, dm.myMartiniContact.NodePort)
 		res.Success = false
 		return nil//Change to valid error
 	}
@@ -212,14 +205,14 @@ func (dm *DryMartini) CreateCircuit(req CCRequest, res *CCResponse) error {
 	}
 
 	dm.Bartender[nextNodeOlive.FlowID] = nextNodeOlive.Route
-	log.Printf("NextNodeOlive_data:%s\n", string(nextNodeOlive.Data))
+	dbg.Printf("NextNodeOlive_data:%s\n", Verbose, string(nextNodeOlive.Data))
 
 	if len(req.EncryptedData) != 1 {
 		log.Printf("CreateCircuit: len(%d) \n", len(req.EncryptedData))
 		encryptedData = req.EncryptedData[1:]
 
 		var nextNodeAddrStr string = nextNodeOlive.Route.NextNodeIP + ":" + strconv.FormatUint(uint64(nextNodeOlive.Route.NextNodePort), 10)
-		log.Printf("NextHopeIs: %s\n", nextNodeAddrStr)
+		dbg.Printf("NextHopeIs: %s\n", Verbose, nextNodeAddrStr)
 		res.Success = MakeCircuitCreateCall(dm, nextNodeAddrStr, encryptedData)
 	} else {
 		res.Success = true
@@ -251,9 +244,7 @@ func MakeSendCall(dataLump Olive, nextNodeAddrStr string) (bool, []byte) {
     var client *rpc.Client
 	var err error
 
-	if(Verbose){
-		log.Printf("MakeSendCall:: next: %s!", nextNodeAddrStr)
-	}
+	dbg.Printf("MakeSendCall:: next: %s!", Verbose, nextNodeAddrStr)
     if kademlia.RunningTests == true {
 		//log.Printf("Unimplemented\n")
 		//panic(1)
@@ -283,9 +274,7 @@ func MakeSendCall(dataLump Olive, nextNodeAddrStr string) (bool, []byte) {
         log.Printf("Error: SendCall, Call, %s\n", err)
         return false, nil
     }
-	if (Verbose){
-		log.Printf("got SendCall response: %s:%v\n", nextNodeAddrStr, res.Success);
-	}
+	dbg.Printf("got SendCall response: %s:%v\n", Verbose, nextNodeAddrStr, res.Success);
 
     client.Close()
 
@@ -383,9 +372,6 @@ func pathEndAction(payload string) ([]byte, error){
 	//log.Printf("pathEndAction response:%+v\n", resp)
 	responseBody, err = ioutil.ReadAll(resp.Body)
 	resp.Body.Close()
-	if(err == nil){
-		log.Printf("error reading response.Body: %s\n", err)
-		return responseBody, err
-	}
+	dbg.Printf("error reading response.Body: %s\n", (err != nil), err)
 	return responseBody, err
 }

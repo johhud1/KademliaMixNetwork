@@ -6,8 +6,10 @@ package kademlia
 import (
 	"log"
 	"net"
+	"time"
 	"strconv"
 	"container/list"
+	"dbg"
 	"fmt"
 )
 
@@ -46,16 +48,12 @@ func NewContact(AddrStr string) (Contact) {
 	var nodeID ID
 	var host net.IP
 	var port uint16
-	
+
 	nodeID = NewRandomID()
 	host, port, err = AddrStrToHostPort(AddrStr)
-	
-	if err != nil {
-     		//FIXME
-	}
-	if Verbose {
-		log.Printf("Creating new contact %s %s\n", nodeID.AsString(), AddrStr)
-	}
+
+	dbg.Printf("NewContact: error parsing Address STring to host/port:%s\n", (err != nil), err)
+	dbg.Printf("Creating new contact %s %s\n", Verbose, nodeID.AsString(), AddrStr)
 	return Contact{nodeID, host, port}
 }
 
@@ -133,7 +131,7 @@ func (k *Kademlia) Ping(ping Ping, pong *Pong) error {
  */
 type StoreRequest struct {
 	Sender Contact //ID of the sender
-	MsgID ID  
+	MsgID ID
 	Key ID
 	Value []byte
 }
@@ -145,19 +143,16 @@ type StoreResult struct {
 
 
 func (k *Kademlia) Store(req StoreRequest, res *StoreResult) error {
-	// TODO: Implement.
-	
+
 	///Update contact information for the sender
 	///CHECK IF WE ACTUALLY NEED ΤΟ DO THAT (PUT A REFERENCE ON WHERE THIS IS SPECIFIED IN THE PAPER)
 	//_, err := Update(k, req.Sender)
     k.UpdateChannel<-req.Sender
-	
-	res.MsgID = CopyID(req.MsgID)
-	
-	///Try to store the data into a hash map
-	//k.HashMap[CopyID(req.Key)] = req.Value
 
-    k.ValueStore.Put(CopyID(req.Key), req.Value)
+	res.MsgID = CopyID(req.MsgID)
+
+	// TODO: probably move this duration argument out to DryMartini?
+    k.ValueStore.Put(CopyID(req.Key), time.Duration(5)*time.Minute, req.Value)
 
     ///if the store fails create and error
 	//if NO_MORE_SPACE {
@@ -196,15 +191,15 @@ type FoundNode struct {
 }
 
 func PrintArrayOfFoundNodes(array *[]FoundNode) {
-	if Verbose {
-		fmt.Printf("Print Returned Found Nodes\n")
-	}
+	dbg.Printf("Print Returned Found Nodes\n", Verbose)
 	for i, v := range *array {
+		fmt.Printf("[%d] --> %s %s %d\n", i, v.NodeID.AsString(), v.IPAddr, v.Port)
+		/*
 		if Verbose {
 			fmt.Printf("[%d] --> %s %s %d\n", i, v.NodeID.AsString(), v.IPAddr, v.Port)
 		} else {
 			fmt.Printf("%d, %s\n", i, v.NodeID.AsString())
-		}
+		}*/
 	}
     return
 }
@@ -221,9 +216,7 @@ func (k *Kademlia) FindNode(req FindNodeRequest, res *FindNodeResult) error {
 	var err error
 	//Update(k, req.Sender)
     k.UpdateChannel<-req.Sender
-	if Verbose {
-		//log.Printf("RPC: FindNode from %s ---> %s\n", req.Sender.NodeID.AsString(), k.ContactInfo.AsString())
-	}
+	dbg.Printf("RPC: FindNode from %s ---> %s\n", Verbose, req.Sender.NodeID.AsString(), k.ContactInfo.AsString())
 
 	res.Nodes, err = FindKClosest(k, req.NodeID, req.Sender.NodeID)
 
@@ -341,9 +334,7 @@ func (k *Kademlia) FindValue(req FindValueRequest, res *FindValueResult) error {
 	res.Value, found = k.ValueStore.Get(req.Key)
 
     if found {
-		if Verbose {
-			log.Printf("RPC:FindValue, found value [%s:%s]\n", req.Key.AsString(), string(res.Value))
-		}
+		dbg.Printf("RPC:FindValue, found value [%s:%s]\n", Verbose, req.Key.AsString(), string(res.Value))
 	} else {
 		res.Nodes, err = FindKClosest(k, req.Key, req.Sender.NodeID)
 	}

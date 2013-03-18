@@ -16,6 +16,7 @@ import (
     "time"
 	//"hash"
 	"encoding/json"
+	"dbg"
 )
 
 
@@ -106,9 +107,9 @@ func NewDryMartini(listenStr string, keylen int) *DryMartini {
 	//dm.KademliaInst, s = kademlia.NewKademlia(listenStr, rpcPath)
 	portStr := strconv.FormatUint(uint64(port), 10)
 	var rpcPathStr string = kademlia.RpcPath+portStr
-	if(Verbose){
-		log.Printf("making new Kademlia with listenStr:%s, rpcPath\n", listenStr, rpcPathStr)
-	}
+	//dbg.Printf("making new Kademlia with listenStr:%s, rpcPath\n", Verbose, listenStr, rpcPathStr)
+
+	dbg.Printf("NewDryMartini: making new Kademlia with NodeIP: %s. NodePort:%s\n", Verbose, dm.myMartiniContact.NodeIP, dm.myMartiniContact.NodePort)
 	dm.KademliaInst, s = kademlia.NewKademlia(listenStr, &rpcPathStr)
 
 	//myMartiniContact <- ip, port, public key
@@ -117,12 +118,13 @@ func NewDryMartini(listenStr string, keylen int) *DryMartini {
 	dm.myMartiniContact.PubKey = dm.KeyPair.PublicKey.N.String()
 	dm.myMartiniContact.PubExp = dm.KeyPair.PublicKey.E
 
+	/*
 	if Verbose {
 		log.Printf("NodeIP: %s\n", dm.myMartiniContact.NodeIP)
 		log.Printf("NodePort: %d\n", dm.myMartiniContact.NodePort)
 		log.Printf("PubKey: %s\n", dm.myMartiniContact.PubKey)
 		log.Printf("PubExp: %d\n", dm.myMartiniContact.PubKey)
-	}
+	}*/
 	//register
 	err = s.Register(dm)
 	if err != nil {
@@ -142,9 +144,7 @@ func DoJoin(dm *DryMartini) (bool) {
 	var secToWait time.Duration = 1
 
 
-	if Verbose {
-		log.Printf("drymartini.DoJoin()\n")
-	}
+	dbg.Printf("drymartini.DoJoin()\n", Verbose)
 
 	success = kademlia.DoJoin(dm.KademliaInst)
 	if !success {
@@ -152,9 +152,7 @@ func DoJoin(dm *DryMartini) (bool) {
 	}
 
 	dm.DoJoinFlag = false
-	if Verbose {
-		log.Printf("doJoin in %d sec\n", secToWait);
-	}
+	dbg.Printf("doJoin in %d sec\n", Verbose, secToWait);
 	time.Sleep(secToWait)
 
 	//Store our contact information
@@ -168,20 +166,23 @@ func StoreContactInfo(dm *DryMartini) {
 	var mcBytes []byte
 	var key kademlia.ID = dm.KademliaInst.ContactInfo.NodeID.SHA1Hash()
 	mcBytes, err = json.Marshal(dm.myMartiniContact)
-	if (err != nil){
-		log.Printf("error marshaling MartiniContact: %s\n", err)
-	}
+	dbg.Printf("error marshaling MartiniContact: %s\n", (err!=nil), err)
 
 	var m MartiniContact
 	err = json.Unmarshal(mcBytes, &m)
-	if err != nil {
-		log.Printf("error: drymartini.PrintLocalData %s\n", err)
-	}
-	log.Printf("Print HashMap[%s]=%+v\n", key.AsString(), m)
+	dbg.Printf("error: drymartini.PrintLocalData %s\n", (err!=nil), err)
+	dbg.Printf("Print HashMap[%s]=%+v\n", Verbose, key.AsString(), m)
 
 
-	log.Printf("storing martiniContact:%+v %+v at ID: %x\n", dm.myMartiniContact, mcBytes, key)
+	dbg.Printf("storing martiniContact:%+v %+v at ID: %x\n", Verbose, dm.myMartiniContact, mcBytes, key)
 	kademlia.MakeIterativeStore(dm.KademliaInst, key, mcBytes)
+	go func() {
+		//republish contact info ever 4 minutes. (expire time is hardcoded at 5minutes in kademlia.rpc)
+		for ;; {
+			time.Sleep(time.Duration(4)*time.Minute)
+			kademlia.MakeIterativeStore(dm.KademliaInst, key, mcBytes)
+		}
+	}()
 }
 
 func NewMartiniPick(from *MartiniContact, to *MartiniContact) (pick *MartiniPick){
@@ -223,7 +224,7 @@ func WrapOlivesForPath(dm *DryMartini, flowID UUID, pathKeyFlows []FlowIDSymmKey
 		tempOlive.FlowID = pathKeyFlows[i].FlowID
 		//encrypt the Data (using furthest nodes key) and put it into tempOlive
 		tempOlive.Data = EncryptDataSymm(theData, pathKeyFlows[i].SymmKey)
-        log.Printf("USING SYMMKEY and FLOWID: %+v\n", pathKeyFlows[i])
+        dbg.Printf("USING SYMMKEY and FLOWID: %+v\n", Verbose, pathKeyFlows[i])
 
 		//marshal the temp Olive 
 		theData, err = json.Marshal(tempOlive)
@@ -282,16 +283,19 @@ func GeneratePath(dm *DryMartini, min, max int) (mcPath []MartiniContact){
 		safetyCounter++
 		randId = kademlia.NewRandomID()
 		success, foundNodes, _, err = kademlia.IterativeFind(dm.KademliaInst, randId, 1)
+		/*
+		log.Printf("GeneratePath: found live nodes:\n")
+		kademlia.PrintArrayOfFoundNodes(&foundNodes)
+		*/
 		if(err != nil){
 			log.Printf("error finding nodeID:%s, success:%s msg:%s\n", randId, success, err);
 			os.Exit(1)
 		}
 		fuckthis, fuckingo := rand.Int(rand.Reader, big.NewInt(int64(len(foundNodes))))
-		if(fuckingo!=nil){
-			log.Printf("error making rand:%s\n", fuckingo)
-		}
+		dbg.Printf("error making rand:%s\n", (fuckingo!=nil),fuckingo)
 		index := int(fuckthis.Int64())
 		var hashedID kademlia.ID = foundNodes[index].NodeID.SHA1Hash()
+		dbg.Printf("generatePath: findMartiniContact for mc:%+v\n", Verbose, foundNodes[index])
 		var tempMC MartiniContact
 		tempMC, success = findMartiniContact(dm, hashedID)
 		if !success {
@@ -301,9 +305,7 @@ func GeneratePath(dm *DryMartini, min, max int) (mcPath []MartiniContact){
 		}
 		_, alreadyInPath := pathMap[tempMC]
 		if(alreadyInPath){
-			if (Verbose){
-				log.Printf("trying to make a circular path. nahah girlfriend. skipping!\n")
-			}
+			dbg.Printf("trying to make a circular path. nahah girlfriend. skipping!\n", Verbose)
 			i--
 			continue
 		} else {
@@ -330,7 +332,7 @@ func findMartiniContact(dm *DryMartini, hashedID kademlia.ID) (MartiniContact, b
 			os.Exit(1)
 		}
 		if success {
-			//log.Printf("findMartiniContact: foundValue\n")
+			dbg.Printf("findMartiniContact: foundValue\n", Verbose)
 		} else {
 			log.Printf("IterativeFind failed to findvalue for key:%s\n",hashedID.AsString())
 			return mc, false
@@ -339,6 +341,7 @@ func findMartiniContact(dm *DryMartini, hashedID kademlia.ID) (MartiniContact, b
 		//log.Printf("found martiniContact locally. Key:%+v\n", hashedID)
 	}
 	err = json.Unmarshal(mcBytes, &mc)
+	log.Printf("findMartiniContact: 'foundContact.NodeIP:%s, Port:%d\n", mc.NodeIP, mc.NodePort)
 	if err != nil {
 		log.Printf("Error unmarshaling found MartiniContact. %s\n", err)
 		os.Exit(1)

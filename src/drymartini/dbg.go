@@ -94,7 +94,7 @@ func PrintLocalData(dm *DryMartini) {
 	var err error
 
 	for key, value := range dm.KademliaInst.ValueStore.HashMap {
-		err = json.Unmarshal(value, &m)
+		err = json.Unmarshal(value.Value, &m)
 		if err != nil {
 			log.Printf("drymartini.PrintLocalData %s\n", err)
 		}
