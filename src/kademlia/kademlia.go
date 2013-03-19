@@ -956,8 +956,12 @@ func IterativeFind(k *Kademlia, searchID ID, findType int) (bool, []FoundNode, [
 func sendRPCsToFoundNodes(k *Kademlia, findType int, localContact *Contact, searchID ID, slist *list.List, sentMap map[ID]bool, liveMap map[ID]bool) ([]FoundNode, []byte){
 	//var value []byte
 	//log.Printf("sendRPCsToFoundNodes: Start\n")
+	dbg.Printf("sendRPCsToFoundNodes: shortlist:%+v\n", Verbose, *slist)
+    for e:=slist.Front(); (e!=nil); e=e.Next(){
+		dbg.Printf("foundNode:%+v\n", Verbose, *(e.Value.(*FoundNode)))
+	}
     resChan := make(chan *FindStarCallResponse, slist.Len())
-	var ret []FoundNode =  make([]FoundNode, slist.Len())
+	var ret []FoundNode =  make([]FoundNode, 0, slist.Len())
     var rpcCount int = 0
 	var i int = 0
 
@@ -966,7 +970,7 @@ func sendRPCsToFoundNodes(k *Kademlia, findType int, localContact *Contact, sear
 		remote := foundNode.FoundNodeToContact()
         if sentMap[foundNode.NodeID] {
 			if liveMap[foundNode.NodeID] {
-				ret[i] = *foundNode
+				ret = append(ret, *foundNode)
 			}
 			i++
             continue
@@ -989,7 +993,8 @@ func sendRPCsToFoundNodes(k *Kademlia, findType int, localContact *Contact, sear
 					return nArray, findNodeResult.ReturnedFVRes.Value
 				}
 			}
-			ret[i] = *findNodeResult.Responder
+			dbg.Printf("adding 'live' responder to ret list:%+v\n", Verbose, *findNodeResult.Responder)
+			ret = append(ret, *findNodeResult.Responder)
 			i++
 		} else {
 			//node failed to respond, find it in the slist
@@ -1001,10 +1006,11 @@ func sendRPCsToFoundNodes(k *Kademlia, findType int, localContact *Contact, sear
 					break
 				}
 			}*/
+			//i++ don't increment i. 
 			//above is uneccesarry, we're returning the 'ret' array.
-			i++
 		}
     }
+	dbg.Printf("sendRPCsToFoundNodes returning:%+v\n", Verbose, ret)
 	return ret, nil
 }
 

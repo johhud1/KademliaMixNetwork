@@ -33,7 +33,7 @@ type DryMartini struct {
 	//My ContactInfo
 	myMartiniContact MartiniContact
 
-	MapFlowIndexToFlowID map[int]UUID
+	MapFlowIndexToFlowID map[int]FlowInfo
 	EasyNewFlowIndex int
 }
 
@@ -44,6 +44,11 @@ type MartiniPick struct {
     NextNodePort uint16
     PrevNodeIP string
     PrevNodePort uint16
+}
+
+type FlowInfo struct {
+	FlowID UUID
+	expireAt time.Time
 }
 
 type FlowIDSymmKeyPair struct {
@@ -97,7 +102,7 @@ func NewDryMartini(listenStr string, keylen int) *DryMartini {
     //Initialize flow struct
     dm.Bartender = make(map[UUID]MartiniPick)
 	dm.Momento = make(map[UUID][]FlowIDSymmKeyPair)
-	dm.MapFlowIndexToFlowID = make(map[int]UUID)
+	dm.MapFlowIndexToFlowID = make(map[int]FlowInfo)
 
 	var host net.IP
 	var port uint16
@@ -134,6 +139,15 @@ func NewDryMartini(listenStr string, keylen int) *DryMartini {
 
 
     return dm
+}
+
+func FindGoodPath(dm *DryMartini) (bool, int){
+	for index, flowInfo := range dm.MapFlowIndexToFlowID{
+		if (time.Now().Before(flowInfo.expireAt)){
+			return true, index
+		}
+	}
+	return false, -1
 }
 
 
@@ -283,10 +297,12 @@ func GeneratePath(dm *DryMartini, min, max int) (mcPath []MartiniContact){
 		safetyCounter++
 		randId = kademlia.NewRandomID()
 		success, foundNodes, _, err = kademlia.IterativeFind(dm.KademliaInst, randId, 1)
-		/*
+
+/*
 		log.Printf("GeneratePath: found live nodes:\n")
 		kademlia.PrintArrayOfFoundNodes(&foundNodes)
 		*/
+
 		if(err != nil){
 			log.Printf("error finding nodeID:%s, success:%s msg:%s\n", randId, success, err);
 			os.Exit(1)
@@ -350,15 +366,17 @@ func findMartiniContact(dm *DryMartini, hashedID kademlia.ID) (MartiniContact, b
 }
 
 func SendData(dm *DryMartini, flowIndex int, data string) (response string, success bool) {
+	var flowInfo FlowInfo
 	var flowID UUID
 	var found bool
 	//map index to flowID
-	flowID, found = dm.MapFlowIndexToFlowID[flowIndex]
+	flowInfo, found = dm.MapFlowIndexToFlowID[flowIndex]
 	if !found {
-		log.Printf("No map from flowIndex to flowID")
+		log.Printf("No map from flowIndex to flowID\n")
 		return "",false
 	} else {
-		log.Printf("Found map from flowIndex to flowID")
+		flowID = flowInfo.FlowID
+		dbg.Printf("Found map from flowIndex to flowID\n", Verbose)
 	}
 	//wrap data
     var sendingOlive Olive

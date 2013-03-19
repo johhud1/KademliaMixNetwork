@@ -114,10 +114,13 @@ func DoHTTPRequest(r *http.Request,ctx *goproxy.ProxyCtx)(*http.Request, *http.R
 	var success bool
 	var flowIndex int
 	var response string
-	success, flowIndex= drymartini.BarCrawl(myDryMartini, "buildingCircuitForProxy", DefaultCircLength, DefaultCircLength)
-	if(!success){
-		log.Printf("there was an error building the circuit!\n")
-		return r, goproxy.NewResponse(r, goproxy.ContentTypeText, http.StatusInternalServerError, "error building circuit")
+	success, flowIndex = drymartini.FindGoodPath(myDryMartini)
+	if (!success){
+		success, flowIndex= drymartini.BarCrawl(myDryMartini, "buildingCircuitForProxy", DefaultCircLength, DefaultCircLength)
+		if(!success){
+			log.Printf("there was an error building the circuit!\n")
+			return r, goproxy.NewResponse(r, goproxy.ContentTypeText, http.StatusInternalServerError, "error building circuit")
+		}
 	}
 	response, success = drymartini.SendData(myDryMartini, flowIndex, r.URL.String())
 	if(!success){

@@ -111,7 +111,7 @@ func PrintLocalFlowData(dm *DryMartini) {
 			log.Printf("drymartini.PrintLocalFlowData %s\n", err)
 		}
 		//since Value should be UUID, can print as a string, for matching against momento key
-		fmt.Printf("Print MapFlowIndexToFlowID[%d]=%s\n", key, value.AsString())
+		fmt.Printf("Print MapFlowIndexToFlowID[%d]=%s\n", key, value.FlowID.AsString())
 	}
 
 	for key, value := range dm.Bartender {

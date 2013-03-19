@@ -9,6 +9,7 @@ import (
     "net"
 	"dbg"
 	"net/http"
+	"time"
 	"hash"
 	"kademlia"
     //"net/rpc"
@@ -117,7 +118,7 @@ func BarCrawl(m *DryMartini, request string, min int, max int) (bool, int) {
     var ourFirstPick MartiniPick
 
 	if success {
-		m.MapFlowIndexToFlowID[m.EasyNewFlowIndex] = myFlowID
+		m.MapFlowIndexToFlowID[m.EasyNewFlowIndex] = FlowInfo{myFlowID, time.Now().Add(time.Duration(5)*time.Second)}
 		m.EasyNewFlowIndex++
         // Build a pick for the first hop
         ourFirstPick.NextNodeIP = chosenPath[0].NodeIP
