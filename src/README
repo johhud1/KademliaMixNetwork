@@ -1,0 +1,13 @@
+Bugs:
+	1. When nodes leave the network and then rejoin at same address/port. 
+	Even though they have new ids, when other nodes query for live nodes, 
+	that new node will respond to requests sent to it, causing it to appear that all those old nodes are still live. 
+	fix- not sure; if we include a 'reciever' field in the FindNodeRequest struct, 
+	then can just check that against our own contact info. respond false if they don't match. 
+	Have 'kinda' fixed this by 5 minute expire on stored values (old contacts expire)
+
+	2.  GeneratePath seems to be trying to find a lot fo disconnected drymartinis. Should only be searching for live nodes.
+
+
+Features:
+	1. Need to add a real testing system/framework.
