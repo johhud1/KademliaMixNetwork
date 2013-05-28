@@ -71,6 +71,15 @@ func (kb *K_Bucket) PrintElements() {
         fmt.Printf("Triplet: %s\n", e.Value.(*Contact).AsString())
 	}
 }
+func (kb *K_Bucket) ToArray() []Contact {
+	arr := make([]Contact, kb.l.Len())
+	i :=0
+	for e := kb.l.Front(); e != nil; e = e.Next() {
+        arr[i] = *e.Value.(*Contact)
+		i++
+	}
+	return arr
+}
 
 func (kb *K_Bucket) GetRefreshID() (*ID){
     var r, i int

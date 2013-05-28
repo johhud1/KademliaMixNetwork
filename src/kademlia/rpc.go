@@ -6,11 +6,10 @@ package kademlia
 import (
 	"log"
 	"net"
+	"dbg"
 	"time"
 	"strconv"
 	"container/list"
-	"dbg"
-	"fmt"
 )
 
 // Host identification.
@@ -52,7 +51,9 @@ func NewContact(AddrStr string) (Contact) {
 	nodeID = NewRandomID()
 	host, port, err = AddrStrToHostPort(AddrStr)
 
-	dbg.Printf("NewContact: error parsing Address STring to host/port:%s\n", (err != nil), err)
+	if(err!=nil){
+		dbg.Printf("NewContact: error parsing Address STring to host/port:%s\n", true, err)
+	}
 	dbg.Printf("Creating new contact %s %s\n", Verbose, nodeID.AsString(), AddrStr)
 	return Contact{nodeID, host, port}
 }
@@ -192,14 +193,11 @@ type FoundNode struct {
 
 func PrintArrayOfFoundNodes(array *[]FoundNode) {
 	dbg.Printf("Print Returned Found Nodes\n", Verbose)
+	if(len(*array) == 0){
+		return
+	}
 	for i, v := range *array {
-		fmt.Printf("[%d] --> %s %s %d\n", i, v.NodeID.AsString(), v.IPAddr, v.Port)
-		/*
-		if Verbose {
-			fmt.Printf("[%d] --> %s %s %d\n", i, v.NodeID.AsString(), v.IPAddr, v.Port)
-		} else {
-			fmt.Printf("%d, %s\n", i, v.NodeID.AsString())
-		}*/
+		dbg.Printf("[%d] --> %s %s %d\n", Verbose, i, v.NodeID.AsString(), v.IPAddr, v.Port)
 	}
     return
 }

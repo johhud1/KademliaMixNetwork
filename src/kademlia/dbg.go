@@ -2,14 +2,14 @@ package kademlia
 
 import (
 	"log"
-	"os"
+	"dbg"
 	"strconv"
 	"math/rand"
 	"time"
 	"container/list"
 )
 
-var Verbose bool = false
+const Verbose bool = true
 //REVIEW: probably can trash this map struct. Since all the Make* 
 //calls now construct the path themselves with RpcPath+port#
 var kAndPaths map[*Kademlia]string
@@ -20,7 +20,7 @@ var RunningTests bool = false
 func Assert(cond bool, msg string) {
 	if !cond {
 		log.Println("assertion fail: ", msg, "\n")
-		os.Exit(1)
+		panic(1)
 	}
 }
 
@@ -83,7 +83,7 @@ func compareClosestContacts(fn []FoundNode, kadems []*Kademlia, portrange int, s
 	}
 	if(overlap < 5){
 		log.Printf("overlap of %d. Out of %d total nodes\n", overlap, portrange)
-		os.Exit(1)
+		panic(1)
 	}
 	//return retContacts
 }
@@ -168,7 +168,7 @@ func IterativeFindAndStoreTests(kadems []*Kademlia, portrange int, rounds int){
 		for counter, b := range returnedData {
 			if(data[counter]!=b){
 				log.Printf("byte %d of the datas do not match. we stored %c and got back %c\n", counter, data[counter], b)
-				os.Exit(1)
+				panic(1)
 			}
 		}
 	}
@@ -216,4 +216,19 @@ func getRandomKadem(ks []*Kademlia, pr int) (*Kademlia){
     index := rand.Intn(pr)
     k := ks[index]
     return k
+}
+
+func Printf(format string, k *Kademlia, doPrint bool, v ...interface{}){
+	if(RunningTests){
+		if(v!=nil){
+			(k.log).Printf(format, v...)
+		} else {
+			(k.log).Printf(format)
+		}
+	}
+	if(v!=nil){
+		dbg.Printf(format, doPrint, v...)
+	} else {
+		dbg.Printf(format, doPrint)
+	}
 }

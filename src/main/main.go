@@ -6,6 +6,7 @@ import (
     "log"
     "fmt"
     "flag"
+	"net/http"
     "bufio"
     "strings"
     "kademlia"
@@ -45,9 +46,9 @@ func NewDryMartiniInstruction(s string) (dmInst *DryMartiniInstruction) {
 	dmInst.CmdStr = s//store the whole string somewhere so we can print for debugging
 
 	switch strings.ToLower(strTokens[0]) {
-	case "exit" :
+	case drymartini.EXIT_CMD_STR :
 	    dmInst.flags = 1;
-    case "ping" :
+    case drymartini.PING_CMD_STR :
 	    //kademlia.Assert(len(strTokens) == 2, "Ping requires 1 argument")//ping host:port
 		if (len(strTokens) != 2) || !(strings.Contains(strTokens[1], ":")) {
 			return dmInst
@@ -55,41 +56,40 @@ func NewDryMartiniInstruction(s string) (dmInst *DryMartiniInstruction) {
 
 		dmInst.flags = 2;
 		dmInst.Addr = strTokens[1]
-	case "join" :
+	case drymartini.JOIN_CMD_STR :
 		if (len(strTokens) != 2) || !(strings.Contains(strTokens[1], ":")){
 			return dmInst
 		}
 		dmInst.flags = 3;
 		dmInst.Addr = strTokens[1]
-	case "whoami" :
+	case drymartini.WHOAMI_CMD_STR :
 	    //kademlia.Assert(len(strTokens) == 1, "GetNodeId requires 0 argument")//whoami
 		if len(strTokens) != 1 {
 			return dmInst
 		}
 	    dmInst.flags = 4;
-	case "plb" :
+	case drymartini.PLB_CMD_STR :
 		//kademlia.Assert(len(strTokens) == 1, "printLocalBuckets requires 0 arguments")//plb
 		if len(strTokens) != 1 {
 			return dmInst
 		}
 		dmInst.flags = 5
-	case "pld" :
-		//kademlia.Assert(len(strTokens) == 1, "printLocalData requires 0 arguments")//pld
+	case drymartini.PLD_CMD_STR :	//kademlia.Assert(len(strTokens) == 1, "printLocalData requires 0 arguments")//pld
 		if len(strTokens) != 1 {
 			return dmInst
 		}
 		dmInst.flags = 6
-	case "genPath" :
+	case drymartini.GENPATH_CMD_STR :
 		if len(strTokens) != 3 {
 			return dmInst
 		}
 		dmInst.flags = 7
-		dmInst.minNodes, err= strconv.Atoi(strTokens[2])
-		dmInst.maxNodes, err= strconv.Atoi(strTokens[3])
+		dmInst.minNodes, err= strconv.Atoi(strTokens[1])
+		dmInst.maxNodes, err= strconv.Atoi(strTokens[2])
 		if(err != nil){
 			log.Printf("error parsing strings to int: %s\n", err)
 		}
-	case "bc" :
+	case drymartini.BC_CMD_STR :
 		if len(strTokens) != 4 {
 			return dmInst
 		}
@@ -100,19 +100,19 @@ func NewDryMartiniInstruction(s string) (dmInst *DryMartiniInstruction) {
 		if(err != nil){
 			log.Printf("error parsing strings to int: %s\n", err)
 		}
-	case "fv" :
+	case drymartini.FV_CMD_STR :
 		if len(strTokens) != 2 {
 			return dmInst
 		}
 		dmInst.flags = 9
 		dmInst.Key, err = kademlia.FromString(strTokens[1])
-	case "plf" :
+	case drymartini.PLF_CMD_STR :
 		//kademlia.Assert(len(strTokens) == 1, "printLocalData requires 0 arguments")//pld
 		if len(strTokens) != 1 {
 			return dmInst
 		}
 		dmInst.flags = 10
-	case "send" :
+	case drymartini.SEND_CMD_STR :
 		//kademlia.Assert(len(strTokens) == 3, "send requires 2 arguments")//pld
 		if len(strTokens) != 3 {
 			return dmInst
@@ -120,7 +120,7 @@ func NewDryMartiniInstruction(s string) (dmInst *DryMartiniInstruction) {
 		dmInst.flags = 11
 		dmInst.FlowIndex, err = strconv.Atoi(strTokens[1])
 		dmInst.request = strTokens[2]
-	case "makewarmswarm" :
+	case drymartini.MAKEWARMSWARM_CMD_STR :
 		if len(strTokens) != 3 {
 			return dmInst
 		}
@@ -131,7 +131,47 @@ func NewDryMartiniInstruction(s string) (dmInst *DryMartiniInstruction) {
 			return dmInst
 		}
 		dmInst.flags = 12
+	case drymartini.RUNTESTS_CMD_STR :
+		if (len(strTokens) == 2 ) { //args: runtests [num nodes in swarm] [portrange start] [optional: seed for random generation]
+		}
+		if(len(strTokens) !=3){
+			return  dmInst
+		}
+		dmInst.minNodes, err = strconv.Atoi(strTokens[1]) //store number of test nodes here
+		dmInst.maxNodes, err = strconv.Atoi(strTokens[2]) //store start of portrange nodes will listen on
+		dmInst.flags = 13
+	case drymartini.SLEEP_CMD_STR :
+		if (len(strTokens) !=  2) { //args: 1 arg, number of seconds to sleep
+			return dmInst
+		}
+		dmInst.minNodes, err = strconv.Atoi(strTokens[1])
+		if(err != nil){
+			log.Printf("error parsing sleep time:%s\n", err)
+			return dmInst
+		}
+		dmInst.flags = 14
+	case drymartini.BLOCK_CMD_STR :
+		if (len(strTokens) != 1){
+			return dmInst
+		}
+		dmInst.flags = 15
+	case drymartini.OPEN_CMD_STR :
+		if (len(strTokens) != 1){
+			return dmInst
+		}
+		dmInst.flags = 16
+	case drymartini.GETPATH_AND_SEND_CMD_STR :
+		if (len(strTokens) != 3){
+			return dmInst
+		}
+		dmInst.minNodes, err = strconv.Atoi(strTokens[2]); if(err!= nil){
+			log.Printf("Error: main. failure parsing pathlength string for %s\n", Verbose, drymartini.GETPATH_AND_SEND_CMD_STR)
+		}
+		dmInst.maxNodes = dmInst.minNodes
+		dmInst.request = strTokens[1]
+		dmInst.flags = 17
 	}
+
 	if err != nil {
 		//?
 	}
@@ -174,6 +214,21 @@ func (dmInst *DryMartiniInstruction) IsSend() bool{
 }
 func (dmInst *DryMartiniInstruction) IsMakeSwarm() bool{
 	return dmInst.flags == 12
+}
+func (dmInst *DryMartiniInstruction) IsRunTests() bool{
+	return dmInst.flags == 13
+}
+func (dmInst *DryMartiniInstruction) IsSleep() bool{
+	return dmInst.flags == 14
+}
+func (dmInst *DryMartiniInstruction) IsBlock() bool{
+	return dmInst.flags == 15
+}
+func (dmInst *DryMartiniInstruction) IsOpen() bool{
+	return dmInst.flags == 16
+}
+func (dmInst *DryMartiniInstruction) IsBCAndSend() bool{
+	return dmInst.flags == 17
 }
 func (dmInst *DryMartiniInstruction) IsSkip() bool {
 	return dmInst.flags == 255
@@ -257,8 +312,6 @@ func (dmInst *DryMartiniInstruction) Execute(dm *drymartini.DryMartini) (status 
 		}
 		if sucess {
 			if value != nil {
-				log.Printf("IterativeFindValue: Value for key %s --> %s\n", dmInst.Key.AsString(), string(value))
-			} else {
 				log.Printf("IterativeFindValue err: success = true. value is nil\n")
 			}
 		}
@@ -267,8 +320,33 @@ func (dmInst *DryMartiniInstruction) Execute(dm *drymartini.DryMartini) (status 
 		drymartini.SendData(dm, dmInst.FlowIndex, dmInst.request)
 	case dmInst.IsMakeSwarm() :
 		log.Printf("Making swarm: numNodes:%d\n", dmInst.minNodes)
-		var swarm []*drymartini.DryMartini = drymartini.MakeSwarm(dmInst.minNodes, dmInst.maxNodes)
-		drymartini.WarmSwarm(dm, swarm)
+		var swarm []*drymartini.DryMartini = drymartini.MakeSwarm(dmInst.minNodes, dmInst.maxNodes, time.Now().UnixNano())
+		drymartini.WarmSwarm(dm, swarm, rand.New(rand.NewSource(time.Now().UnixNano())))
+	case dmInst.IsRunTests() :
+		log.Printf("Running tests: numNodes:%d\n", dmInst.minNodes)
+		drymartini.RunTests(dm, dmInst.minNodes, dmInst.maxNodes, time.Now().UnixNano(), 4, 4)
+	case dmInst.IsSleep() :
+		log.Printf("Sleeping %d ms\n", dmInst.minNodes)
+		time.Sleep(time.Millisecond * time.Duration(dmInst.minNodes))
+	case dmInst.IsBlock() :
+		fmt.Printf("Blocking comm on node\n")
+		log.Printf("Blocking comm on this node\n")
+		dm.KademliaInst.KListener.Close()
+	case dmInst.IsOpen() :
+		fmt.Printf("Accepting comm on node again\n")
+		log.Printf("Accepting comms again\n")
+		go http.Serve(dm.KademliaInst.KListener, nil)
+	case dmInst.IsBCAndSend() :
+		log.Printf("bc and send\n")
+		success, index := drymartini.FindGoodPath(dm)
+		if(!success){
+			success, index = drymartini.BarCrawl(dm, dmInst.request, dmInst.minNodes, dmInst.maxNodes)
+			if (!success){
+				log.Printf("Error: main. bcandsend; bc failed\n")
+				return
+			}
+		}
+		drymartini.SendData(dm, index, dmInst.request)
 	}
 	return false
 }
@@ -309,8 +387,14 @@ func main() {
 		//ret, err := fmt.Scanln(&instStr)
 		instStr, err = stdInReader.ReadString('\n')
 		if err != nil {
-			log.Printf("Error at Scanf: %s\n", err)
-			panic(1)
+			if(err.Error()!="EOF"){
+				log.Printf("Error at Scanf: %s\n", err)
+				panic(1)
+			} else {
+				fmt.Printf("node:%s done. sleeping 10 secs, then exiting\n", drymart.KademliaInst.ContactInfo.AsString())
+				time.Sleep(10*time.Second)
+				instStr = "exit"
+			}
 		}
 
 		//parse line input and create command struct

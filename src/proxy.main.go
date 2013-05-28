@@ -16,10 +16,12 @@ import (
 	//"fmt"
 	"dbg"
 	"net"
-	//"os"
+	"os"
 )
 
 var myDryMartini *drymartini.DryMartini
+const maxArgs = 4
+const minArgs = 3
 const DefaultCircLength int = 3
 var pVerb = false
 
@@ -34,48 +36,57 @@ type DryProxyInstruction struct {
 }
 func main() {
     var err error
-	var args []string
-	var listenStr string
-	var dmListenStr string = "localhost:8000"
-	var connectStr string
+	var listenStr = flag.String("proxy", "8888", "Proxy listen port (the port you point your browser to)")
+	var dmListenStr = flag.String("d", "localhost:8000", "DryMartini listen address")
+	var connectStr = flag.String("c", "", "DryMartini node to connect to")
+	var isTest = flag.Bool("test", false, "Indicate this node will be used for running test suite")
+	var seed int64
+	flag.Int64Var(&seed, "s", time.Now().UnixNano(), "seed to use for random generation")
 
 	// Get the bind and connect connection strings from command-line arguments.
+
 	flag.Parse()
-	args = flag.Args()
-	if len(args) > 3 || len(args) < 2{
-		log.Fatal("Must be invoked with exactly two arguments: proxy port, first DM node to contact, (Optional: port for DryMartini to listen)!\n")
-	}
-	if (len(args) == 3){
-		log.Printf("setting DM to listen on port :%s\n", args[2])
-		dmListenStr = args[2]
-	} else {
-		log.Printf("Proxy listening for connects from:%s. DM listening on port:%s\n", args[0], dmListenStr)
-	}
 
-    listenStr = args[0]
-    connectStr = args[1]
+	log.Printf("proxy listening on:%s\n", *listenStr)
+	log.Printf("DryMartini opening on:%s\n", *dmListenStr)
+	log.Printf("DryMartini node connecting to:%s\n", *connectStr)
+	log.Printf("is Test:%t\n", *isTest)
 
-	rand.Seed(time.Now().UnixNano())
-
-    //instantiate
-    myDryMartini = drymartini.NewDryMartini(dmListenStr, 4096)
-	success, err := MakePing(myDryMartini, connectStr)
-	if(!success){
-		log.Printf("connect to %s failed. err:%s\n", connectStr, err)
+	kademlia.RunningTests = *isTest
+	kademlia.TestStartTime = time.Now().Local()
+	err = os.Mkdir("./logs/", os.ModeDir)
+	logfile, err := os.Create("./logs/complete_log_"+kademlia.TestStartTime.String())
+	if(err!=nil){
+		log.Printf("error creating main log:%s\n", err)
 		panic(1)
 	}
+	dbg.InitDbgOut(logfile)
+
+	rand.Seed(seed)
+
+    //instantiate
+    myDryMartini = drymartini.NewDryMartini(*dmListenStr, 4096)
+
+	if(*connectStr != ""){
+		success, err := MakePing(myDryMartini, *connectStr)
+		if(!success){
+			log.Printf("connect to %s failed. err:%s\n", connectStr, err)
+			panic(1)
+		}
+		drymartini.DoJoin(myDryMartini)
+	}
+
 	/*
 	host, port, errr := kademlia.AddrStrToHostPort(connectStr)
 	var swarm []*drymartini.DryMartini = drymartini.MakeSwarm(8, int(port))
 	drymartini.WarmSwarm(myDryMartini, swarm)
 	*/
-	drymartini.DoJoin(myDryMartini)
 
 	kademlia.PrintLocalBuckets(myDryMartini.KademliaInst)
 
 	proxy := goproxy.NewProxyHttpServer()
 	proxy.OnRequest().DoFunc(DoHTTPRequest)
-	log.Fatal(http.ListenAndServe(":"+listenStr, proxy))
+	log.Fatal(http.ListenAndServe(":"+*listenStr, proxy))
 	/*
 	var stdInReader *bufio.Reader = bufio.NewReader(os.Stdin)
 	var instStr string
@@ -108,19 +119,16 @@ func main() {
 		}
 	}
 	*/
+	log.Printf("end of main\n")
 }
 
 func DoHTTPRequest(r *http.Request,ctx *goproxy.ProxyCtx)(*http.Request, *http.Response){
 	var success bool
 	var flowIndex int
 	var response string
-	success, flowIndex = drymartini.FindGoodPath(myDryMartini)
+	success, flowIndex = drymartini.FindOrGenPath(myDryMartini, DefaultCircLength, DefaultCircLength)
 	if (!success){
-		success, flowIndex= drymartini.BarCrawl(myDryMartini, "buildingCircuitForProxy", DefaultCircLength, DefaultCircLength)
-		if(!success){
-			log.Printf("there was an error building the circuit!\n")
-			return r, goproxy.NewResponse(r, goproxy.ContentTypeText, http.StatusInternalServerError, "error building circuit")
-		}
+		return r, goproxy.NewResponse(r, goproxy.ContentTypeText, http.StatusInternalServerError, "error building circuit")
 	}
 	response, success = drymartini.SendData(myDryMartini, flowIndex, r.URL.String())
 	if(!success){

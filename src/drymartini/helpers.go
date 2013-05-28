@@ -25,7 +25,3 @@ func (mc *MartiniContact) GetReadyContact() *MartiniContactReady {
 
     return mcr
 }
-
-
-
-

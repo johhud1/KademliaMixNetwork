@@ -5,10 +5,9 @@ import (
     "net"
     "net/rpc"
     //"net/http"
-    "log"
-    "os"
     "strconv"
 	//"fmt"
+	"log"
     "crypto/rsa"
     //"crypto/sha1"
     "crypto/rand"
@@ -95,8 +94,8 @@ func NewDryMartini(listenStr string, keylen int) *DryMartini {
     //Initialize key pair
     dm.KeyPair, err = rsa.GenerateKey(rand.Reader, keylen)
     if err != nil {
-        log.Printf("Failed to generate key! %s", err)
-        os.Exit(1)
+        dbg.Printf("Failed to generate key! %s", true, err)
+        panic(1)
     }
 
     //Initialize flow struct
@@ -109,13 +108,13 @@ func NewDryMartini(listenStr string, keylen int) *DryMartini {
 	host, port, err = kademlia.AddrStrToHostPort(listenStr)
 
 	//Initialize our Kademlia
-	//dm.KademliaInst, s = kademlia.NewKademlia(listenStr, rpcPath)
-	portStr := strconv.FormatUint(uint64(port), 10)
-	var rpcPathStr string = kademlia.RpcPath+portStr
-	//dbg.Printf("making new Kademlia with listenStr:%s, rpcPath\n", Verbose, listenStr, rpcPathStr)
+	//portStr := strconv.FormatUint(uint64(port), 10)
+	//var rpcPathStr string = kademlia.RpcPath+portStr
+	var rpcPathStr = "junk"
+	dbg.Printf("making new Kademlia with listenStr:%s, rpcPath\n", Verbose, listenStr, rpcPathStr)
 
-	dbg.Printf("NewDryMartini: making new Kademlia with NodeIP: %s. NodePort:%s\n", Verbose, dm.myMartiniContact.NodeIP, dm.myMartiniContact.NodePort)
 	dm.KademliaInst, s = kademlia.NewKademlia(listenStr, &rpcPathStr)
+	kademlia.BucketsAsArray(dm.KademliaInst)
 
 	//myMartiniContact <- ip, port, public key
 	dm.myMartiniContact.NodeIP = host.String()
@@ -123,18 +122,20 @@ func NewDryMartini(listenStr string, keylen int) *DryMartini {
 	dm.myMartiniContact.PubKey = dm.KeyPair.PublicKey.N.String()
 	dm.myMartiniContact.PubExp = dm.KeyPair.PublicKey.E
 
+	dbg.Printf("NewDryMartini: making new Kademlia with NodeIP: %s. NodePort:%d\n", Verbose, dm.myMartiniContact.NodeIP, dm.myMartiniContact.NodePort)
+
 	/*
 	if Verbose {
-		log.Printf("NodeIP: %s\n", dm.myMartiniContact.NodeIP)
-		log.Printf("NodePort: %d\n", dm.myMartiniContact.NodePort)
-		log.Printf("PubKey: %s\n", dm.myMartiniContact.PubKey)
-		log.Printf("PubExp: %d\n", dm.myMartiniContact.PubKey)
+		dbg.Printf("NodeIP: %s\n", dm.myMartiniContact.NodeIP)
+		dbg.Printf("NodePort: %d\n", dm.myMartiniContact.NodePort)
+		dbg.Printf("PubKey: %s\n", dm.myMartiniContact.PubKey)
+		dbg.Printf("PubExp: %d\n", dm.myMartiniContact.PubKey)
 	}*/
 	//register
 	err = s.Register(dm)
 	if err != nil {
-        log.Printf("Failed to register Drymartini! %s", err)
-        os.Exit(1)
+        dbg.Printf("Failed to register Drymartini! %s", true, err)
+        panic(1)
 	}
 
 
@@ -142,8 +143,10 @@ func NewDryMartini(listenStr string, keylen int) *DryMartini {
 }
 
 func FindGoodPath(dm *DryMartini) (bool, int){
+	dbg.Printf("FindGoodPath: FlowIndexToFlowID map:%+v\n", Verbose, dm.MapFlowIndexToFlowID)
 	for index, flowInfo := range dm.MapFlowIndexToFlowID{
 		if (time.Now().Before(flowInfo.expireAt)){
+			dbg.Printf("FindGoodPath: returning index:%d\n", Verbose, index)
 			return true, index
 		}
 	}
@@ -175,16 +178,21 @@ func DoJoin(dm *DryMartini) (bool) {
 	return true
 }
 
+//stores dm's contactInfo in the DHT
 func StoreContactInfo(dm *DryMartini) {
 	var err error
 	var mcBytes []byte
 	var key kademlia.ID = dm.KademliaInst.ContactInfo.NodeID.SHA1Hash()
 	mcBytes, err = json.Marshal(dm.myMartiniContact)
-	dbg.Printf("error marshaling MartiniContact: %s\n", (err!=nil), err)
+	if(err!=nil){
+		dbg.Printf("error marshalling MartiniContact: %s\n", true, err)
+	}
 
 	var m MartiniContact
 	err = json.Unmarshal(mcBytes, &m)
-	dbg.Printf("error: drymartini.PrintLocalData %s\n", (err!=nil), err)
+	if(err!= nil){
+		dbg.Printf("error: drymartini.PrintLocalData %s\n", (err!=nil), err)
+	}
 	dbg.Printf("Print HashMap[%s]=%+v\n", Verbose, key.AsString(), m)
 
 
@@ -210,6 +218,7 @@ func NewMartiniPick(from *MartiniContact, to *MartiniContact) (pick *MartiniPick
 	return
 }
 
+//encrypts data with pathKeys
 //pathKeys  are in order of closest Nodes key to furthest 
 func WrapOlivesForPath(dm *DryMartini, flowID UUID, pathKeyFlows []FlowIDSymmKeyPair, Data []byte)  []byte{
 	var err error
@@ -223,13 +232,13 @@ func WrapOlivesForPath(dm *DryMartini, flowID UUID, pathKeyFlows []FlowIDSymmKey
 	innerOlive.FlowID = flowID
 
 	innerOlive.Data = Data
-    //log.Printf("We are packaging data: %s", string(Data))
+    //dbg.Printf("We are packaging data: %s", string(Data))
 
 	var theData []byte
 	theData, err = json.Marshal(innerOlive)
 	if (err != nil){
-		log.Printf("error marshalling inner Olive:%+v\n", innerOlive)
-		os.Exit(1)
+		dbg.Printf("error marshalling inner Olive:%+v\n", ERRORS, innerOlive)
+		panic(1)
 	}
 
 	var tempOlive Olive
@@ -243,15 +252,16 @@ func WrapOlivesForPath(dm *DryMartini, flowID UUID, pathKeyFlows []FlowIDSymmKey
 		//marshal the temp Olive 
 		theData, err = json.Marshal(tempOlive)
 		if (err != nil){
-				log.Printf("error marshalling Olive:%+v, err:%s\n", tempOlive, err)
-				os.Exit(1)
+				dbg.Printf("error marshalling Olive:%+v, err:%s\n", ERRORS, tempOlive, err)
+				panic(1)
 		}
 	}
-    //log.Printf("USING SymmKEY and FlowID: %v\n", pathKeyFlows[0])
+    //dbg.Printf("USING SymmKEY and FlowID: %v\n", pathKeyFlows[0])
 	theData = EncryptDataSymm(theData, pathKeyFlows[0].SymmKey)
 	return theData
 }
 
+//decrypts encrypted data with pathKeys
 //pathKeys  are in order of closest Nodes key to furthest 
 func UnwrapOlivesForPath(dm *DryMartini, pathKeys []FlowIDSymmKeyPair, Data []byte)  []byte{
 	var err error
@@ -265,22 +275,23 @@ func UnwrapOlivesForPath(dm *DryMartini, pathKeys []FlowIDSymmKeyPair, Data []by
 
     for i := 0; i < pathLength; i++ {
 		//encrypt the Data (using furthest nodes key) and put it into tempOlive
+        dbg.Printf("UnwrapOlivesForPath; (len(pathkey)=%d) (len(theData)=%d) decrypting USING SYMMKEY and FLOWID: %+v\n", Verbose, len(pathKeys), len(theData), pathKeys[i])
 		decData = DecryptDataSymm(theData, pathKeys[i].SymmKey)
-        //log.Printf("USING SYMMKEY and FLOWID: %+v\n", pathKeys[i])
 
 		//marshal the temp Olive 
 		err = json.Unmarshal(decData, &tempOlive)
 		if (err != nil){
-				log.Printf("error marshalling Olive:%+v, err:%s\n", tempOlive, err)
-				os.Exit(1)
+				dbg.Printf("error marshalling Olive:%+v, err:%s\n", ERRORS, tempOlive, err)
+				panic(1)
 		}
 		theData = tempOlive.Data
 	}
 	return theData
 }
 
-
+//returns array of random known-to-be-live MartiniContacts (for use as a path)
 func GeneratePath(dm *DryMartini, min, max int) (mcPath []MartiniContact){
+	const safetyMax int = 50
 	var err error
 	//var threshold int
 	//var myRand *big.Int
@@ -291,37 +302,49 @@ func GeneratePath(dm *DryMartini, min, max int) (mcPath []MartiniContact){
 	//threshold = int((minBig.Int64() + myRand.Int64()))
 	mcPath = make([]MartiniContact, max)
 	var safetyCounter int = 0
-	for i := 0; (safetyCounter < 1000) && (i< max); i++ {
+	for i := 0; (i< max); i++ {
 		var foundNodes []kademlia.FoundNode
 		var success bool
 		safetyCounter++
+		dbg.Printf("Attempt %d to add to path (curlength %d)\n", Verbose, safetyCounter, i)
+		if(safetyCounter == safetyMax){
+			dbg.Printf("GeneratePath failure. Made %d attempts. unable to get enough MartiniContacts to build path of length:%d\n", ERRORS, safetyMax, max)
+			panic(1)
+		}
 		randId = kademlia.NewRandomID()
 		success, foundNodes, _, err = kademlia.IterativeFind(dm.KademliaInst, randId, 1)
+		if(len(foundNodes) == 0){
+			dbg.Printf("GeneratePath:316. no nodes found; continueing\n", Verbose)
+			i--
+			continue
+		}
 
 /*
-		log.Printf("GeneratePath: found live nodes:\n")
+		dbg.Printf("GeneratePath: found live nodes:\n")
 		kademlia.PrintArrayOfFoundNodes(&foundNodes)
 		*/
 
 		if(err != nil){
-			log.Printf("error finding nodeID:%s, success:%s msg:%s\n", randId, success, err);
-			os.Exit(1)
+			dbg.Printf("error finding random NodeID:%s, success:%s msg:%s\n", ERRORS, randId, success, err);
+			panic(1)
 		}
 		fuckthis, fuckingo := rand.Int(rand.Reader, big.NewInt(int64(len(foundNodes))))
-		dbg.Printf("error making rand:%s\n", (fuckingo!=nil),fuckingo)
+		if(fuckingo!=nil){
+			dbg.Printf("error making rand:%s\n", ERRORS, fuckingo)
+		}
 		index := int(fuckthis.Int64())
 		var hashedID kademlia.ID = foundNodes[index].NodeID.SHA1Hash()
 		dbg.Printf("generatePath: findMartiniContact for mc:%+v\n", Verbose, foundNodes[index])
 		var tempMC MartiniContact
 		tempMC, success = findMartiniContact(dm, hashedID)
 		if !success {
-			log.Printf("error finding MartiniContact with key:%s. err:%s\n", hashedID.AsString(), err)
+			dbg.Printf("error finding MartiniContact with key:%s. err:%s\n", ERRORS, hashedID.AsString(), err)
 			i--
 			continue
 		}
 		_, alreadyInPath := pathMap[tempMC]
 		if(alreadyInPath){
-			dbg.Printf("trying to make a circular path. nahah girlfriend. skipping!\n", Verbose)
+			dbg.Printf("trying to make a circular path. skipping!\n", Verbose)
 			i--
 			continue
 		} else {
@@ -329,11 +352,13 @@ func GeneratePath(dm *DryMartini, min, max int) (mcPath []MartiniContact){
 			mcPath[i] = tempMC
 		}
 		//err = json.Unmarshal(mcBytes, &mcPath[i])
-		//log.Printf("GeneratePath %+v\n", mcPath[i])
+		dbg.Printf("GeneratePath path-mid-build: %+v\n", Verbose, mcPath)
 	}
 	return
 }
 
+
+//given an ID, searches the local store, DHT, and if found unmarshals the bytes into a MartiniContact
 func findMartiniContact(dm *DryMartini, hashedID kademlia.ID) (MartiniContact, bool){
 	var mcBytes []byte
 	var mc MartiniContact
@@ -344,27 +369,42 @@ func findMartiniContact(dm *DryMartini, hashedID kademlia.ID) (MartiniContact, b
 	if !success {
 		success, _, mcBytes, err = kademlia.IterativeFind(dm.KademliaInst, hashedID, 2)
 		if(err != nil) {
-			log.Printf("error finding MartiniContact with key:%s. err:%s\n", hashedID.AsString(), err)
-			os.Exit(1)
+			dbg.Printf("findingMartiniContact failed. searching for key:%s. err:%s\n", ERRORS, hashedID.AsString(), err)
+			return mc, false
 		}
 		if success {
 			dbg.Printf("findMartiniContact: foundValue\n", Verbose)
 		} else {
-			log.Printf("IterativeFind failed to findvalue for key:%s\n",hashedID.AsString())
+			dbg.Printf("IterativeFind failed to findvalue for key:%s\n", ERRORS, hashedID.AsString())
 			return mc, false
 		}
 	} else {
-		//log.Printf("found martiniContact locally. Key:%+v\n", hashedID)
+		//dbg.Printf("found martiniContact locally. Key:%+v\n", hashedID)
 	}
 	err = json.Unmarshal(mcBytes, &mc)
-	log.Printf("findMartiniContact: 'foundContact.NodeIP:%s, Port:%d\n", mc.NodeIP, mc.NodePort)
+	dbg.Printf("findMartiniContact: 'foundContact.NodeIP:%s, Port:%d\n", Verbose, mc.NodeIP, mc.NodePort)
 	if err != nil {
-		log.Printf("Error unmarshaling found MartiniContact. %s\n", err)
-		os.Exit(1)
+		dbg.Printf("Error unmarshaling found MartiniContact. %s\n", ERRORS, err)
+		panic(1)
 	}
 	return mc, true
 }
 
+//check our list of existing paths, to see if there are any that haven't expired. Otherwise generate a new one
+func FindOrGenPath(mDM *DryMartini, minLength int, maxLength int) (bool, int){
+	var success bool
+	var flowIndex int
+	success, flowIndex = FindGoodPath(mDM)
+	if (!success){
+		success, flowIndex= BarCrawl(mDM, "buildingCircuitForProxy", minLength, maxLength)
+		if(!success){
+			dbg.Printf("there was an error building the circuit!\n", ERRORS)
+		}
+	}
+	return success, flowIndex
+}
+
+//send Data using the path info stored at FlowIndex
 func SendData(dm *DryMartini, flowIndex int, data string) (response string, success bool) {
 	var flowInfo FlowInfo
 	var flowID UUID
@@ -372,7 +412,7 @@ func SendData(dm *DryMartini, flowIndex int, data string) (response string, succ
 	//map index to flowID
 	flowInfo, found = dm.MapFlowIndexToFlowID[flowIndex]
 	if !found {
-		log.Printf("No map from flowIndex to flowID\n")
+		dbg.Printf("No map from flowIndex to flowID\n", ERRORS)
 		return "",false
 	} else {
 		flowID = flowInfo.FlowID
@@ -392,12 +432,12 @@ func SendData(dm *DryMartini, flowIndex int, data string) (response string, succ
 	var responseData []byte
     success, encResponseData = MakeSendCall(sendingOlive, nextNodeAddrStr)
     if !success {
-        log.Printf("Some terrible error happened while sending\n")
+        dbg.Printf("Some terrible error happened while sending\n", ERRORS)
 		return  "", false
     }
 	//unwrap data
 	responseData = UnwrapOlivesForPath(dm, dm.Momento[flowID], encResponseData)
-	//log.Printf("SEND REPLY: %s\n", string(responseData))
+	log.Printf("SEND REPLY: %s\n", string(responseData))
 
 
 	return string(responseData), true
